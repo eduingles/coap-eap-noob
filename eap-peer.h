@@ -1,4 +1,4 @@
-/* 
+/*
  *  Copyright (C) Pedro Moreno Sánchez on 25/04/12.
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -13,8 +13,8 @@
 
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *  
- *  
+ *
+ *
  *  https://sourceforge.net/projects/openpana/
  */
 
@@ -25,7 +25,7 @@
 #include "include.h"
 #include "eap-psk.h"
 
-#define EAP_MSG_LEN 100
+#define EAP_MSG_LEN 512
 
 
 //struct of a eap message

@@ -1,4 +1,4 @@
-/* 
+/*
  *  Copyright (C) Pedro Moreno Sánchez on 25/04/12.
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -13,8 +13,8 @@
 
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *  
- *  
+ *
+ *
  *  https://sourceforge.net/projects/openpana/
  */
 
@@ -29,10 +29,10 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ipv6/uip-debug.h"
 
-#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
-#define UIP_UDP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
+// #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+// #define UIP_UDP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-#define MAX_PAYLOAD_LEN 180 //520
+#define MAX_PAYLOAD_LEN 2048
 
 //Data types
 #define TRUE 1
@@ -61,6 +61,7 @@
 #define IDENTITY 1
 #define DUMMY 6
 #define EAP_PSK 47
+#define EAP_NOOB 90
 #define INIT 7
 #define DONE 8
 #define CONT 9
