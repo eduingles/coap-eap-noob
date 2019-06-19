@@ -33,4 +33,15 @@
 
 #include "eap-peer.h"
 
+enum {
+    EAP_NOOB_NONE,
+    EAP_NOOB_TYPE_1,
+    EAP_NOOB_TYPE_2,
+    EAP_NOOB_TYPE_3,
+    EAP_NOOB_TYPE_4,
+    EAP_NOOB_TYPE_5,
+    EAP_NOOB_TYPE_6,
+    EAP_NOOB_TYPE_7
+};
+
 #endif

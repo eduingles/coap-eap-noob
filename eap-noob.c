@@ -31,8 +31,8 @@
 #include "eap-noob.h"
 #include "include.h"
 #include "aes.h"
-// #include "jsontree.h"
-// #include "jsonparse.h"
+#include "jsontree.h"
+#include "jsonparse.h"
 
 #define reqId ((struct eap_msg *)eapReqData)->id
 #define reqMethod ((struct eap_msg *)eapReqData)->method
@@ -40,6 +40,26 @@
 #define reqLength ((struct eap_msg *)eapReqData)->length
 
 static uint8_t data[1024];
+
+/**
+ * json_integer_value : Helper method, get int value of keys
+ * @json : JSON object
+ * @key : key
+ * Returns : value corresponding to key
+**/
+int json_integer_value(struct jsonparse_state *state, const char *str)
+{
+    int type;
+    while((type = jsonparse_next(state)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            if(jsonparse_strcmp_value(state, str) == 0) {
+                jsonparse_next(state);
+                return jsonparse_get_value_as_int(state);
+            }
+        }
+    }
+    return -1;
+}
 
 /**
  * initMethodEap :
@@ -59,33 +79,48 @@ uint8_t check(const uint8_t *eapReqData)
 }
 
 /**
- * process :
+ * eap_noob_process :
  * @eapReqData : EAP request data
  * @methodState :
  * @decision :
 **/
 void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision)
 {
-	if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
-        uint8_t len = NTOHS(reqLength);
-        uint8_t it;
-        for (it = 5; it < len; it++) {
-            printf ("%c", eapReqData[it]);
+    if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
+        memcpy(data, eapReqData+5, NTOHS(reqLength));
+
+        struct jsonparse_state req_obj;
+        jsonparse_setup(&req_obj, data, strlen(data));
+
+        *(methodState) = CONT;
+        *(decision) = FAIL;
+
+        int msgtype;
+        msgtype = json_integer_value(&req_obj, "Type");
+
+        switch (msgtype) {
+            case EAP_NOOB_TYPE_1:
+                printf("Message type 1:\n\n");
+                printf("%s\n", data);
+                break;
+            case EAP_NOOB_TYPE_2:
+            case EAP_NOOB_TYPE_3:
+            case EAP_NOOB_TYPE_4:
+            case EAP_NOOB_TYPE_5:
+            case EAP_NOOB_TYPE_6:
+            case EAP_NOOB_TYPE_7:
+            default:
+                printf("EAP-NOOB: Unknown EAP-NOOB request received");
+                break;
         }
-        printf("\n");
 	}
 }
 
 /**
- * buildResp :
+ * eap_noob_buildResp :
  * @eapReqData : EAP request data
  * @identifier :
 **/
 void eap_noob_buildResp(uint8_t *eapRespData, const uint8_t identifier)
 {
-    printf("EDU: %s\n", __func__);
-    printf("%s\n", data);
-
-
-    
 }

@@ -83,7 +83,7 @@ char URIcheck[10] = {0};
 uint16_t URIcheck_len;
 
 
-CoapPDU *response, *request;	
+CoapPDU *response, *request;
 
 
 static void
@@ -92,7 +92,7 @@ tcpip_handler(void)
 
 	if(uip_newdata()) {
 
-#if TICKS		
+#if TICKS
 	printf("tick %d\n",last_seq_id);
 #endif
 
@@ -105,20 +105,20 @@ tcpip_handler(void)
 
 		// Store last message received
 		memcpy(received, uip_appdata, uip_datalen());
-		_CoapPDU_buf_withCPDU(request, (uint8_t*)uip_appdata,uip_datalen());	
+		_CoapPDU_buf_withCPDU(request, (uint8_t*)uip_appdata,uip_datalen());
 
 		if(!validate(request))
-			return; 
+			return;
 
 		getURI(request, URIcheck, 10, &URIcheck_len);
 		if(memcmp(URIcheck, URI , URIcheck_len) != 0)
-			return;					
+			return;
 
-		if(last_seq_id >= ntohs(getMessageID(request)) 
+		if(last_seq_id >= ntohs(getMessageID(request))
 			|| getType(request) == COAP_ACKNOWLEDGEMENT  )
-			return;		
+			return;
 
-			unsigned char *payload, *ptr; 
+			unsigned char *payload, *ptr;
 			uint8_t mac2check[16] 	={0};
 			uint8_t mac[16] 	={0};
 			uint8_t responsecode = COAP_CHANGED;
@@ -155,10 +155,10 @@ tcpip_handler(void)
 					URI[5] = '/';
 					URI[6] = '0' + (rand() % 9);
 				}
-			
+
 			//else if((getCode(request) == COAP_PUT)){ // EAP EXCHANGE FINISHED
 			else{
-				if(eapKeyAvailable){ 	
+				if(eapKeyAvailable){
 
 					do_omac(msk_key, sequence, 26, auth_key);
 					authKeyAvailable = TRUE;
@@ -170,25 +170,25 @@ tcpip_handler(void)
 					// Zeroing the mac in meesage
 					memcpy(getPDUPointer(request)+getPDULength(request)-16-5,&mac,16);
 					// Setting the MAC
-					do_omac(auth_key, getPDUPointer(request),getPDULength(request), mac);				
+					do_omac(auth_key, getPDUPointer(request),getPDULength(request), mac);
 
 					if(memcmp(&mac2check, &mac,16) != 0)
 					{
-						printf("error");		
+						printf("error");
 					}
 
-					memset(mac2check,0,16);	
+					memset(mac2check,0,16);
 
 
 				}
 
-#if TICKS		
+#if TICKS
 				printf("tick eap in(%d)\n",last_seq_id);
 #endif
 				eapReq = TRUE;
 				payload = getPayloadPointer(request);
 				eap_peer_sm_step(payload);
-#if TICKS		
+#if TICKS
 				printf("tick eap out(%d)\n",last_seq_id);
 #endif
 
@@ -196,10 +196,10 @@ tcpip_handler(void)
 			}
 			else{
 				// Es el ACK del GET
-				return;	
+				return;
 			}
 
-#if TICKS		
+#if TICKS
 	printf("tick %d\n",last_seq_id);
 #endif
 
@@ -209,7 +209,7 @@ tcpip_handler(void)
 			setCode(response,responsecode);
 			setToken(response,
 					getTokenPointer(request),
-					(uint8_t)getTokenLength(request));	
+					(uint8_t)getTokenLength(request));
 
 			setMessageID(response,getMessageID(request));
 
@@ -218,7 +218,7 @@ tcpip_handler(void)
 			if((getCode(request) == COAP_POST)){
 
 				if(! state){
-					state++; 
+					state++;
 					_setURI(response,&URI[0],7);
 					setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request));
 				}
@@ -235,13 +235,13 @@ tcpip_handler(void)
 							getPDULength(response), mac2check);
 					memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16);
 				}
-			}		
-#if TICKS		
+			}
+#if TICKS
 	printf("tick %d\n",last_seq_id);
 #endif
 
 			uip_udp_packet_send(client_conn, getPDUPointer(response), (size_t)getPDULength(response));
-#if TICKS		
+#if TICKS
 	printf("tick %d\n",last_seq_id);
 #endif
 
@@ -268,7 +268,7 @@ tcpip_handler(void)
 	static void
 timeout_handler(void)
 {
-	etimer_stop(&et);		
+	etimer_stop(&et);
 
 	last_seq_id = 0;
 	etimer_restart(&et);
@@ -289,7 +289,7 @@ timeout_handler(void)
 
 	printf("tick init\n");
 
-	reset(request);	
+	reset(request);
 	setVersion(request,1);
 	setType(request,COAP_CONFIRMABLE);
 	setCode(request,COAP_POST);
@@ -298,11 +298,11 @@ timeout_handler(void)
 	setMessageID(request,htons(0x0000));
 	_setURI(request,"/boot",5);// CoAP URI to start communication with CoAP-EAP Controller
 
-#if TICKS		
+#if TICKS
 	printf("tick init\n");
 #endif
 	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
-#if TICKS		
+#if TICKS
 	printf("tick init\n");
 #endif
 	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
@@ -390,14 +390,11 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	response = _CoapPDU();
 
 	while(1) {
-		printf("EDU: While loop\n");
 		PROCESS_YIELD();
-		printf("EDU: After process Yield\n");
 		if(etimer_expired(&et) ) {
-			printf("EDU: pre timeout_handler()\n");
 			timeout_handler();
 		} else if(ev == tcpip_event) {
-			printf("EDU: pre tcpip_handler()\n");
+
 			tcpip_handler();
 		}
 	}
@@ -406,4 +403,3 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
-
