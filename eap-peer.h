@@ -23,9 +23,9 @@
 #define EAP_PEER
 
 #include "include.h"
-#include "eap-psk.h"
+#include "eap-noob.h"
 
-#define EAP_MSG_LEN 512
+#define EAP_MSG_LEN 500
 
 
 //struct of a eap message

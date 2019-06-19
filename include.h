@@ -32,7 +32,7 @@
 // #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 // #define UIP_UDP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-#define MAX_PAYLOAD_LEN 2048
+#define MAX_PAYLOAD_LEN 500
 
 //Data types
 #define TRUE 1

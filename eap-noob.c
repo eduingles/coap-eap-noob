@@ -31,8 +31,8 @@
 #include "eap-noob.h"
 #include "include.h"
 #include "aes.h"
-#include "jsontree.h"
-#include "jsonparse.h"
+// #include "jsontree.h"
+// #include "jsonparse.h"
 
 #define reqId ((struct eap_msg *)eapReqData)->id
 #define reqMethod ((struct eap_msg *)eapReqData)->method
@@ -64,7 +64,7 @@ uint8_t check(const uint8_t *eapReqData)
  * @methodState :
  * @decision :
 **/
-void process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision)
+void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision)
 {
 	if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
         uint8_t len = NTOHS(reqLength);
@@ -81,7 +81,11 @@ void process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision)
  * @eapReqData : EAP request data
  * @identifier :
 **/
-void buildResp(uint8_t *eapRespData, const uint8_t identifier)
+void eap_noob_buildResp(uint8_t *eapRespData, const uint8_t identifier)
 {
+    printf("EDU: %s\n", __func__);
     printf("%s\n", data);
+
+
+    
 }
