@@ -47,6 +47,7 @@
 
 #define START_INTERVAL      5 * CLOCK_SECOND
 #define SEND_INTERVAL	    5 * CLOCK_SECOND
+#define TIMEOUT_INTERVAL    5 * CLOCK_SECOND
 
 #include "eap-peer.h"
 
@@ -253,11 +254,11 @@ tcpip_handler(void)
 	if(authKeyAvailable){
 		nAuth++;
 		printf("tick finish\n");
-		etimer_set(&et, 5 * CLOCK_SECOND);
+		etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
 		return;
 	}
 
-	etimer_set(&et, 5 * CLOCK_SECOND);
+	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
 
 
 }
@@ -295,7 +296,7 @@ timeout_handler(void)
 	int token=1;
 	setToken(request,(uint8_t*)&token,4);
 	setMessageID(request,htons(0x0000));
-	_setURI(request,"/boot",5);
+	_setURI(request,"/boot",5); // CoAP URI to start communication with CoAP-EAP Controller
 
 #if TICKS
 	printf("tick init\n");
@@ -304,7 +305,7 @@ timeout_handler(void)
 #if TICKS
 	printf("tick init\n");
 #endif
-	etimer_set(&et, 5 * CLOCK_SECOND);
+	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
 
 
 }
