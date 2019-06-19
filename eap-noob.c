@@ -31,6 +31,8 @@
 #include "eap-noob.h"
 #include "include.h"
 #include "aes.h"
+#include "jsontree.h"
+#include "jsonparse.h"
 
 #define reqId ((struct eap_msg *)eapReqData)->id
 #define reqMethod ((struct eap_msg *)eapReqData)->method

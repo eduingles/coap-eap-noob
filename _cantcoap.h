@@ -16,6 +16,11 @@
 
 #define DBG_NEWLINE "\n"
 
+// Maximum payload size for CoAP
+//  500 for EAP-NOOB
+//  110 for EAP-PSK
+#define COAP_PAYLOAD_SIZE 500
+
 #define INFO(...) printf(__VA_ARGS__); printf(DBG_NEWLINE);
 #define INFOX(...); printf(__VA_ARGS__);
 #define ERR(...) printf(__VA_ARGS__); printf(DBG_NEWLINE);
@@ -70,7 +75,7 @@ typedef enum type {
 	COAP_ACKNOWLEDGEMENT=0x20,
 	COAP_RESET=0x30
 } Type;
-		
+
 		// CoAP response codes.
 typedef enum code {
 	COAP_EMPTY=0x00,
@@ -151,9 +156,9 @@ typedef struct CoapOption {
 
 		// construction and destruction
 typedef struct CoapPDU
-{	
+{
 	// variables
-	uint8_t _pdu[110];
+	uint8_t _pdu[COAP_PAYLOAD_SIZE];
 	int _pduLength;
 
 	int _constructedFromBuffer;
@@ -165,7 +170,7 @@ typedef struct CoapPDU
 	int _numOptions;
 	uint16_t _maxAddedOptionNumber;
 } CoapPDU;
-		
+
 
 CoapPDU * _CoapPDU();
 CoapPDU * _CoapPDU_buf(uint8_t *pdu, int pduLength);
@@ -214,10 +219,10 @@ int computeExtraBytes(CoapPDU *coap_pdu, uint16_t n);
 void setOptionDelta(CoapPDU *coap_pdu, int optionPosition, uint16_t optionDelta);
 int insertOption(CoapPDU *coap_pdu,
 	int insertionPosition,
-	uint16_t optionDelta, 
+	uint16_t optionDelta,
 	uint16_t optionValueLength,
 	uint8_t *optionValue);
-	
+
 uint8_t* getOptionPointer( CoapPDU *coap_pdu,uint8_t COAP_OPTION);
 int getOptionLength( CoapPDU *coap_pdu,uint8_t COAP_OPTION);
 
