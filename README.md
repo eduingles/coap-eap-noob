@@ -16,4 +16,40 @@ $ git submodule add https://github.com/eduingles/coap-eap-basic.git coap-eap-bas
 
 Now you should be able to use normal git actions like push, pull, commit, etc.
 
+## Executing the motes
+ - Aleksi:  PANID: 0xABCD (default)
+    - Client mote:
+        ```bash
+        make udp-client.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB1 login
+        ```
+
+    - Bridge mote:
+        
+        ```bash
+        make border-router.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB0
+        ```
+
+        ```bash
+        make TARGET=zoul BOARD=firefly connect-router
+        ```
+
+ - Eduardo: PANID: 0xDCBA
+    - Client mote:
+        ```bash
+        make udp-client.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB1 MAKE_ALTERNATIVE_PANID=1 login
+        ```
+        NOTE: Remember to set the same PANID in examples/rpl-border-router
+
+    - Bridge mote:
+        
+        ```bash
+        make border-router.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB0
+        ```
+
+        ```bash
+        make TARGET=zoul BOARD=firefly connect-router
+        ```
+
+
+
 
