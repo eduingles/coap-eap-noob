@@ -33,6 +33,28 @@
 
 #include "eap-peer.h"
 
+/* Configuration file */
+#define CONF_FILE               "eapnoob.conf"
+
+/* Print debug information */
+#define DEBUG(X) printf("EAP-NOOB: %s\n", X)
+
+/* Get EAP message values */
+#define reqId ((struct eap_msg *)eapReqData)->id
+#define reqMethod ((struct eap_msg *)eapReqData)->method
+#define reqCode ((struct eap_msg *)eapReqData)->code
+#define reqLength ((struct eap_msg *)eapReqData)->length
+
+/* All the pre-processors of EAP-NOOB */
+
+#define DB_NAME                 "peer_db.txt"
+
+#define SUCCESS                 1
+#define FAILURE                 -1
+#define EMPTY                   0
+
+/* Keywords for json encoding and decoding */
+
 enum {
     EAP_NOOB_NONE,
     EAP_NOOB_TYPE_1,
@@ -42,6 +64,32 @@ enum {
     EAP_NOOB_TYPE_5,
     EAP_NOOB_TYPE_6,
     EAP_NOOB_TYPE_7
+};
+
+struct eap_noob_server_data {
+};
+
+struct eap_noob_peer_config_params {
+    char * Peer_name;
+    char * Peer_ID_Num;
+};
+
+struct eap_noob_peer_data {
+    uint32_t version;
+    uint32_t state;
+    uint32_t cryptosuite;
+    uint32_t dir;
+    uint32_t minsleep;
+    uint32_t config_params;
+
+    char * PeerId;
+    char * PeerInfo;
+    char * MAC;
+    char * Realm;
+
+    uint8_t * Kz;
+
+    struct eap_noob_peer_config_params * peer_config_params;
 };
 
 #endif
