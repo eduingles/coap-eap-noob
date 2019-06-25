@@ -167,7 +167,7 @@ void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint
     char tmpResponseType1[200];
     sprintf(tmpResponseType1, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
 
-    printf("Response: %s\n", response);
+    printf("Response: %s\n", tmpResponseType1);
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
@@ -265,9 +265,9 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *
                 *(methodState) = MAY_CONT;
                 *(decision) = COND_SUCC;
             case EAP_NOOB_TYPE_0:
-                ERROR("Received error code", json_integer_value(&req_obj, "ErrorCode"));
+                ERROR_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
             default:
-                ERROR("Unknown request received:", msgtype);
+                ERROR_NOOB("Unknown request received:", msgtype);
                 break;
         }
 	}

@@ -37,12 +37,8 @@
 #define CONF_FILE               "eapnoob.conf"
 
 /* Print debug information */
-<<<<<<< HEAD
 #define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
-=======
-#define DEBUG(X) printf("EAP-NOOB: %s\n", X)
-#define ERROR(X,Y) printf("EAP-NOOB: %s %s\n", X, Y)
->>>>>>> 756413782173ecb6dd892126deb1add7b8d97ae1
+#define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %s\n", X, Y)
 
 /* Get EAP message values */
 #define reqId ((struct eap_msg *)eapReqData)->id
