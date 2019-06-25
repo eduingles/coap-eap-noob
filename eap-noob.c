@@ -161,17 +161,18 @@ void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint
         }
     }
     // Build response
-    // BROKEN CODE //
+    // TODO: read response values from configuration file
     char response[200];
-    sprintf(response, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
+    sprintf(response, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1}",\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + 200));
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(response)));
     ((struct eap_msg *)eapRespData)->method = EAP_NOOB;
 
-    sprintf(eapRespData + 5, "%s", response);
-    // BROKEN CODE //
+    sprintf(eapRespData + 5, "%s", (char *)response);
+
+    eapKeyAvailable = FALSE;
 }
 
 /**
@@ -210,11 +211,17 @@ void eap_noob_process(const uint8_t * eapReqData, uint8_t *methodState, uint8_t 
             case EAP_NOOB_TYPE_2:
             case EAP_NOOB_TYPE_3:
             case EAP_NOOB_TYPE_4:
+                *(methodState) = MAY_CONT;
+                *(decision) = COND_SUCC;
             case EAP_NOOB_TYPE_5:
             case EAP_NOOB_TYPE_6:
             case EAP_NOOB_TYPE_7:
+                *(methodState) = MAY_CONT;
+                *(decision) = COND_SUCC;
+            case EAP_NOOB_ERROR:
+                DEBUG("Error message received");
             default:
-                DEBUG("Unknown EAP-NOOB request received");
+                DEBUG("Unknown request received");
                 break;
         }
 	}

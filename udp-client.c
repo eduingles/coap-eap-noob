@@ -174,7 +174,7 @@ tcpip_handler(void)
 
 					if(memcmp(&mac2check, &mac,16) != 0)
 					{
-						printf("error");
+						printf("error\n");
 					}
 
 					memset(mac2check,0,16);
@@ -216,7 +216,6 @@ tcpip_handler(void)
 
 
 			if((getCode(request) == COAP_POST)){
-
 				if(! state){
 					state++;
 					_setURI(response,&URI[0],7);
