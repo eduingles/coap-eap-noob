@@ -142,14 +142,14 @@ int write_db(char *database, char *key , char *val)
  * @id :
  * @eapRespData :
 **/
-void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint8_t * eapRespData)
+void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint8_t *eapRespData)
 {
     // Parse request
     struct jsonparse_state js;
     jsonparse_setup(&js, data, size);
     int type;
-    char peerid[23];
-    char tmp[2][512];
+    char peerid[23];  // TODO
+    char tmp[2][512]; // TODO
     while((type = jsonparse_next(&js)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js, tmp[0], size);
@@ -162,8 +162,57 @@ void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint
     }
     // Build response
     // TODO: read response values from configuration file
+    char response[80];
+    sprintf(response, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
+
+    printf("Response: %s\n", response);
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(response)));
+    ((struct eap_msg *)eapRespData)->method = EAP_NOOB;
+
+    sprintf(eapRespData + 5, "%s", (char *)response);
+
+    eapKeyAvailable = FALSE;
+}
+
+/**
+ * eap_noob_req_type_two : Decode request type two
+ * @data :
+ * @size :
+ * @id :
+ * @eapRespData :
+**/
+void eap_noob_req_type_two(char *data, const size_t size, const uint8_t id, uint8_t *eapRespData)
+{
+    // Parse request
+    struct jsonparse_state js;
+    jsonparse_setup(&js, data, size);
+    int type;
+    char peerid[23];  // TODO
+    char tmp[2][512]; // TODO
+    while((type = jsonparse_next(&js)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            jsonparse_copy_next(&js, tmp[0], size);
+            jsonparse_next(&js);
+            jsonparse_copy_next(&js, tmp[1], size);
+            if (strcmp(tmp[0], "PeerId") == 0)
+                strcpy(peerid, tmp[1]);
+            else if (
+                !strcmp(tmp[0], "PKs") ||
+                !strcmp(tmp[0], "Ns")  ||
+                !strcmp(tmp[0], "SleepTime")
+            )
+                write_db(DB_NAME, tmp[0], tmp[1]);
+        }
+    }
+    // Build response
+    // TODO: read response values from configuration file
     char response[200];
-    sprintf(response, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1}",\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
+    char x[] = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-sIK08"; // TODO
+    char np[] = "HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU"; // TODO
+    sprintf(response, "%s%s%s%s%s%s%s", "{\"Type\":2,\"PeerId\":\"", peerid, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"", x, "\"},\"Np\":\"", np, "\"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = id;
@@ -181,7 +230,7 @@ void eap_noob_req_type_one(char *data, const size_t size, const uint8_t id, uint
  * @methodState :
  * @decision :
 **/
-void eap_noob_process(const uint8_t * eapReqData, uint8_t *methodState, uint8_t * decision, uint8_t * eapRespData)
+void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision, uint8_t *eapRespData)
 {
     if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
         struct eap_msg *resp;
@@ -209,6 +258,9 @@ void eap_noob_process(const uint8_t * eapReqData, uint8_t *methodState, uint8_t 
                 eap_noob_req_type_one(payload, size, reqId, eapRespData);
                 break;
             case EAP_NOOB_TYPE_2:
+                DEBUG("Message type 2");
+                eap_noob_req_type_two(payload, size, reqId, eapRespData);
+                break;
             case EAP_NOOB_TYPE_3:
             case EAP_NOOB_TYPE_4:
                 *(methodState) = MAY_CONT;
@@ -218,8 +270,8 @@ void eap_noob_process(const uint8_t * eapReqData, uint8_t *methodState, uint8_t 
             case EAP_NOOB_TYPE_7:
                 *(methodState) = MAY_CONT;
                 *(decision) = COND_SUCC;
-            case EAP_NOOB_ERROR:
-                DEBUG("Error message received");
+            case EAP_NOOB_TYPE_0:
+                ERROR(json_integer_value(&req_obj, "ErrorCode"));
             default:
                 DEBUG("Unknown request received");
                 break;

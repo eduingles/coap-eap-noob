@@ -38,6 +38,7 @@
 
 /* Print debug information */
 #define DEBUG(X) printf("EAP-NOOB: %s\n", X)
+#define ERROR(X) printf("EAP-NOOB: Error code %s\n", X)
 
 /* Get EAP message values */
 #define reqId ((struct eap_msg *)eapReqData)->id
@@ -56,7 +57,7 @@
 /* Keywords for json encoding and decoding */
 
 enum {
-    EAP_NOOB_NONE,
+    EAP_NOOB_TYPE_0,
     EAP_NOOB_TYPE_1,
     EAP_NOOB_TYPE_2,
     EAP_NOOB_TYPE_3,
