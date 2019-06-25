@@ -123,11 +123,13 @@ void eap_peer_sm_step(const uint8_t* msg){
 
 _FAILURE:
 	//FAILURE STATE
+    printf("FAILURE STATE\n");
 	eapFail = TRUE;
 	return;
 
 _SUCCESS:
 	//SUCCESS STATE
+    printf("SUCCESS STATE\n");
 	eapSuccess = TRUE;
 	return;
 
