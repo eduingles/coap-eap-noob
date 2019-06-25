@@ -37,7 +37,7 @@
 #define CONF_FILE               "eapnoob.conf"
 
 /* Print debug information */
-#define DEBUG(X) printf("EAP-NOOB: %s\n", X)
+#define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
 
 /* Get EAP message values */
 #define reqId ((struct eap_msg *)eapReqData)->id
@@ -49,9 +49,9 @@
 
 #define DB_NAME                 "peer_db.txt"
 
-#define SUCCESS                 1
-#define FAILURE                 -1
-#define EMPTY                   0
+#define SUCCESS_NOOB                 1
+#define FAILURE_NOOB                 -1
+#define EMPTY_NOOB                   0
 
 /* Keywords for json encoding and decoding */
 
@@ -63,7 +63,8 @@ enum {
     EAP_NOOB_TYPE_4,
     EAP_NOOB_TYPE_5,
     EAP_NOOB_TYPE_6,
-    EAP_NOOB_TYPE_7
+    EAP_NOOB_TYPE_7,
+    EAP_NOOB_ERROR
 };
 
 struct eap_noob_server_data {

@@ -16,6 +16,15 @@
     #endif //else: Default PANID: 0xABCD
 #endif
 
+#ifdef CONF_EDU
+    // Custom configuration
+    #define EDU_DEBUG 1
+#else
+    #define EDU_DEBUG 0
+#endif
+
+
+
 // #define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_6LOWPAN                     LOG_LEVEL_DBG

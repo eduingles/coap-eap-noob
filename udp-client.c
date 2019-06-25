@@ -45,15 +45,15 @@
 // a given operation or group of operations take
 #define TICKS 0
 
-#define START_INTERVAL      25 * CLOCK_SECOND
+#define START_INTERVAL      20 * CLOCK_SECOND
 #define SEND_INTERVAL	    5 * CLOCK_SECOND
-#define TIMEOUT_INTERVAL    15 * CLOCK_SECOND
+#define TIMEOUT_INTERVAL    45 * CLOCK_SECOND
+#define TIMEOUT_INTERVAL_NO_RESPONSE    15 * CLOCK_SECOND
 
 #include "eap-peer.h"
 
 
 static struct uip_udp_conn *client_conn;
-static uint8_t seq_number;
 static uint32_t currentPort;
 
 /*---------------------------------------------------------------------------*/
@@ -75,15 +75,15 @@ uint32_t nonce_c, nonce_s;
 unsigned char auth_key[16] = {0};
 unsigned char sequence[26] = {0};
 
-uint8_t authKeyAvailable;
-uint8_t state;
+static uint8_t authKeyAvailable; 	//EDU: static
+static uint8_t state;				 //EDU: static
 static uint8_t last_seq_id = 0;
 
 char URIcheck[10] = {0};
 uint16_t URIcheck_len;
 
 
-CoapPDU *response, *request;
+static CoapPDU *response, *request;
 
 
 static void
@@ -118,48 +118,56 @@ tcpip_handler(void)
 			|| getType(request) == COAP_ACKNOWLEDGEMENT  )
 			return;
 
-			unsigned char *payload, *ptr;
-			uint8_t mac2check[16] 	={0};
-			uint8_t mac[16] 	={0};
-			uint8_t responsecode = COAP_CHANGED;
+		unsigned char *payload, *ptr;
+		uint8_t mac2check[16] 	={0};
+		uint8_t mac[16] 	={0};
+		uint8_t responsecode = COAP_CHANGED;
 
-			if((getCode(request) == COAP_POST)){
-				if(!state) {
-					//state = 1;
-					nonce_s = rand();
-					responsecode = COAP_CREATED;
+		if((getCode(request) == COAP_POST)){
+#if EDU_DEBUG
+			printf("EDU: %s COAP_POST message incoming\n", __func__); //EDU: DEBUG
+#endif
+			if(!state) {
+				//state = 1;
+				nonce_s = rand();
+				responsecode = COAP_CREATED;
 
-					// We create the sequence
-					memcpy(&nonce_c, getPayloadPointer(request),(size_t)getPayloadLength(request));
-					ptr = (unsigned char*)&sequence;
+				// We create the sequence
+				memcpy(&nonce_c, getPayloadPointer(request),(size_t)getPayloadLength(request));
+				ptr = (unsigned char*)&sequence;
 
-					unsigned char label[] = "IETF COAP AUTH";
-					memcpy(ptr,label,(size_t)14);
-					ptr += 14;
+				unsigned char label[] = "IETF COAP AUTH";
+				memcpy(ptr,label,(size_t)14);
+				ptr += 14;
 
-					memcpy(ptr,getTokenPointer(request),(size_t)getTokenLength(request));
-					ptr += 4;
+				memcpy(ptr,getTokenPointer(request),(size_t)getTokenLength(request));
+				ptr += 4;
 
-					memcpy(ptr, &(nonce_c),sizeof(uint32_t));
-					ptr += 4;
+				memcpy(ptr, &(nonce_c),sizeof(uint32_t));
+				ptr += 4;
 
-					memcpy(ptr, &(nonce_s),sizeof(uint32_t));
+				memcpy(ptr, &(nonce_s),sizeof(uint32_t));
 
 
-					// EAP Restart
-					memset(&msk_key,0, MSK_LENGTH);
-					eapRestart=TRUE;
-					eap_peer_sm_step(NULL);
+				// EAP Restart
+				memset(&msk_key,0, MSK_LENGTH);
+				eapRestart=TRUE;
+				eap_peer_sm_step(NULL);
 
-					// creating the id of the service
-					URI[5] = '/';
-					URI[6] = '0' + (rand() % 9);
-				}
+				// creating the id of the service
+				URI[5] = '/';
+				URI[6] = '0' + (rand() % 9);
+			}
 
 			//else if((getCode(request) == COAP_PUT)){ // EAP EXCHANGE FINISHED
 			else{
+#if EDU_DEBUG
+				printf("EDU: %s BE AWARE!! NO COAP_POST MESSAGE\n", __func__); //EDU: DEBUG
+#endif			
 				if(eapKeyAvailable){
-
+#if EDU_DEBUG
+					printf("EDU: %s BE AWARE!! eapKeyAvailable\n", __func__); //EDU: DEBUG
+#endif
 					do_omac(msk_key, sequence, 26, auth_key);
 					authKeyAvailable = TRUE;
 
@@ -187,47 +195,95 @@ tcpip_handler(void)
 #endif
 				eapReq = TRUE;
 				payload = getPayloadPointer(request);
+#if EDU_DEBUG
+				printf("EDU: %s print PayLoad\n",__func__); //EDU: DEBUG
+				printf("      Request Hdr: '");
+				for (int i = 0; i < 2; i++)
+					printf("%02x ", request->_pdu[i]);
+				printf("'\n");
+				printf("      Value: '");
+				for (int i = 0; i < 5; i++)
+					printf("%02x", payload[i]);
+				for (int i = 5; i < getPDULength(request); i++)
+					printf("%c", payload[i]);
+				printf("'\n");
+#endif
+
 				eap_peer_sm_step(payload);
 #if TICKS
 				printf("tick eap out(%d)\n",last_seq_id);
 #endif
 
-				}
 			}
-			else{
-				// Es el ACK del GET
-				return;
-			}
+		}
+		else{
+			// Es el ACK del GET
+			return;
+		}
 
 #if TICKS
 	printf("tick %d\n",last_seq_id);
 #endif
+		reset(response);
+		setVersion(response,1);
+		setType(response,COAP_ACKNOWLEDGEMENT);
+		setCode(response,responsecode);
+		setToken(response,
+				getTokenPointer(request),
+				(uint8_t)getTokenLength(request));
 
-			reset(response);
-			setVersion(response,1);
-			setType(response,COAP_ACKNOWLEDGEMENT);
-			setCode(response,responsecode);
-			setToken(response,
-					getTokenPointer(request),
-					(uint8_t)getTokenLength(request));
+		setMessageID(response,getMessageID(request));
 
-			setMessageID(response,getMessageID(request));
-
-
-
-			if((getCode(request) == COAP_POST)){
-				if(! state){
-					state++;
-					_setURI(response,&URI[0],7);
-					setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request));
-				}
-				else{
+#if EDU_DEBUG
+		printf("EDU: %s Header values should be set\n", __func__); //EDU: DEBUG
+		printf("EDU: %s codeReq ? COAP_POST: %x == %x\n", __func__, getCode(request), COAP_POST); //EDU: DEBUG
+#endif
+		unsigned char *tmpPayload;
+#if EDU_DEBUG
+		printf("EDU: %s print PayLoad again\n",__func__); //EDU: DEBUG
+		printf("      Request Hdr: '");
+		for (int i = 0; i < 2; i++)
+			printf("%02x ", request->_pdu[i]);
+		printf("'\n");
+		printf("      Value: '");
+		tmpPayload = getPayloadPointer(request);
+		for (int i = 0; i < 5; i++)
+			printf("%02x", tmpPayload[i]);
+		for (int i = 5; i < getPDULength(request); i++)
+			printf("%c", tmpPayload[i]);
+		printf("'\n");
+#endif
+		if((getCode(request) == COAP_POST)){
+#if EDU_DEBUG
+			printf("EDU: %s code request == COAP_POST\n", __func__); //EDU: DEBUG
+#endif
+			if(! state){
+#if EDU_DEBUG
+				printf("EDU: %s !state == %u \n", __func__, state); //EDU: DEBUG
+#endif
+				state++;
+				_setURI(response,&URI[0],7);
+				setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request));
+			}
+			else{
+#if EDU_DEBUG
+				printf("EDU: %s YES state == %u \n", __func__, state); //EDU: DEBUG
+#endif
 				if(!authKeyAvailable){
+#if EDU_DEBUG
+					printf("EDU: %s but NO authKeyAvailable \n", __func__); //EDU: DEBUG
+#endif
 					if (eapResp){
+#if EDU_DEBUG
+						printf("EDU: %s at least eapResp \n", __func__); //EDU: DEBUG
+#endif
 						uint16_t len = ntohs( ((struct eap_msg*) eapRespData)->length);
 						setPayload(response,eapRespData, len);
 					}
 				}else{
+#if EDU_DEBUG
+					printf("EDU: %s AND authKeyAvailable \n", __func__); //EDU: DEBUG
+#endif
 					addOption(response,COAP_OPTION_AUTH, 16, (uint8_t *)&mac2check);
 
 					do_omac(auth_key, getPDUPointer(response),
@@ -250,13 +306,18 @@ tcpip_handler(void)
 		}
 	}
 
+#if EDU_DEBUG
+    printf("EDU: %s: authKeyAvailable: %d == FALSE?\n",__func__, authKeyAvailable); //EDU: DEBUG
+#endif
 	if(authKeyAvailable){
 		nAuth++;
 		printf("tick finish\n");
 		etimer_set(&et, 5 * CLOCK_SECOND);
 		return;
 	}
-
+#if EDU_DEBUG
+	printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
+#endif
 	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
 
 
@@ -267,6 +328,9 @@ tcpip_handler(void)
 	static void
 timeout_handler(void)
 {
+#if EDU_DEBUG
+	printf("EDU: %s init\n", __func__); //EDU: DEBUG
+#endif
 	etimer_stop(&et);
 
 	last_seq_id = 0;
@@ -285,8 +349,7 @@ timeout_handler(void)
 
 	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
 
-
-	printf("tick init\n");
+	printf("Send /boot to CoAP-EAP Controller to start communication.\n");
 
 	reset(request);
 	setVersion(request,1);
@@ -304,8 +367,10 @@ timeout_handler(void)
 #if TICKS
 	printf("tick init\n");
 #endif
-	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
-
+#if EDU_DEBUG
+	printf("EDU: %s Set TIMEOUT_INTERVAL_NO_RESPONSE\n", __func__); //EDU: DEBUG
+#endif
+	etimer_set(&et, TIMEOUT_INTERVAL_NO_RESPONSE * CLOCK_SECOND);
 
 }
 /*---------------------------------------------------------------------------*/
@@ -389,7 +454,13 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	response = _CoapPDU();
 
 	while(1) {
+#if EDU_DEBUG
+		printf("EDU: while(1)\n"); //EDU: DEBUG
+#endif
 		PROCESS_YIELD();
+#if EDU_DEBUG
+		printf("EDU: while(1) 2\n"); //EDU: DEBUG
+#endif
 		if(etimer_expired(&et) ) {
 			timeout_handler();
 		} else if(ev == tcpip_event) {

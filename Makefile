@@ -6,12 +6,19 @@ MODULES += os/lib/json # For Contiki-NG to include JSON library
 
 PROJECT_SOURCEFILES = eap-peer.c eap-noob.c eax.c aes.c _cantcoap.c
 # eap-psk.c
-CFLAGS += -w
 
 # Configure PANID based on user: 1 Eduardo
 ifdef MAKE_ALTERNATIVE_PANID
 CFLAGS += -DALTERNATIVE_PANID=$(MAKE_ALTERNATIVE_PANID)
 endif
+
+# Eduardo: Custom Configuration
+ifeq ($(MAKE_CONF_EDU),1)
+CFLAGS += -DCONF_EDU=1
+else  # Aleksi
+CFLAGS += -w
+endif
+
 
 CONTIKI = ../..
 include $(CONTIKI)/Makefile.include

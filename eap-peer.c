@@ -15,8 +15,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "eap-peer.h"
 #include "node-id.h"
 
-#define reqId ((struct eap_msg *)msg)->id
-#define reqMethod ((struct eap_msg *)msg)->method
+#define reqIdPeer ((struct eap_msg *)msg)->id
+#define reqMethodPeer ((struct eap_msg *)msg)->method
 
 //Build the Identity message
 static void buildIdentity(const uint8_t id){
@@ -26,7 +26,7 @@ static void buildIdentity(const uint8_t id){
 	((struct eap_msg*) eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(USER) ));
 	((struct eap_msg*) eapRespData)->method = IDENTITY;
 
-	sprintf(eapRespData + sizeof(struct eap_msg), "%s", (char *)USER);
+	sprintf((char *)eapRespData + sizeof(struct eap_msg), "%s", (char *)USER);
 
 
 }
@@ -64,49 +64,49 @@ void eap_peer_sm_step(const uint8_t* msg){
 	if (eapReq){
 		//parseEapReq(msg);
 
-		//if ((type_received == RxSUCCESS) && (reqId == lastId) && (decision!=FAIL)){
-		if ( ( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && (reqId == lastId) && (decision!=FAIL)){
+		//if ((type_received == RxSUCCESS) && (reqIdPeer == lastId) && (decision!=FAIL)){
+		if ( ( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && (reqIdPeer == lastId) && (decision!=FAIL)){
 			goto _SUCCESS;
 		}
 
-		//else if (methodState!=CONT && ( ((type_received == RxFAILURE) && decision != UNCOND_SUCC) || (type_received == RxSUCCESS && decision==FAIL) ) && (reqId == lastId) ){
-		else if (methodState!=CONT && ( (( ((struct eap_msg *)msg)->code == FAILURE_CODE) && decision != UNCOND_SUCC) || (( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && decision==FAIL) ) && (reqId == lastId) ){
+		//else if (methodState!=CONT && ( ((type_received == RxFAILURE) && decision != UNCOND_SUCC) || (type_received == RxSUCCESS && decision==FAIL) ) && (reqIdPeer == lastId) ){
+		else if (methodState!=CONT && ( (( ((struct eap_msg *)msg)->code == FAILURE_CODE) && decision != UNCOND_SUCC) || (( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && decision==FAIL) ) && (reqIdPeer == lastId) ){
 			goto _FAILURE;
 		}
 
-		//else if (type_received == RxREQ && reqId == lastId){
-		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && reqId == lastId){
+		//else if (type_received == RxREQ && reqIdPeer == lastId){
+		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && reqIdPeer == lastId){
 			//RETRANSMIT STATE
 			goto _SEND_RESPONSE;
 		}
 
-		//else if ((type_received == RxREQ) && (reqId!=lastId) && (selectedMethod == NONE) && (reqMethod==IDENTITY)){
-		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqId!=lastId) && (selectedMethod == NONE) && (reqMethod==IDENTITY)){
+		//else if ((type_received == RxREQ) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer==IDENTITY)){
+		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer==IDENTITY)){
 			//processIdentity(msg); //TODO: Deploy this. It can be avoided?
-			buildIdentity( reqId );
+			buildIdentity( reqIdPeer );
 			goto _SEND_RESPONSE;
 		}
 
-		//else if ((type_received == RxREQ) && (reqId!=lastId) && (selectedMethod == NONE) && (reqMethod != IDENTITY) ){
-		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqId!=lastId) && (selectedMethod == NONE) && (reqMethod != IDENTITY) ){
+		//else if ((type_received == RxREQ) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer != IDENTITY) ){
+		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer != IDENTITY) ){
 			//GET_METHOD STATE
-			//if (allowMethod(reqMethod)){
-			if (reqMethod == EAP_PSK){ //We can do this because only EAP-PSK is supported
-				selectedMethod = reqMethod;
+			//if (allowMethod(reqMethodPeer)){
+			if (reqMethodPeer == EAP_PSK){ //We can do this because only EAP-PSK is supported
+				selectedMethod = reqMethodPeer;
 				methodState = INIT;
-			} else if (reqMethod == EAP_NOOB) {
-                selectedMethod = reqMethod;
+			} else if (reqMethodPeer == EAP_NOOB) {
+                selectedMethod = reqMethodPeer;
                 methodState = INIT;
             } else {
 				//TODO: It is necessary build a Nak message here
-                printf("Req: %d\n", reqMethod);
+                printf("Req: %d\n", reqMethodPeer);
 			}
-			if (selectedMethod == reqMethod) goto _METHOD;
+			if (selectedMethod == reqMethodPeer) goto _METHOD;
 			else goto _SEND_RESPONSE;
 		}
 
-		//else if ((type_received == RxREQ) && (reqId!=lastId) && (reqMethod==selectedMethod) && (methodState != DONE)){
-		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqId!=lastId) && (reqMethod==selectedMethod) && (methodState != DONE)){
+		//else if ((type_received == RxREQ) && (reqIdPeer!=lastId) && (reqMethodPeer==selectedMethod) && (methodState != DONE)){
+		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (reqMethodPeer==selectedMethod) && (methodState != DONE)){
 			goto _METHOD;
 		}
 
@@ -142,7 +142,7 @@ _METHOD:
 
 _SEND_RESPONSE:
 	//SEND_RESPONSE STATE
-	lastId = reqId;
+	lastId = reqIdPeer;
 	eapReq = FALSE;
 	eapResp = TRUE;
 	return;
