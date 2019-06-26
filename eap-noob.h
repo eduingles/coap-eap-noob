@@ -50,9 +50,9 @@
 
 #define DB_NAME                 "peer_db.txt"
 
-#define SUCCESS_NOOB                 1
-#define FAILURE_NOOB                 -1
-#define EMPTY_NOOB                   0
+#define SUCCESS_NOOB            1
+#define FAILURE_NOOB            -1
+#define EMPTY_NOOB              0
 
 /* Keywords for json encoding and decoding */
 

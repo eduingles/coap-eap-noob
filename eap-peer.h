@@ -25,7 +25,7 @@
 #include "include.h"
 #include "eap-noob.h"
 
-#define EAP_MSG_LEN 500
+#define EAP_MSG_LEN 256
 
 
 //struct of a eap message
