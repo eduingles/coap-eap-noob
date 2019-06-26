@@ -227,9 +227,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
     // Build response
     // TODO: read response values from configuration file
     char tmpResponseType2[200];
-    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", peerid, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-sIK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
-
-    printf("Response: %s\n", tmpResponseType2);
+    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", peerid, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
@@ -257,7 +255,7 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *
         struct jsonparse_state req_obj;
         jsonparse_setup(&req_obj, (char *)eapReqData+5, size);
 
-        *(methodState) = CONT;
+        *(methodState) = MAY_CONT;
         *(decision) = FAIL;
 
         int msgtype;

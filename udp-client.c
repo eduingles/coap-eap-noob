@@ -60,8 +60,8 @@ static uint32_t currentPort;
 PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
 /*---------------------------------------------------------------------------*/
-uint8_t 	sent	 [170];
-uint8_t 	received [170];
+uint8_t 	sent	 [256];
+uint8_t 	received [256];
 uint16_t 	sent_len;
 uint16_t 	received_len;
 char 		URI[8] = {'/','b','o','o','t', 0, 0, 0};
@@ -163,7 +163,7 @@ tcpip_handler(void)
 			else{
 #if EDU_DEBUG
 				printf("EDU: %s BE AWARE!! NO COAP_POST MESSAGE\n", __func__); //EDU: DEBUG
-#endif			
+#endif
 				if(eapKeyAvailable){
 #if EDU_DEBUG
 					printf("EDU: %s BE AWARE!! eapKeyAvailable\n", __func__); //EDU: DEBUG
