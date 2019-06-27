@@ -97,11 +97,11 @@ static void jsonparse_copy_next(struct jsonparse_state *js, char *dst, int size)
 }
 
 /**
- * initMethodEap : Initiate EAP method
+ * initMethodEap : Initialise EAP method
 **/
 void initMethodEap()
 {
-    // TODO
+    sprintf(nai, "%s", "noob@eap-noob.net");
 }
 
 /**
@@ -167,8 +167,8 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
     struct jsonparse_state js;
     jsonparse_setup(&js, eapReqData, size);
     int type;
-    char peerid[24];  // TODO
-    char tmp[2][100]; // TODO
+    char peerid[24];
+    char tmp[2][100];
     while((type = jsonparse_next(&js)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js, tmp[0], size);
@@ -194,7 +194,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
 }
 
 /**
- * eap_noob_req_type_two : Decode request type two,  send response
+ * eap_noob_req_type_two : Decode request type two, send response
  * @eapReqData : EAP request data
  * @size : size of eapReqData
  * @id : method identifier
@@ -206,8 +206,8 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
     struct jsonparse_state js;
     jsonparse_setup(&js, eapReqData, size);
     int type;
-    char peerid[24];  // TODO
-    char tmp[2][100]; // TODO
+    char peerid[24];
+    char tmp[2][100];
     while((type = jsonparse_next(&js)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js, tmp[0], size);
@@ -236,6 +236,47 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
 
     sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
     eapKeyAvailable = FALSE;
+
+    // Update NAI
+    sprintf(nai, "%s%s", peerid, "+s1@noob.example.com");
+}
+
+/**
+ * eap_noob_req_type_three : Decode request type three, send response
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
+{
+    // Parse request
+    struct jsonparse_state js;
+    jsonparse_setup(&js, eapReqData, size);
+    int type;
+    char peerid[24];
+    char tmp[2][100];
+    while((type = jsonparse_next(&js)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            jsonparse_copy_next(&js, tmp[0], size);
+            jsonparse_next(&js);
+            jsonparse_copy_next(&js, tmp[1], size);
+            if (!strcmp(tmp[0], "PeerId"))
+                strcpy(peerid, tmp[1]);
+            // TODO: update SleepTime
+        }
+    }
+    // Build response
+    char tmpResponseType3[50];
+    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", peerid, "}");
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType3)) + 1);
+    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
+    eapKeyAvailable = FALSE;
 }
 
 /**
@@ -255,7 +296,7 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *
         struct jsonparse_state req_obj;
         jsonparse_setup(&req_obj, (char *)eapReqData+5, size);
 
-        *(methodState) = MAY_CONT;
+        *(methodState) = CONT;
         *(decision) = FAIL;
 
         int msgtype;
@@ -273,6 +314,9 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *
                 eap_noob_req_type_two((char *)eapReqData+5, size, reqId, eapRespData);
                 break;
             case EAP_NOOB_TYPE_3:
+                DEBUG_NOOB("Message type 3");
+                eap_noob_req_type_three((char *)eapReqData+5, size, reqId, eapRespData);
+                break;
             case EAP_NOOB_TYPE_4:
                 *(methodState) = MAY_CONT;
                 *(decision) = COND_SUCC;

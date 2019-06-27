@@ -70,13 +70,11 @@
 #define UNCOND_SUCC 13
 
 
-#define MSK_LENGTH  16 //16 uint8_ts due to AES key length
-
-
+#define MSK_LENGTH  16 // 16 uint8_ts due to AES key length
 
 //#define USER "usera"
 //#define USER "alpha.t.eu.org"
-#define USER "noob@eap-noob.net"
+// #define USER "noob@eap-noob.net"
 
 // Network uint8_t order functions
 #define HTONS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))

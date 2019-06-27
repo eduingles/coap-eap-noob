@@ -20,15 +20,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 //Build the Identity message
 static void buildIdentity(const uint8_t id){
-
 	((struct eap_msg*) eapRespData)->code = RESPONSE_CODE;
 	((struct eap_msg*) eapRespData)->id = id;
-	((struct eap_msg*) eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(USER) ));
+	((struct eap_msg*) eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(nai)));
 	((struct eap_msg*) eapRespData)->method = IDENTITY;
 
-	sprintf((char *)eapRespData + sizeof(struct eap_msg), "%s", (char *)USER);
-
-
+	sprintf((char *)eapRespData + sizeof(struct eap_msg), "%s", (char *)nai);
 }
 
 //EAP peer state machine step function
