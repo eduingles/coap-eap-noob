@@ -286,7 +286,7 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t 
     }
     // Build response
     char tmpResponseType3[50];
-    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", peerid, "}");
+    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", peerid, "\"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
