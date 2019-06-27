@@ -153,10 +153,12 @@ _SUCCESS:
 _METHOD:
 	//METHOD STATE
     printf("METHOD STATE\n");
-	if(check(msg)){
+	if (((struct eap_msg *)msg)->method == EAP_NOOB) {
 		eap_noob_process(msg, &methodState, &decision, (struct eap_msg *) eapRespData);
 		goto _SEND_RESPONSE;
-	}
+	} else if (((struct eap_msg *)msg)->method == EAP_PSK) {
+        goto _DISCARD; // TODO: add support for EAP-PSK
+    }
 	else goto _DISCARD;
 
 _SEND_RESPONSE:

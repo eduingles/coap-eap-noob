@@ -34,7 +34,7 @@
 #include "eap-peer.h"
 
 /* Configuration file */
-#define CONF_FILE               "eapnoob.conf"
+#include "eap-noob-conf.h"
 
 /* Print debug information */
 #define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
@@ -48,11 +48,11 @@
 
 /* All the pre-processors of EAP-NOOB */
 
-#define DB_NAME                 "peer_db.txt"
-
-#define SUCCESS_NOOB            1
-#define FAILURE_NOOB            -1
-#define EMPTY_NOOB              0
+#define DB_NAME             "peer_db.txt"
+#define DEFAULT_REALM       "eap-noob.net"
+#define SUCCESS_NOOB        1
+#define FAILURE_NOOB        -1
+#define EMPTY_NOOB          0
 
 /* Keywords for json encoding and decoding */
 

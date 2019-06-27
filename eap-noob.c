@@ -36,26 +36,6 @@
 #include <stdlib.h>
 
 /**
- * json_integer_value : Find the associated value of key
- * @json : JSON object
- * @key : key
- * Returns : The associated value of key, -1 if not found
-**/
-static int json_integer_value(struct jsonparse_state *js, const char *key)
-{
-    int type;
-    while((type = jsonparse_next(js)) != 0) {
-        if(type == JSON_TYPE_PAIR_NAME) {
-            if(jsonparse_strcmp_value(js, key) == 0) {
-                jsonparse_next(js);
-                return jsonparse_get_value_as_int(js);
-            }
-        }
-    }
-    return -1;
-}
-
-/**
  * jsonparse_copy_next : Copy next value from js to dst
  * @js   : JSON object
  * @dst  : destination array
@@ -97,21 +77,31 @@ static void jsonparse_copy_next(struct jsonparse_state *js, char *dst, int size)
 }
 
 /**
+ * json_integer_value : Find the associated value of key
+ * @json : JSON object
+ * @key : key
+ * Returns : The associated value of key, -1 if not found
+**/
+static int json_integer_value(struct jsonparse_state *js, const char *key)
+{
+    int type;
+    while((type = jsonparse_next(js)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            if(jsonparse_strcmp_value(js, key) == 0) {
+                jsonparse_next(js);
+                return jsonparse_get_value_as_int(js);
+            }
+        }
+    }
+    return -1;
+}
+
+/**
  * initMethodEap : Initialise EAP method
 **/
 void init_eap_noob()
 {
-    sprintf(nai, "%s", "noob@eap-noob.net");
-}
-
-/**
- * check : Check if eapReqData is an EAP-NOOB request
- * @eapReqData : EAP request data
- * Returns : TRUE or FALSE
-**/
-uint8_t check(const uint8_t *eapReqData)
-{
-	return (reqMethod == EAP_NOOB) ? TRUE : FALSE;
+    sprintf(nai, "%s%s", "noob@", DEFAULT_REALM);
 }
 
 /**
@@ -136,24 +126,6 @@ int write_db(char *database, char *key , char *val)
     }
     return 1;
 }
-
-/**
- * eap_noob_read_config : Read configuration file
- * @js : JSON object
- **/
-// static void eap_noob_read_config(struct jsonparse_state *js)
-// {
-//     int conf_file;
-//     if ((conf_file = cfs_open(DB_NAME, CFS_READ)) >= 0) {
-//         size_t size
-//         size = cfs_seek(conf_file, 0, CFS_SEEK_END);
-//         cfs_seek(conf_file, 0, CFS_SEEK_SET);
-//         char dst[s];
-//         cfs_read(conf_file, dst, s);
-//         cfs_close(conf_file);
-//         jsonparse_setup(&js, eapReqData, size);
-//     }
-// }
 
 /**
  * print_db : Print database to stdout
@@ -182,25 +154,25 @@ static void print_db()
 void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
 {
     // Parse request
-    struct jsonparse_state js;
-    jsonparse_setup(&js, eapReqData, size);
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
     int type;
     char peerid[24];
     char tmp[2][100];
-    while((type = jsonparse_next(&js)) != 0) {
+    while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js, tmp[0], size);
-            jsonparse_next(&js);
-            jsonparse_copy_next(&js, tmp[1], size);
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId"))
                 strcpy(peerid, tmp[1]);
             write_db(DB_NAME, tmp[0], tmp[1]);
         }
     }
     // Build response
-    // TODO: read response values from configuration file
+    // TODO: negotiation
     char tmpResponseType1[200];
-    sprintf(tmpResponseType1, "%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\",\"SSID\":\"Noob1\",\"BSSID\":\"6c:19:8f:83:c2:80\"}}");
+    sprintf(tmpResponseType1, "%s%s%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":", PEER_INFO,"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
@@ -221,16 +193,16 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
 void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
 {
     // Parse request
-    struct jsonparse_state js;
-    jsonparse_setup(&js, eapReqData, size);
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
     int type;
     char peerid[24];
     char tmp[2][100];
-    while((type = jsonparse_next(&js)) != 0) {
+    while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js, tmp[0], size);
-            jsonparse_next(&js);
-            jsonparse_copy_next(&js, tmp[1], size);
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId"))
                 strcpy(peerid, tmp[1]);
             else if (
@@ -269,16 +241,16 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
 void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
 {
     // Parse request
-    struct jsonparse_state js;
-    jsonparse_setup(&js, eapReqData, size);
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
     int type;
     char peerid[24];
     char tmp[2][100];
-    while((type = jsonparse_next(&js)) != 0) {
+    while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js, tmp[0], size);
-            jsonparse_next(&js);
-            jsonparse_copy_next(&js, tmp[1], size);
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId"))
                 strcpy(peerid, tmp[1]);
             // TODO: update SleepTime
