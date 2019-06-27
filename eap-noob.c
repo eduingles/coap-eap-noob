@@ -99,7 +99,7 @@ static void jsonparse_copy_next(struct jsonparse_state *js, char *dst, int size)
 /**
  * initMethodEap : Initialise EAP method
 **/
-void initMethodEap()
+void init_eap_noob()
 {
     sprintf(nai, "%s", "noob@eap-noob.net");
 }
@@ -138,10 +138,28 @@ int write_db(char *database, char *key , char *val)
 }
 
 /**
+ * eap_noob_read_config : Read configuration file
+ * @js : JSON object
+ **/
+// static void eap_noob_read_config(struct jsonparse_state *js)
+// {
+//     int conf_file;
+//     if ((conf_file = cfs_open(DB_NAME, CFS_READ)) >= 0) {
+//         size_t size
+//         size = cfs_seek(conf_file, 0, CFS_SEEK_END);
+//         cfs_seek(conf_file, 0, CFS_SEEK_SET);
+//         char dst[s];
+//         cfs_read(conf_file, dst, s);
+//         cfs_close(conf_file);
+//         jsonparse_setup(&js, eapReqData, size);
+//     }
+// }
+
+/**
  * print_db : Print database to stdout
  * TEMPORARY - FOR DEBUGGING PURPOSES
 **/
-void print_db()
+static void print_db()
 {
     int db;
     if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {

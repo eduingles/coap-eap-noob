@@ -463,6 +463,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	request = _CoapPDU();
 	response = _CoapPDU();
 
+    init_eap_noob();
+
 	while(1) {
 #if EDU_DEBUG
 		printf("EDU: while(1)\n"); //EDU: DEBUG

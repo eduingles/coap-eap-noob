@@ -46,7 +46,7 @@ void eap_peer_sm_step(const uint8_t* msg){
 		eapResp = FALSE;
 		eapNoResp = FALSE;
 		memset (eapRespData, 0, EAP_MSG_LEN);
-		initMethodEap();
+		// initMethodEap();
 
 		eapRestart=FALSE;
 		return;
