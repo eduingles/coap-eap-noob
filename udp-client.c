@@ -45,10 +45,8 @@
 // a given operation or group of operations take
 #define TICKS 0
 
-#define START_INTERVAL      20 * CLOCK_SECOND
+#define START_INTERVAL      5 * CLOCK_SECOND
 #define SEND_INTERVAL	    5 * CLOCK_SECOND
-#define TIMEOUT_INTERVAL    45 * CLOCK_SECOND
-#define TIMEOUT_INTERVAL_NO_RESPONSE    15 * CLOCK_SECOND
 
 #include "eap-peer.h"
 
@@ -91,6 +89,9 @@ tcpip_handler(void)
 {
 
 	if(uip_newdata()) {
+		#if EDU_DEBUG
+					printf("EDU: %s uip_newdata()\n", __func__); //EDU: DEBUG
+		#endif
 
 #if TICKS
 	printf("tick %d\n",last_seq_id);
@@ -210,6 +211,17 @@ tcpip_handler(void)
 #endif
 
 				eap_peer_sm_step(payload);
+				if (((struct eap_msg *)payload)->code == FAILURE_CODE){
+					etimer_stop(&et);
+					printf("EAP-Failure received\n");
+					#if EDU_DEBUG
+						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Failure\n", __func__); //EDU: DEBUG
+					#endif
+					// etimer_restart(&et);
+					etimer_set(&et, 10 * CLOCK_SECOND);
+					return;
+				}
+
 #if TICKS
 				printf("tick eap out(%d)\n",last_seq_id);
 #endif
@@ -238,8 +250,8 @@ tcpip_handler(void)
 		printf("EDU: %s Header values should be set\n", __func__); //EDU: DEBUG
 		printf("EDU: %s codeReq ? COAP_POST: %x == %x\n", __func__, getCode(request), COAP_POST); //EDU: DEBUG
 #endif
-		unsigned char *tmpPayload;
 #if EDU_DEBUG
+		unsigned char *tmpPayload;
 		printf("EDU: %s print PayLoad again\n",__func__); //EDU: DEBUG
 		printf("      Request Hdr: '");
 		for (int i = 0; i < 2; i++)
@@ -318,7 +330,7 @@ tcpip_handler(void)
 #if EDU_DEBUG
 	printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 #endif
-	etimer_set(&et, TIMEOUT_INTERVAL * CLOCK_SECOND);
+	etimer_set(&et, 20 * CLOCK_SECOND);
 
 
 }
@@ -370,7 +382,7 @@ timeout_handler(void)
 #if EDU_DEBUG
 	printf("EDU: %s Set TIMEOUT_INTERVAL_NO_RESPONSE\n", __func__); //EDU: DEBUG
 #endif
-	etimer_set(&et, TIMEOUT_INTERVAL_NO_RESPONSE * CLOCK_SECOND);
+	etimer_set(&et, 45 * CLOCK_SECOND);
 
 }
 /*---------------------------------------------------------------------------*/
@@ -444,11 +456,9 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 	etimer_set(&et, 1*CLOCK_SECOND);
-
 
 	request = _CoapPDU();
 	response = _CoapPDU();
@@ -461,14 +471,21 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 #if EDU_DEBUG
 		printf("EDU: while(1) 2\n"); //EDU: DEBUG
 #endif
-		if(etimer_expired(&et) ) {
-			timeout_handler();
-		} else if(ev == tcpip_event) {
+		if(NETSTACK_ROUTING.node_is_reachable()) {
+			if(etimer_expired(&et) ) {
+				timeout_handler();
+			} else if(ev == tcpip_event) {
+				tcpip_handler();
+			} else {
+				printf("Ops! I press enter.\n");
+				timeout_handler();
+			}
+		} else {
+			printf("BR not reachable\n");
+			etimer_set(&et, 3 * CLOCK_SECOND);
 
-			tcpip_handler();
 		}
 	}
-
 
 	PROCESS_END();
 }
