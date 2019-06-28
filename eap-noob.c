@@ -106,15 +106,14 @@ void init_eap_noob()
 
 /**
  * write_db : Write data to database
- * @database : database name
  * @key : key
  * @val : value
  * Returns : 1 or -1
 **/
-int write_db(char *database, char *key , char *val)
+static int write_db(char *key , char *val)
 {
     int db;
-    if ((db = cfs_open(database, CFS_WRITE | CFS_APPEND)) >= 0) {
+    if ((db = cfs_open(DB_NAME, CFS_WRITE | CFS_APPEND)) >= 0) {
         cfs_write(db, key, strlen(key));
         cfs_write(db, ":", 1);
         cfs_write(db, val, strlen(val));
@@ -122,7 +121,7 @@ int write_db(char *database, char *key , char *val)
         cfs_close(db);
     } else {
         DEBUG_NOOB("Could not open database");
-        return 0;
+        return -1;
     }
     return 1;
 }
@@ -135,13 +134,30 @@ static void print_db()
 {
     int db;
     if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {
-        size_t s = cfs_seek(db, 0, CFS_SEEK_END);
+        size_t size = cfs_seek(db, 0, CFS_SEEK_END);
         cfs_seek(db, 0, CFS_SEEK_SET);
-        char dst[s];
-        cfs_read(db, dst, s);
+        char dst[size];
+        cfs_read(db, dst, size);
         cfs_close(db);
         printf("Database after parsing request \n%s\n", dst);
     }
+}
+
+/**
+ * value_in_array : Check if a value exists in an array
+ * @val : value
+ * @arr : array
+ * Returns : 1 or -1
+**/
+static int value_in_array(uint8_t val, char *arr)
+{
+    int i;
+    for (i = 1; i < strlen(arr)-1; i++) {
+        uint8_t tmp = arr[i] - '0';
+        if (tmp == val)
+            return 1;
+    }
+    return -1;
 }
 
 /**
@@ -156,23 +172,45 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
     // Parse request
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
-    int type;
-    char peerid[24];
+    int type, dirp, dirs;
     char tmp[2][100];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
             jsonparse_next(&js_req);
             jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId"))
-                strcpy(peerid, tmp[1]);
-            write_db(DB_NAME, tmp[0], tmp[1]);
+            if (!strcmp(tmp[0], "PeerId")) {
+                strcpy(PeerId, tmp[1]);
+            } else if(!strcmp(tmp[0], "Cryptosuites")) {
+                if (value_in_array(CSUIT, tmp[1]) == -1) {
+                    DEBUG_NOOB("Error in cryptosuite negotiation");
+                    return; // TODO: error handling
+                }
+            } else if(!strcmp(tmp[0], "Vers")) {
+                if (value_in_array(VERS, tmp[1]) == -1) {
+                    DEBUG_NOOB("Error in version negotiation");
+                    return; // TODO: error handling
+                }
+            } else if(!strcmp(tmp[0], "Dirs")) {
+                dirs = tmp[1][0] - '0';
+                if (dirs == OOBDIR)
+                    dirp = dirs;
+                else if (dirs == 3)
+                    dirp = OOBDIR;
+                else if (OOBDIR == 3)
+                    dirp = dirs;
+                else {
+                    DEBUG_NOOB("Error in dir negotiation");
+                    return; // TODO: error handling
+                }
+            }
+            write_db(tmp[0], tmp[1]);
         }
     }
+
     // Build response
-    // TODO: negotiation
     char tmpResponseType1[200];
-    sprintf(tmpResponseType1, "%s%s%s%s%s", "{\"Type\":1,\"Verp\":1,\"PeerId\":\"", peerid, "\",\"Cryptosuitep\":1,\"Dirp\":1,\"PeerInfo\":", PEER_INFO,"}");
+    sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s", "{\"Type\":1,\"Verp\":", VERS, ",\"PeerId\":\"", PeerId, "\",\"Cryptosuitep\":", CSUIT,",\"Dirp\":", dirp,",\"PeerInfo\":", PEER_INFO,"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
@@ -196,28 +234,30 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char peerid[24];
     char tmp[2][100];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
             jsonparse_next(&js_req);
             jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId"))
-                strcpy(peerid, tmp[1]);
+            if (!strcmp(tmp[0], "PeerId")) {
+                if (strcmp(PeerId, tmp[1]))
+                    return; // TODO: error handling
+            }
             else if (
                 !strcmp(tmp[0], "PKs") ||
                 !strcmp(tmp[0], "Ns")  ||
                 !strcmp(tmp[0], "SleepTime")
             )
-                write_db(DB_NAME, tmp[0], tmp[1]);
+                write_db(tmp[0], tmp[1]);
         }
     }
 
     // Build response
-    // TODO: read response values from configuration file
+    // TODO: generate fresh nonce
+    // TODO: update cryptosuite
     char tmpResponseType2[200];
-    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", peerid, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
+    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
@@ -228,7 +268,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
     eapKeyAvailable = FALSE;
 
     // Update NAI
-    sprintf(nai, "%s%s", peerid, "+s1@noob.example.com");
+    sprintf(nai, "%s%s", PeerId, "+s1@noob.example.com");
 }
 
 /**
@@ -244,21 +284,23 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t 
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char peerid[24];
     char tmp[2][100];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
             jsonparse_next(&js_req);
             jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId"))
-                strcpy(peerid, tmp[1]);
+            if (!strcmp(tmp[0], "PeerId")) {
+                if (strcmp(PeerId, tmp[1]))
+                    return; // TODO: error handling
+            }
             // TODO: update SleepTime
         }
     }
+
     // Build response
     char tmpResponseType3[50];
-    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", peerid, "\"}");
+    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", PeerId, "\"}");
 
     ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
     ((struct eap_msg *)eapRespData)->id = (uint8_t)id;

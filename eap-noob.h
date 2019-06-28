@@ -38,7 +38,7 @@
 
 /* Print debug information */
 #define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
-#define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %s\n", X, Y)
+#define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
 
 /* Get EAP message values */
 #define reqId ((struct eap_msg *)eapReqData)->id
@@ -54,6 +54,10 @@
 #define FAILURE_NOOB        -1
 #define EMPTY_NOOB          0
 
+/* MAX values for the fields */
+
+#define MAX_PEER_ID_LEN     22
+
 /* Keywords for json encoding and decoding */
 
 enum {
@@ -68,30 +72,6 @@ enum {
     EAP_NOOB_ERROR
 };
 
-struct eap_noob_server_data {
-};
-
-struct eap_noob_peer_config_params {
-    char * Peer_name;
-    char * Peer_ID_Num;
-};
-
-struct eap_noob_peer_data {
-    uint32_t version;
-    uint32_t state;
-    uint32_t cryptosuite;
-    uint32_t dir;
-    uint32_t minsleep;
-    uint32_t config_params;
-
-    char * PeerId;
-    char * PeerInfo;
-    char * MAC;
-    char * Realm;
-
-    uint8_t * Kz;
-
-    struct eap_noob_peer_config_params * peer_config_params;
-};
+uint8_t PeerId [MAX_PEER_ID_LEN];
 
 #endif
