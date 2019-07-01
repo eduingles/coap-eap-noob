@@ -183,7 +183,76 @@ void eap_noob_err_msg(const uint8_t id, uint8_t *eapRespData, uint8_t error)
 }
 
 /**
- * eap_noob_req_type_one : Decode request type one, send response
+ * eap_noob_rsp_type_one : Prepare response type one
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+ * @dirp : negotiated OOB direction
+**/
+void eap_noob_rsp_type_one(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData, int dirp)
+{
+    char tmpResponseType1[200];
+    sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s", "{\"Type\":1,\"Verp\":", VERS, ",\"PeerId\":\"", PeerId, "\",\"Cryptosuitep\":", CSUIT,",\"Dirp\":", dirp,",\"PeerInfo\":", PEER_INFO,"}");
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType1)) + 1);
+    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType1);
+    eapKeyAvailable = FALSE;
+}
+
+/**
+ * eap_noob_rsp_type_two : Prepare response type two
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_rsp_type_two(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
+{
+    // TODO: generate fresh nonce
+    // TODO: update cryptosuite
+    char tmpResponseType2[200];
+    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType2)) + 1);
+    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
+    eapKeyAvailable = FALSE;
+
+    // Update NAI
+    sprintf(nai, "%s%s", PeerId, "+s1@noob.example.com");
+}
+
+/**
+ * eap_noob_rsp_type_three : Prepare response type three
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_rsp_type_three(char *eapReqData, const size_t size, const uint8_t id, uint8_t *eapRespData)
+{
+    char tmpResponseType3[50];
+    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", PeerId, "\"}");
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType3)) + 1);
+    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
+    eapKeyAvailable = FALSE;
+}
+
+/**
+ * eap_noob_req_type_one : Decode request type one
  * @eapReqData : EAP request data
  * @size : size of eapReqData
  * @id : method identifier
@@ -229,22 +298,12 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
             write_db(tmp[0], tmp[1]);
         }
     }
-
     // Build response
-    char tmpResponseType1[200];
-    sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s", "{\"Type\":1,\"Verp\":", VERS, ",\"PeerId\":\"", PeerId, "\",\"Cryptosuitep\":", CSUIT,",\"Dirp\":", dirp,",\"PeerInfo\":", PEER_INFO,"}");
-
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType1)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType1);
-    eapKeyAvailable = FALSE;
+    eap_noob_rsp_type_one(eapReqData, size, id, eapRespData, dirp);
 }
 
 /**
- * eap_noob_req_type_two : Decode request type two, send response
+ * eap_noob_req_type_two : Decode request type two
  * @eapReqData : EAP request data
  * @size : size of eapReqData
  * @id : method identifier
@@ -276,27 +335,12 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
                 write_db(tmp[0], tmp[1]);
         }
     }
-
     // Build response
-    // TODO: generate fresh nonce
-    // TODO: update cryptosuite
-    char tmpResponseType2[200];
-    sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
-
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType2)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
-    eapKeyAvailable = FALSE;
-
-    // Update NAI
-    sprintf(nai, "%s%s", PeerId, "+s1@noob.example.com");
+    eap_noob_rsp_type_two(eapReqData, size, id, eapRespData);
 }
 
 /**
- * eap_noob_req_type_three : Decode request type three, send response
+ * eap_noob_req_type_three : Decode request type three
  * @eapReqData : EAP request data
  * @size : size of eapReqData
  * @id : method identifier
@@ -323,18 +367,8 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t 
             // TODO: update SleepTime
         }
     }
-
     // Build response
-    char tmpResponseType3[50];
-    sprintf(tmpResponseType3, "%s%s%s", "{\"Type\":3,\"PeerId\":\"", PeerId, "\"}");
-
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType3)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
-    eapKeyAvailable = FALSE;
+    eap_noob_rsp_type_three(eapReqData, size, id, eapRespData);
 }
 
 /**
