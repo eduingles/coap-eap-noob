@@ -74,4 +74,41 @@ enum {
 
 uint8_t PeerId [MAX_PEER_ID_LEN];
 
+enum {
+    E1001, E1002, E1003, E1004, E1007,
+    E2001, E2002, E2003, E2004, E2005,
+    E3001, E3002, E3003,
+    E4001,
+    E5001, E5002, E5003, E5004
+};
+
+const int error_code[] = {
+    1001, 1002, 1003, 1004, 1007,
+    2001, 2002, 2003, 2004, 2005,
+    3001, 3002, 3003,
+    4001,
+    5001, 5002, 5003, 5004
+};
+
+const char *error_info[] = {
+    "Invalid NAI",
+    "Invalid message structure",
+    "Invalid data",
+    "Unexpected message type",
+    "Invalid ECDHE key",
+    "Unwanted peer",
+    "State mismatch, user action required",
+    "Unrecognized OOB message identifier",
+    "Unexpected peer identifier",
+    "Unrecognized Kz identifier",
+    "No mutually supported protocol version",
+    "No mutually supported cryptosuite",
+    "No mutually supported OOB direction",
+    "HMAC verification failure",
+    "Application-specific error",
+    "Invalid server info",
+    "Invalid server URL",
+    "Invalid peer info"
+};
+
 #endif

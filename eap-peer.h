@@ -22,7 +22,6 @@
 #define EAP_PEER
 
 #include "include.h"
-#include "eap-noob.h"
 
 #define EAP_MSG_LEN 256
 #define NAI_LEN     44

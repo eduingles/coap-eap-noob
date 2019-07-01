@@ -33,8 +33,6 @@
 #include "jsonparse.h"
 #include "cfs/cfs.h"
 
-#include <stdlib.h>
-
 /**
  * jsonparse_copy_next : Copy next value from js to dst
  * @js   : JSON object
@@ -161,6 +159,30 @@ static int value_in_array(uint8_t val, char *arr)
 }
 
 /**
+ * eap_noob_err_msg : Prepare error message
+ * @id : method identifier
+ * @eapRespData : EAP response data
+ * @error : error code
+**/
+void eap_noob_err_msg(const uint8_t id, uint8_t *eapRespData, uint8_t error)
+{
+    // Build error message
+    char tmpResponseType0[200];
+    sprintf(tmpResponseType0, "%s%s%s%d%s%s%s", "{\"Type\":0,\"PeerId\":\"", PeerId, "\",\"ErrorCode\":",error_code[error],",\"ErrorInfo\":\"", error_info[error],"\"}");
+
+    DEBUG_NOOB(error_info[error]);
+    ERROR_NOOB("Sending error code", error_code[error]);
+
+    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(tmpResponseType0)) + 1);
+    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType0);
+    eapKeyAvailable = FALSE;
+}
+
+/**
  * eap_noob_req_type_one : Decode request type one, send response
  * @eapReqData : EAP request data
  * @size : size of eapReqData
@@ -181,15 +203,15 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
                 strcpy(PeerId, tmp[1]);
-            } else if(!strcmp(tmp[0], "Cryptosuites")) {
-                if (value_in_array(CSUIT, tmp[1]) == -1) {
-                    DEBUG_NOOB("Error in cryptosuite negotiation");
-                    return; // TODO: error handling
-                }
             } else if(!strcmp(tmp[0], "Vers")) {
                 if (value_in_array(VERS, tmp[1]) == -1) {
-                    DEBUG_NOOB("Error in version negotiation");
-                    return; // TODO: error handling
+                    eap_noob_err_msg(id, eapRespData, E3001);
+                    return;
+                }
+            } else if(!strcmp(tmp[0], "Cryptosuites")) {
+                if (value_in_array(CSUIT, tmp[1]) == -1) {
+                    eap_noob_err_msg(id, eapRespData, E3002);
+                    return;
                 }
             } else if(!strcmp(tmp[0], "Dirs")) {
                 dirs = tmp[1][0] - '0';
@@ -200,8 +222,8 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, const uint8_t id
                 else if (OOBDIR == 3)
                     dirp = dirs;
                 else {
-                    DEBUG_NOOB("Error in dir negotiation");
-                    return; // TODO: error handling
+                    eap_noob_err_msg(id, eapRespData, E3003);
+                    return;
                 }
             }
             write_db(tmp[0], tmp[1]);
@@ -241,8 +263,10 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
             jsonparse_next(&js_req);
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1]))
-                    return; // TODO: error handling
+                if (strcmp(PeerId, tmp[1])) {
+                    eap_noob_err_msg(id, eapRespData, E2004);
+                    return;
+                }
             }
             else if (
                 !strcmp(tmp[0], "PKs") ||
@@ -291,8 +315,10 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t 
             jsonparse_next(&js_req);
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1]))
-                    return; // TODO: error handling
+                if (strcmp(PeerId, tmp[1])) {
+                    eap_noob_err_msg(id, eapRespData, E2004);
+                    return;
+                }
             }
             // TODO: update SleepTime
         }
@@ -316,20 +342,19 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, const uint8_t 
  * @eapReqData : EAP request data
  * @methodState : method state
  * @decision : FAIL or SUCC
+ * @eapRespData : EAP response data
 **/
 void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState, uint8_t *decision, uint8_t *eapRespData)
 {
     if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
-        struct eap_msg *resp;
+        *(methodState) = CONT;
+        *(decision) = FAIL;
 
         size_t size;
         size = NTOHS(reqLength) - 5;
 
         struct jsonparse_state req_obj;
         jsonparse_setup(&req_obj, (char *)eapReqData+5, size);
-
-        *(methodState) = CONT;
-        *(decision) = FAIL;
 
         int msgtype;
         msgtype = json_integer_value(&req_obj, "Type");
