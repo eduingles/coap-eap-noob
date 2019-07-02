@@ -72,7 +72,7 @@ enum {
     EAP_NOOB_ERROR
 };
 
-uint8_t PeerId [MAX_PEER_ID_LEN];
+static uint8_t PeerId [MAX_PEER_ID_LEN];
 
 enum {
     E1001, E1002, E1003, E1004, E1007,

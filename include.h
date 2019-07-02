@@ -25,6 +25,12 @@
 #include "random.h"
 #include "contiki-net.h"
 
+// ECC implementation
+#include "dev/ecc-algorithm.h"
+#include "dev/ecc-curve.h"
+#include "lib/random.h"
+#include "sys/rtimer.h"
+#include "sys/pt.h"
 
 #define DEBUG DEBUG_PRINT
 #include "net/ipv6/uip-debug.h"
@@ -92,5 +98,10 @@
 
 //Global variables
 uint8_t msk_key [MSK_LENGTH];
+
+//ECC Implementation
+#define PRIVATE_SECRET_LEN 8
+uint32_t private_secret[PRIVATE_SECRET_LEN];
+ec_point_t client_pk; // Generator Point
 
 #endif

@@ -30,11 +30,25 @@
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
-#include "node-id.h"
 
 #include "_cantcoap.h"
 #include "uthash.h"
 
+// ECC implementation
+#include "include.h"
+
+static void
+ecc_set_random(uint32_t *secret)
+{
+  int i;
+  printf("EDU: ecc_set_random: ");
+
+  for(i = 0; i < PRIVATE_SECRET_LEN; ++i) {
+    secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
+    printf("%u ", (unsigned int)secret[i]);
+  }
+  printf("\n");
+}
 
 #include <string.h>
 
@@ -58,8 +72,8 @@ static uint32_t currentPort;
 PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
 /*---------------------------------------------------------------------------*/
-uint8_t 	sent	 [256];
-uint8_t 	received [256];
+uint8_t 	sent	 [500];
+uint8_t 	received [500];
 uint16_t 	sent_len;
 uint16_t 	received_len;
 char 		URI[8] = {'/','b','o','o','t', 0, 0, 0};
@@ -89,14 +103,6 @@ tcpip_handler(void)
 {
 
 	if(uip_newdata()) {
-		#if EDU_DEBUG
-					printf("EDU: %s uip_newdata()\n", __func__); //EDU: DEBUG
-		#endif
-
-#if TICKS
-	printf("tick %d\n",last_seq_id);
-#endif
-
 		// Check for retransmission
 		if(memcmp(uip_appdata, received ,uip_datalen()) == 0)
 		{
@@ -115,8 +121,7 @@ tcpip_handler(void)
 		if(memcmp(URIcheck, URI , URIcheck_len) != 0)
 			return;
 
-		if(last_seq_id >= ntohs(getMessageID(request))
-			|| getType(request) == COAP_ACKNOWLEDGEMENT  )
+		if(last_seq_id >= ntohs(getMessageID(request)) || getType(request) == COAP_ACKNOWLEDGEMENT )
 			return;
 
 		unsigned char *payload, *ptr;
@@ -125,9 +130,6 @@ tcpip_handler(void)
 		uint8_t responsecode = COAP_CHANGED;
 
 		if((getCode(request) == COAP_POST)){
-#if EDU_DEBUG
-			printf("EDU: %s COAP_POST message incoming\n", __func__); //EDU: DEBUG
-#endif
 			if(!state) {
 				//state = 1;
 				nonce_s = rand();
@@ -162,13 +164,7 @@ tcpip_handler(void)
 
 			//else if((getCode(request) == COAP_PUT)){ // EAP EXCHANGE FINISHED
 			else{
-#if EDU_DEBUG
-				printf("EDU: %s BE AWARE!! NO COAP_POST MESSAGE\n", __func__); //EDU: DEBUG
-#endif
 				if(eapKeyAvailable){
-#if EDU_DEBUG
-					printf("EDU: %s BE AWARE!! eapKeyAvailable\n", __func__); //EDU: DEBUG
-#endif
 					do_omac(msk_key, sequence, 26, auth_key);
 					authKeyAvailable = TRUE;
 
@@ -191,9 +187,6 @@ tcpip_handler(void)
 
 				}
 
-#if TICKS
-				printf("tick eap in(%d)\n",last_seq_id);
-#endif
 				eapReq = TRUE;
 				payload = getPayloadPointer(request);
 #if EDU_DEBUG
@@ -221,21 +214,12 @@ tcpip_handler(void)
 					etimer_set(&et, 10 * CLOCK_SECOND);
 					return;
 				}
-
-#if TICKS
-				printf("tick eap out(%d)\n",last_seq_id);
-#endif
-
 			}
 		}
 		else{
-			// Es el ACK del GET
+			// Got ACK from GET
 			return;
 		}
-
-#if TICKS
-	printf("tick %d\n",last_seq_id);
-#endif
 		reset(response);
 		setVersion(response,1);
 		setType(response,COAP_ACKNOWLEDGEMENT);
@@ -246,10 +230,6 @@ tcpip_handler(void)
 
 		setMessageID(response,getMessageID(request));
 
-#if EDU_DEBUG
-		printf("EDU: %s Header values should be set\n", __func__); //EDU: DEBUG
-		printf("EDU: %s codeReq ? COAP_POST: %x == %x\n", __func__, getCode(request), COAP_POST); //EDU: DEBUG
-#endif
 #if EDU_DEBUG
 		unsigned char *tmpPayload;
 		printf("EDU: %s print PayLoad again\n",__func__); //EDU: DEBUG
@@ -265,62 +245,46 @@ tcpip_handler(void)
 			printf("%c", tmpPayload[i]);
 		printf("'\n");
 #endif
+
+#if EDU_DEBUG
+	printf("EDU:  if getCode(request) == COAP_POST\n");
+#endif
 		if((getCode(request) == COAP_POST)){
 #if EDU_DEBUG
-			printf("EDU: %s code request == COAP_POST\n", __func__); //EDU: DEBUG
+	printf("EDU:  YES getCode(request) == COAP_POST\n");
 #endif
 			if(! state){
-#if EDU_DEBUG
-				printf("EDU: %s !state == %u \n", __func__, state); //EDU: DEBUG
-#endif
+				#if EDU_DEBUG
+					printf("EDU:  no state\n");
+				#endif
 				state++;
 				_setURI(response,&URI[0],7);
 				setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request));
 			}
 			else{
-#if EDU_DEBUG
-				printf("EDU: %s YES state == %u \n", __func__, state); //EDU: DEBUG
-#endif
+				#if EDU_DEBUG
+					printf("EDU:  YES state\n");
+				#endif
 				if(!authKeyAvailable){
-#if EDU_DEBUG
-					printf("EDU: %s but NO authKeyAvailable \n", __func__); //EDU: DEBUG
-#endif
 					if (eapResp){
-#if EDU_DEBUG
-						printf("EDU: %s at least eapResp \n", __func__); //EDU: DEBUG
-#endif
 						uint16_t len = ntohs( ((struct eap_msg*) eapRespData)->length);
 						setPayload(response,eapRespData, len);
 					}
 				}else{
-#if EDU_DEBUG
-					printf("EDU: %s AND authKeyAvailable \n", __func__); //EDU: DEBUG
-#endif
 					addOption(response,COAP_OPTION_AUTH, 16, (uint8_t *)&mac2check);
-
 					do_omac(auth_key, getPDUPointer(response),
 							getPDULength(response), mac2check);
 					memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16);
 				}
 			}
-#if TICKS
-	printf("tick %d\n",last_seq_id);
-#endif
 
 			uip_udp_packet_send(client_conn, getPDUPointer(response), (size_t)getPDULength(response));
-#if TICKS
-	printf("tick %d\n",last_seq_id);
-#endif
-
 			memcpy(sent, getPDUPointer(response), (size_t)getPDULength(response));
 			sent_len = getPDULength(response);
 
 		}
 	}
 
-#if EDU_DEBUG
-    printf("EDU: %s: authKeyAvailable: %d == FALSE?\n",__func__, authKeyAvailable); //EDU: DEBUG
-#endif
 	if(authKeyAvailable){
 		nAuth++;
 		printf("tick finish\n");
@@ -331,10 +295,7 @@ tcpip_handler(void)
 	printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 #endif
 	etimer_set(&et, 20 * CLOCK_SECOND);
-
-
 }
-
 
 /*---------------------------------------------------------------------------*/
 	static void
@@ -372,13 +333,7 @@ timeout_handler(void)
 	setMessageID(request,htons(0x0000));
 	_setURI(request,"/boot",5);// CoAP URI to start communication with CoAP-EAP Controller
 
-#if TICKS
-	printf("tick init\n");
-#endif
 	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
-#if TICKS
-	printf("tick init\n");
-#endif
 #if EDU_DEBUG
 	printf("EDU: %s Set TIMEOUT_INTERVAL_NO_RESPONSE\n", __func__); //EDU: DEBUG
 #endif
@@ -436,8 +391,6 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	uip_ipaddr_t ipaddr;
 
 	PROCESS_BEGIN();
-	//printf("UDP client process started\n");
-
 #if UIP_CONF_ROUTER
 	set_global_address();
 #endif
@@ -445,9 +398,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	print_local_addresses();
 	rand();
 	set_connection_address(&ipaddr);
-
 	currentPort = 3000;
-
 	/* new connection with remote host */
 	client_conn = udp_new(&ipaddr, UIP_HTONS(5683), NULL);
 	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
@@ -456,14 +407,59 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-	etimer_set(&et, START_INTERVAL);
-	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-	etimer_set(&et, 1*CLOCK_SECOND);
 
 	request = _CoapPDU();
 	response = _CoapPDU();
 
     init_eap_noob();
+
+	// ECC implementation
+	pka_init();
+    static ecc_compare_state_t state = {
+        .process = &boostrapping_service_process,
+        .size    = 8,
+    };
+	memcpy(state.b, nist_p_256.n, sizeof(uint32_t) * 8);
+	do {
+		ecc_set_random(private_secret);
+		memcpy(state.a, private_secret, sizeof(uint32_t) * PRIVATE_SECRET_LEN);
+		PT_SPAWN(&(boostrapping_service_process.pt), &(state.pt), ecc_compare(&state));
+	} while(state.result != PKA_STATUS_A_LT_B);
+	
+	static ecc_multiply_state_t ecc_client = {
+		.process    = &boostrapping_service_process,
+		.curve_info = &nist_p_256,
+	};
+	memcpy(ecc_client.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
+	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
+	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
+
+	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client)); 
+	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
+	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
+    pka_disable();
+
+	printf("PK.X: ");
+	for(int i = 0; i < 8; ++i) {
+		printf("%u ", (unsigned int)client_pk.x[i]);
+	}
+	printf("\n");
+	printf("PK.Y: ");
+	for(int i = 0; i < 8; ++i) {
+		printf("%u ", (unsigned int)client_pk.y[i]);
+	}
+	printf("\n");
+	
+	
+	etimer_set(&et, START_INTERVAL);
+	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+	etimer_set(&et, 1*CLOCK_SECOND);
+
+
+#if EDU_DEBUG
+  	puts("-----------------------------------------");
+#endif
+	// ECC implementation - end
 
 	while(1) {
 #if EDU_DEBUG
@@ -479,16 +475,14 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == tcpip_event) {
 				tcpip_handler();
 			} else {
-				printf("Ops! I press enter.\n");
-				timeout_handler();
+				printf("Received another kind of event\n");
+				// timeout_handler();
 			}
 		} else {
 			printf("BR not reachable\n");
-			etimer_set(&et, 3 * CLOCK_SECOND);
-
+			etimer_set(&et, 2 * CLOCK_SECOND);
 		}
 	}
-
 	PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
