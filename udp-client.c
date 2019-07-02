@@ -425,7 +425,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		memcpy(state.a, private_secret, sizeof(uint32_t) * PRIVATE_SECRET_LEN);
 		PT_SPAWN(&(boostrapping_service_process.pt), &(state.pt), ecc_compare(&state));
 	} while(state.result != PKA_STATUS_A_LT_B);
-	
+
 	static ecc_multiply_state_t ecc_client = {
 		.process    = &boostrapping_service_process,
 		.curve_info = &nist_p_256,
@@ -434,7 +434,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
 	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
 
-	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client)); 
+	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
 	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
 	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
     pka_disable();
@@ -449,8 +449,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		printf("%u ", (unsigned int)client_pk.y[i]);
 	}
 	printf("\n");
-	
-	
+
+
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 	etimer_set(&et, 1*CLOCK_SECOND);
