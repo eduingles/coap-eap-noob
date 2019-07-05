@@ -229,6 +229,6 @@ int getOptionLength( CoapPDU *coap_pdu,uint8_t COAP_OPTION);
 void printHuman(CoapPDU *coap_pdu);
 void printPDUAsCArray(CoapPDU *coap_pdu);
 void printOptionHuman(CoapPDU *coap_pdu,uint8_t *option);
-void printHex(CoapPDU *coap_pdu);
+// void printHex(CoapPDU *coap_pdu);
 void _printBinary(uint8_t b);
 void print(CoapPDU *coap_pdu);

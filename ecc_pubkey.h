@@ -30,8 +30,8 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#ifndef ECC_GEN_PUBKEY_H
-#define ECC_GEN_PUBKEY_H
+#ifndef ECC_PUBKEY_H
+#define ECC_PUBKEY_H
 
 #include "include.h"
 
@@ -39,7 +39,6 @@
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"
 #include "lib/random.h"
-#include "sys/rtimer.h"
 #include "sys/pt.h"
 
 PROCESS_NAME(ecdh_generate_pubkey);

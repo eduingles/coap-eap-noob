@@ -30,10 +30,9 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#include "ecc_gen_pubkey.h"
+#include "ecc_pubkey.h"
 
 static char msg[] = "pubkey_generated";
-
 
 static void
 ecc_set_random(uint32_t *secret)
@@ -49,8 +48,6 @@ ecc_set_random(uint32_t *secret)
 }
 
 PROCESS(ecdh_generate_pubkey, "ECDH Generate Client Public Key");
-// AUTOSTART_PROCESSES(&ecdh_generate_pubkey);
-
 PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
 
 	PROCESS_BEGIN();

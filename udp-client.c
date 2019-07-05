@@ -38,10 +38,11 @@
 
 #include "_cantcoap.h"
 #include "uthash.h"
+#include "eax.h" //do_omac()
 
 // ECC implementation
 #include "include.h"
-#include "ecc_gen_pubkey.h"
+#include "ecc_pubkey.h"
 #include "sys/process.h" // process_start()
 
 // static const unsigned char base64_table[65] =
@@ -49,157 +50,157 @@
 
 /**
  * base64_decode - Base64 decode
- * @src: Data to be decoded
- * @len: Length of the data to be decoded
- * @out_len: Pointer to output length variable
- * Returns: Allocated buffer of out_len bytes of decoded data,
- * or %NULL on failure
- *
- * Caller is responsible for freeing the returned buffer.
- */
+	* @src: Data to be decoded
+	* @len: Length of the data to be decoded
+	* @out_len: Pointer to output length variable
+	* Returns: Allocated buffer of out_len bytes of decoded data,
+	* or %NULL on failure
+	*
+	* Caller is responsible for freeing the returned buffer.
+	*/
 
-// static void base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
-// {
-// 	if (src == NULL)
-// 		printf("base64_decode: src NULL\n");
-// 	if (dst == NULL)
-// 		printf("base64_decode: dst NULL\n");
-// 	if (out_len == NULL)
-// 		printf("base64_decode: outlen NULL\n");
-// 	if (len == NULL)
-// 		printf("base64_decode: len == 0\n");
+	// static void base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
+	// {
+	// 	if (src == NULL)
+	// 		printf("base64_decode: src NULL\n");
+	// 	if (dst == NULL)
+	// 		printf("base64_decode: dst NULL\n");
+	// 	if (out_len == NULL)
+	// 		printf("base64_decode: outlen NULL\n");
+	// 	if (len == NULL)
+	// 		printf("base64_decode: len == 0\n");
 
 
-// 	unsigned char dtable[256], *pos, block[4], tmp;
-// 	size_t i, count, olen;
-// 	int pad = 0;
+	// 	unsigned char dtable[256], *pos, block[4], tmp;
+	// 	size_t i, count, olen;
+	// 	int pad = 0;
 
-// 	memset(dtable, 0x80, 256);
-// 	for (i = 0; i < sizeof(base64_table) - 1; i++)
-// 		dtable[base64_table[i]] = (unsigned char) i;
-// 	dtable['='] = 0;
+	// 	memset(dtable, 0x80, 256);
+	// 	for (i = 0; i < sizeof(base64_table) - 1; i++)
+	// 		dtable[base64_table[i]] = (unsigned char) i;
+	// 	dtable['='] = 0;
 
-// 	count = 0;
-// 	for (i = 0; i < len; i++) {
-// 		if (dtable[src[i]] != 0x80)
-// 			count++;
-// 	}
+	// 	count = 0;
+	// 	for (i = 0; i < len; i++) {
+	// 		if (dtable[src[i]] != 0x80)
+	// 			count++;
+	// 	}
 
-// 	if (count == 0 || count % 4)
-// 		return NULL;
+	// 	if (count == 0 || count % 4)
+	// 		return NULL;
 
-// 	olen = count / 4 * 3;
-// 	unsigned char out[olen];
-// 	pos = out;
-// 	if (out == NULL)
-// 		return NULL;
+	// 	olen = count / 4 * 3;
+	// 	unsigned char out[olen];
+	// 	pos = out;
+	// 	if (out == NULL)
+	// 		return NULL;
 
-// 	count = 0;
-// 	for (i = 0; i < len; i++) {
-// 		tmp = dtable[src[i]];
-// 		if (tmp == 0x80)
-// 			continue;
+	// 	count = 0;
+	// 	for (i = 0; i < len; i++) {
+	// 		tmp = dtable[src[i]];
+	// 		if (tmp == 0x80)
+	// 			continue;
 
-// 		if (src[i] == '=')
-// 			pad++;
-// 		block[count] = tmp;
-// 		count++;
-// 		if (count == 4) {
-// 			*pos++ = (block[0] << 2) | (block[1] >> 4);
-// 			*pos++ = (block[1] << 4) | (block[2] >> 2);
-// 			*pos++ = (block[2] << 6) | block[3];
-// 			count = 0;
-// 			if (pad) {
-// 				if (pad == 1)
-// 					pos--;
-// 				else if (pad == 2)
-// 					pos -= 2;
-// 				else {
-// 					/* Invalid padding */
-// 					return NULL;
-// 				}
-// 				break;
-// 			}
-// 		}
-// 	}
+	// 		if (src[i] == '=')
+	// 			pad++;
+	// 		block[count] = tmp;
+	// 		count++;
+	// 		if (count == 4) {
+	// 			*pos++ = (block[0] << 2) | (block[1] >> 4);
+	// 			*pos++ = (block[1] << 4) | (block[2] >> 2);
+	// 			*pos++ = (block[2] << 6) | block[3];
+	// 			count = 0;
+	// 			if (pad) {
+	// 				if (pad == 1)
+	// 					pos--;
+	// 				else if (pad == 2)
+	// 					pos -= 2;
+	// 				else {
+	// 					/* Invalid padding */
+	// 					return NULL;
+	// 				}
+	// 				break;
+	// 			}
+	// 		}
+	// 	}
 
-// 	*out_len = pos - out;
-// 	memcpy(dst, out, *out_len+1);
-// 	// return out;
-// }
+	// 	*out_len = pos - out;
+	// 	memcpy(dst, out, *out_len+1);
+	// 	// return out;
+	// }
 
 
 // /**
 //  * base64_encode : Base64 encoding
-//  * @src: data to be encoded
-//  * @len: length of the data to be encoded
-//  * @out_len: pointer to output length variable, or NULL if not used
-//  */
-// static void base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
-// {
-// 	unsigned char *pos;
-// 	const unsigned char *end, *in;
-// 	size_t olen;
-// 	int line_len;
+	//  * @src: data to be encoded
+	//  * @len: length of the data to be encoded
+	//  * @out_len: pointer to output length variable, or NULL if not used
+	//  */
+	// static void base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
+	// {
+	// 	unsigned char *pos;
+	// 	const unsigned char *end, *in;
+	// 	size_t olen;
+	// 	int line_len;
 
-// 	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
-// 	olen += olen / 72;      // line feeds
-// 	olen++;                 // null termination
-// 	if (olen < len)
-//         return NULL;        // integer overflow
+	// 	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
+	// 	olen += olen / 72;      // line feeds
+	// 	olen++;                 // null termination
+	// 	if (olen < len)
+	//         return NULL;        // integer overflow
 
-//     unsigned char out[olen];
-// 	if (out == NULL)
-// 		return NULL;
+	//     unsigned char out[olen];
+	// 	if (out == NULL)
+	// 		return NULL;
 
-// 	end = src + len;
-// 	in = src;
-// 	pos = out;
-// 	line_len = 0;
-// 	while (end-in >= 3) {
-// 		*pos++ = base64_table[in[0] >> 2];
-// 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-// 		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
-// 		*pos++ = base64_table[in[2] & 0x3f];
-// 		in += 3;
-// 		line_len += 4;
-// 		if (line_len >= 72)
-// 			line_len = 0;
-// 	}
-// 	if (end-in) {
-// 		*pos++ = base64_table[in[0] >> 2];
-// 		if (end-in == 1) {
-// 			*pos++ = base64_table[(in[0] & 0x03) << 4];
-// 			// *pos++ = '=';
-// 		} else {
-// 			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-// 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
-// 		}
-// 		// *pos++ = '=';
-// 	}
-// 	*pos = '\0';
-// 	if (out_len)
-// 		*out_len = pos - out;
+	// 	end = src + len;
+	// 	in = src;
+	// 	pos = out;
+	// 	line_len = 0;
+	// 	while (end-in >= 3) {
+	// 		*pos++ = base64_table[in[0] >> 2];
+	// 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+	// 		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+	// 		*pos++ = base64_table[in[2] & 0x3f];
+	// 		in += 3;
+	// 		line_len += 4;
+	// 		if (line_len >= 72)
+	// 			line_len = 0;
+	// 	}
+	// 	if (end-in) {
+	// 		*pos++ = base64_table[in[0] >> 2];
+	// 		if (end-in == 1) {
+	// 			*pos++ = base64_table[(in[0] & 0x03) << 4];
+	// 			// *pos++ = '=';
+	// 		} else {
+	// 			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+	// 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
+	// 		}
+	// 		// *pos++ = '=';
+	// 	}
+	// 	*pos = '\0';
+	// 	if (out_len)
+	// 		*out_len = pos - out;
 
-//     uint16_t strlen_tmp = *out_len;
-//     memcpy(dst, out, *out_len+1);
-// }
-
-
+	//     uint16_t strlen_tmp = *out_len;
+	//     memcpy(dst, out, *out_len+1);
+	// }
 
 
-static void
-ecc_set_random(uint32_t *secret)
-{
-  int i;
-//   printf("EDU: ecc_set_random: ");
 
-  for(i = 0; i < 8; ++i) {
-    secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
-    // printf("%u ", (unsigned int)secret[i]);
-  }
-//   printf("\n");
-}
+
+// static void
+// ecc_set_random(uint32_t *secret)
+	// {
+	//   int i;
+	// //   printf("EDU: ecc_set_random: ");
+
+	//   for(i = 0; i < 8; ++i) {
+	//     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
+	//     // printf("%u ", (unsigned int)secret[i]);
+	//   }
+	// //   printf("\n");
+	// }
 
 #include <string.h>
 
@@ -445,7 +446,7 @@ tcpip_handler(void)
 #if EDU_DEBUG
 	printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 #endif
-	etimer_set(&et, 10 * CLOCK_SECOND);
+	etimer_set(&et, 20 * CLOCK_SECOND);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -485,7 +486,7 @@ timeout_handler(void)
 	_setURI(request,"/boot",5);// CoAP URI to start communication with CoAP-EAP Controller
 
 	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
-	etimer_set(&et, 15 * CLOCK_SECOND);
+	etimer_set(&et, 40 * CLOCK_SECOND);
 
 }
 /*---------------------------------------------------------------------------*/
@@ -557,8 +558,10 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
 	request = _CoapPDU();
 	response = _CoapPDU();
-
-    init_eap_noob();
+	
+	//TODO: Move to EAP-Peer
+	//TODO: Differentiate between EAP_NOOB and EAP_PSK
+	init_eap_noob();
 
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));

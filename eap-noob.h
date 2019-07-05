@@ -113,4 +113,6 @@ const char *error_info[] = {
     "Invalid peer info"
 };
 
+void init_eap_noob(void);
+
 #endif

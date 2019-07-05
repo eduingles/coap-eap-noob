@@ -30,6 +30,7 @@ static void buildIdentity(const uint8_t id){
 	((struct eap_msg*) eapRespData)->method = IDENTITY;
 
 	sprintf((char *)eapRespData + sizeof(struct eap_msg), "%s", (char *)nai);
+	printf("EDU: %s - nai: %s\n", __func__, eapRespData+sizeof(struct eap_msg));
 }
 
 //EAP peer state machine step function

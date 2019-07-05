@@ -23,7 +23,7 @@
 
 #include "include.h"
 
-#define EAP_MSG_LEN 260
+#define EAP_MSG_LEN 360
 #define NAI_LEN     44
 
 // Struct of a eap message

@@ -111,14 +111,15 @@ uint8_t msk_key [MSK_LENGTH];
 //ECDH Implementation
 PROCESS_NAME(boostrapping_service_process);
 uint32_t private_secret[8];
+uint32_t shared_secret[8];
 
 // static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 ec_point_t client_pk; // Generator Point
-// static ec_point_t client_pk2; // Generator Point
+ec_point_t server_pk; // Generator Point
 
 #if EDU_DEBUG
-//Stack guard
-// #include "sys/stack-check.h"
+    //Stack guard
+    // #include "sys/stack-check.h"
 #endif
 
 

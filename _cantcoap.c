@@ -944,7 +944,7 @@ uint8_t* getOptionPointer( CoapPDU *coap_pdu,uint8_t COAP_OPTION){
 	}
 	// iterate over options to construct URI
 	CoapOption *o = NULL;
-	int oLen,i=0;
+	int i=0;
 	for(i=0; i<coap_pdu->_numOptions; i++) {
 		o = &options[i];
 		if(o->optionNumber==COAP_OPTION) {
@@ -1177,7 +1177,7 @@ int addOption(CoapPDU *coap_pdu,uint16_t insertedOptionNumber, uint16_t optionVa
 		coap_pdu->_maxAddedOptionNumber = insertedOptionNumber;
 
 		// set new PDU length and allocate space for extra option
-		int oldPDULength = coap_pdu->_pduLength;
+		// int oldPDULength = coap_pdu->_pduLength;
 		coap_pdu->_pduLength += optionLength;
 		if(!coap_pdu->_constructedFromBuffer) {
 			/*
@@ -2062,11 +2062,11 @@ void printOptionHuman(CoapPDU *coap_pdu,uint8_t *option) {
 }
 
 /// Dumps the PDU header in hex.
-void printHex(CoapPDU *coap_pdu) {
-	DBG("Hexdump dump of PDU\r\n");
-	uint8_t *_pdu = coap_pdu->_pdu;
-	DBG("%.2x %.2x %.2x %.2x",_pdu[0],_pdu[1],_pdu[2],_pdu[3]);
-}
+// void printHex(CoapPDU *coap_pdu) {
+// 	DBG("Hexdump dump of PDU\r\n");
+// 	uint8_t *_pdu = coap_pdu->_pdu;
+// 	DBG("%.2x %.2x %.2x %.2x",_pdu[0],_pdu[1],_pdu[2],_pdu[3]);
+// }
 
 /// Dumps the entire PDU in binary.
 void printBin(CoapPDU *coap_pdu) {
