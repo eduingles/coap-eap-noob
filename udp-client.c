@@ -1,4 +1,9 @@
 /*
+ *  Copyright (c) 2019, University of Murcia
+ *
+ *  Copyright (C) Dan García Carrillo.
+ *  Copyright (C) Eduardo Inglés Sánchez.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -7,9 +12,9 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ * 3. Neither the name of the University of Murcia nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -36,11 +41,8 @@
 
 // ECC implementation
 #include "include.h"
-
-
-
-
-
+#include "ecc_gen_pubkey.h"
+#include "sys/process.h" // process_start()
 
 // static const unsigned char base64_table[65] =
 // 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -558,224 +560,189 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
     init_eap_noob();
 
-	// ECC implementation SIDE A
-	pka_init();
-    static ecc_compare_state_t state1 = {
-        .process = &boostrapping_service_process,
-        .size    = 8,
-    };
-	uint32_t private_secret[8];
-	memcpy(state1.b, nist_p_256.n, sizeof(uint32_t) * 8);
-	do {
-		ecc_set_random(private_secret);
-		memcpy(state1.a, private_secret, sizeof(uint32_t) * 8);
-		PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
-	} while(state1.result != PKA_STATUS_A_LT_B);
-	
-	static ecc_multiply_state_t ecc_client = {
-		.process    = &boostrapping_service_process,
-		.curve_info = &nist_p_256,
-	};
-	memcpy(ecc_client.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
-	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
-	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
-
-	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
-	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
-	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
-
-  	pka_disable();
-  	puts("-----------------------------------------");
-  	puts("        CLIENT PUBLIC KEY PAIR");
-  	puts("-----------------------------------------");
-	printf("     A PK.X: ");
-	for(int i = 0; i < 8; ++i) {
-		printf("%u", (unsigned int)client_pk.x[i]);
-	}
-	printf("\n");
-	printf("     A PK.Y: ");
-	for(int i = 0; i < 8; ++i) {
-		printf("%u", (unsigned int)client_pk.y[i]);
-	}
-	printf("\n");
-  	puts("-----------------------------------------");
-	// ECC implementation - end
-	
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 	etimer_set(&et, 1*CLOCK_SECOND);
 
-
-
-
-
-
-
-
-
-//     static unsigned char pk_str1[33];
-//     for(int i = 0 ;i < 8;i++){
-//         pk_str1[i*4+0] = client_pk.x[i] >> 24;
-//         pk_str1[i*4+1] = client_pk.x[i] >> 16;
-//         pk_str1[i*4+2] = client_pk.x[i] >> 8;
-//         pk_str1[i*4+3] = client_pk.x[i];
-//     }
-// 	pk_str1[32] = '\0';
-
-//     printf("A PK.X char: ");
-//     for (int i = 0; i < 32; i++)
-//         printf("%u", pk_str1[i]);
-//     printf("\n");
-
-//     static uint16_t len_b64_x = 0;
-//     static unsigned char pk_x_b64[45];
-//     base64_encode(pk_str1, 33, &len_b64_x, pk_x_b64);
-
-//     static unsigned char pk_str2[33];
-//     for(int i = 0 ;i < 8;i++){
-//         pk_str2[i*4+0] = client_pk.y[i] >> 24;
-//         pk_str2[i*4+1] = client_pk.y[i] >> 16;
-//         pk_str2[i*4+2] = client_pk.y[i] >> 8;
-//         pk_str2[i*4+3] = client_pk.y[i];
-//     }
-// 	pk_str2[33] = '\0';
-
-//     printf("A PK.Y char: ");
-//     for (int i = 0; i < 33; i++)
-//         printf("%u", pk_str2[i]);
-//     printf("\n");
-
-//     static uint16_t len_b64_y = 0;
-//     static unsigned char pk_y_b64[45];
-//     base64_encode(pk_str2, 33, &len_b64_y, pk_y_b64);
-
-//   	puts("    	  DECODE SIDE A");
-//     static unsigned char pk_str3[33];
-//     static unsigned char pk_str4[33];
-// 	static uint32_t pk_uint3[8];
-// 	static uint32_t pk_uint4[8];
-// 	static uint16_t len_plain = 0;
-// 	static uint16_t len_plain2 = 0;
-
-// 	base64_decode(pk_x_b64, len_b64_x, &len_plain, pk_str3);
-//     printf("PK.X %02u chr: ", len_plain);    
-//     for (int i = 0; i < 32; i++)
-//         printf("%u", pk_str3[i]);
-//     printf("\n");
-
-// 	for (int i = 0; i < 32; i += 4)
-// 		pk_uint3[i/4] = pk_str3[i+3] | (uint32_t)pk_str3[i+2] << 8 | (uint32_t)pk_str3[i+1] << 16 | (uint32_t)pk_str3[i] << 24;
-
-//     printf("    PK.X %02u: ", len_plain);    
-//     for(int i = 0 ;i < 8;i++)
-//         printf("%u",pk_uint3[i]);
-//     printf("\n");
+	// ECDH - Generate Client Public Key
+	static bool pubkey_is_generated = false;
+	static char pubkey_generated[] = "pubkey_generated";
+	process_start(&ecdh_generate_pubkey, NULL);
+	// ECDH - end
 	
-// 	printf("  Orig PK.X: ");
-// 	for(int i = 0; i < 8; ++i)
-// 		printf("%u", (unsigned int)client_pk.x[i]);
-// 	printf("\n");
-
-// 	base64_decode(pk_y_b64, len_b64_y, &len_plain2, pk_str4);
-//     printf("PK.Y %02u chr: ", len_plain2);    
-//     for (int i = 0; i < 32; i++)
-//         printf("%u", pk_str4[i]);
-//     printf("\n");
-// 	for (int i = 0; i < 32; i += 4)
-// 		pk_uint4[i/4] = pk_str4[i+3] | (uint32_t)pk_str4[i+2] << 8 | (uint32_t)pk_str4[i+1] << 16 | (uint32_t)pk_str4[i] << 24;
-
-//     printf("    PK.y %02u: ", len_plain2);    
-//     for(int i = 0 ;i < 8;i++)
-//         printf("%u",pk_uint4[i]);
-//     printf("\n");
-	
-	
-// 	printf("  Orig PK.Y: ");
-// 	for(int i = 0; i < 8; ++i) 
-// 		printf("%u", (unsigned int)client_pk.y[i]);
-// 	printf("\n");
 
 
 
 
 
-//   	puts("-----------------------------------------");
-//   	puts("    		  SIDE B ECC PROCESS");
-//   	puts("-----------------------------------------");
-
-// 	// ECC implementation SIDE B
-// 	pka_init();
-
-//     static ecc_compare_state_t state2 = {
-//         .process = &boostrapping_service_process,
-//         .size    = 8,
-//     };
-// 	memcpy(state2.b, nist_p_256.n, sizeof(uint32_t) * 8);
-// 	do {
-// 		ecc_set_random(private_secret2);
-// 		memcpy(state2.a, private_secret2, sizeof(uint32_t) * 8);
-// 		PT_SPAWN(&(boostrapping_service_process.pt), &(state2.pt), ecc_compare(&state2));
-// 	} while(state2.result != PKA_STATUS_A_LT_B);
-// 	static ecc_multiply_state_t ecc_client2 = {
-// 		.process    = &boostrapping_service_process,
-// 		.curve_info = &nist_p_256,
-// 	};
-// 	memcpy(ecc_client2.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
-// 	memcpy(ecc_client2.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
-// 	memcpy(ecc_client2.secret, private_secret2, sizeof(private_secret2));
-// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2)); 
-// 	memcpy(client_pk2.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
-// 	memcpy(client_pk2.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
-    
-// 	pka_disable();
-
-// 	printf("    B PK.X: ");
-// 	for(int i = 0; i < 8; ++i) {
-// 		printf("%u ", (unsigned int)client_pk2.x[i]);
-// 	}
-// 	printf("\n");
-// 	printf("    B PK.Y: ");
-// 	for(int i = 0; i < 8; ++i) {
-// 		printf("%u ", (unsigned int)client_pk2.y[i]);
-// 	}
-// 	printf("\n");
-// #if EDU_DEBUG
-//   	puts("-----------------------------------------");
-//   	puts("             KEY ECHANGE");
-//   	puts("-----------------------------------------");
-// #endif
-// 	// ECC implementation - end
 
 
 
 
-// 	pka_init();
-//   /*   * Key Exchange   */
-//   memcpy(ecc_client.point_in.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
-//   memcpy(ecc_client.point_in.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
-//   memcpy(ecc_client2.point_in.x, pk_uint3, sizeof(uint32_t) * 8);
-//   memcpy(ecc_client2.point_in.y, pk_uint4, sizeof(uint32_t) * 8);
-//   /*   * Round 2   */
-//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
+	//     static unsigned char pk_str1[33];
+	//     for(int i = 0 ;i < 8;i++){
+		//         pk_str1[i*4+0] = client_pk.x[i] >> 24;
+		//         pk_str1[i*4+1] = client_pk.x[i] >> 16;
+		//         pk_str1[i*4+2] = client_pk.x[i] >> 8;
+		//         pk_str1[i*4+3] = client_pk.x[i];
+		//     }
+		// 	pk_str1[32] = '\0';
 
-//     	// puts("-----------------------------------------1");
+		//     printf("A PK.X char: ");
+		//     for (int i = 0; i < 32; i++)
+		//         printf("%u", pk_str1[i]);
+		//     printf("\n");
 
-//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2));
-//     	// puts("-----------------------------------------2");
+		//     static uint16_t len_b64_x = 0;
+		//     static unsigned char pk_x_b64[45];
+		//     base64_encode(pk_str1, 33, &len_b64_x, pk_x_b64);
 
-//   memcpy(state1.a, ecc_client.point_out.x, sizeof(uint32_t) * 8);
-//   memcpy(state1.b, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+		//     static unsigned char pk_str2[33];
+		//     for(int i = 0 ;i < 8;i++){
+		//         pk_str2[i*4+0] = client_pk.y[i] >> 24;
+		//         pk_str2[i*4+1] = client_pk.y[i] >> 16;
+		//         pk_str2[i*4+2] = client_pk.y[i] >> 8;
+		//         pk_str2[i*4+3] = client_pk.y[i];
+		//     }
+		// 	pk_str2[33] = '\0';
 
-//   PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
-//   if(state1.result) {
-//     puts("shared secrets do not match");
-//   } else {
-//     puts("shared secrets MATCH");
-//   }
+		//     printf("A PK.Y char: ");
+		//     for (int i = 0; i < 33; i++)
+		//         printf("%u", pk_str2[i]);
+		//     printf("\n");
 
-//   puts("-----------------------------------------\n"
-//        "Disabling pka...");
-//   pka_disable();
+		//     static uint16_t len_b64_y = 0;
+		//     static unsigned char pk_y_b64[45];
+		//     base64_encode(pk_str2, 33, &len_b64_y, pk_y_b64);
+
+		//   	puts("    	  DECODE SIDE A");
+		//     static unsigned char pk_str3[33];
+		//     static unsigned char pk_str4[33];
+		// 	static uint32_t pk_uint3[8];
+		// 	static uint32_t pk_uint4[8];
+		// 	static uint16_t len_plain = 0;
+		// 	static uint16_t len_plain2 = 0;
+
+		// 	base64_decode(pk_x_b64, len_b64_x, &len_plain, pk_str3);
+		//     printf("PK.X %02u chr: ", len_plain);    
+		//     for (int i = 0; i < 32; i++)
+		//         printf("%u", pk_str3[i]);
+		//     printf("\n");
+
+		// 	for (int i = 0; i < 32; i += 4)
+		// 		pk_uint3[i/4] = pk_str3[i+3] | (uint32_t)pk_str3[i+2] << 8 | (uint32_t)pk_str3[i+1] << 16 | (uint32_t)pk_str3[i] << 24;
+
+		//     printf("    PK.X %02u: ", len_plain);    
+		//     for(int i = 0 ;i < 8;i++)
+		//         printf("%u",pk_uint3[i]);
+		//     printf("\n");
+			
+		// 	printf("  Orig PK.X: ");
+		// 	for(int i = 0; i < 8; ++i)
+		// 		printf("%u", (unsigned int)client_pk.x[i]);
+		// 	printf("\n");
+
+		// 	base64_decode(pk_y_b64, len_b64_y, &len_plain2, pk_str4);
+		//     printf("PK.Y %02u chr: ", len_plain2);    
+		//     for (int i = 0; i < 32; i++)
+		//         printf("%u", pk_str4[i]);
+		//     printf("\n");
+		// 	for (int i = 0; i < 32; i += 4)
+		// 		pk_uint4[i/4] = pk_str4[i+3] | (uint32_t)pk_str4[i+2] << 8 | (uint32_t)pk_str4[i+1] << 16 | (uint32_t)pk_str4[i] << 24;
+
+		//     printf("    PK.y %02u: ", len_plain2);    
+		//     for(int i = 0 ;i < 8;i++)
+		//         printf("%u",pk_uint4[i]);
+		//     printf("\n");
+			
+			
+		// 	printf("  Orig PK.Y: ");
+		// 	for(int i = 0; i < 8; ++i) 
+		// 		printf("%u", (unsigned int)client_pk.y[i]);
+		// 	printf("\n");
+
+
+
+
+
+		//   	puts("-----------------------------------------");
+		//   	puts("    		  SIDE B ECC PROCESS");
+		//   	puts("-----------------------------------------");
+
+		// 	// ECC implementation SIDE B
+		// 	pka_init();
+
+		//     static ecc_compare_state_t state2 = {
+		//         .process = &boostrapping_service_process,
+		//         .size    = 8,
+		//     };
+		// 	memcpy(state2.b, nist_p_256.n, sizeof(uint32_t) * 8);
+		// 	do {
+		// 		ecc_set_random(private_secret2);
+		// 		memcpy(state2.a, private_secret2, sizeof(uint32_t) * 8);
+		// 		PT_SPAWN(&(boostrapping_service_process.pt), &(state2.pt), ecc_compare(&state2));
+		// 	} while(state2.result != PKA_STATUS_A_LT_B);
+		// 	static ecc_multiply_state_t ecc_client2 = {
+		// 		.process    = &boostrapping_service_process,
+		// 		.curve_info = &nist_p_256,
+		// 	};
+		// 	memcpy(ecc_client2.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
+		// 	memcpy(ecc_client2.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
+		// 	memcpy(ecc_client2.secret, private_secret2, sizeof(private_secret2));
+		// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2)); 
+		// 	memcpy(client_pk2.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+		// 	memcpy(client_pk2.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
+			
+		// 	pka_disable();
+
+		// 	printf("    B PK.X: ");
+		// 	for(int i = 0; i < 8; ++i) {
+		// 		printf("%u ", (unsigned int)client_pk2.x[i]);
+		// 	}
+		// 	printf("\n");
+		// 	printf("    B PK.Y: ");
+		// 	for(int i = 0; i < 8; ++i) {
+		// 		printf("%u ", (unsigned int)client_pk2.y[i]);
+		// 	}
+		// 	printf("\n");
+		// #if EDU_DEBUG
+		//   	puts("-----------------------------------------");
+		//   	puts("             KEY ECHANGE");
+		//   	puts("-----------------------------------------");
+		// #endif
+		// 	// ECC implementation - end
+
+
+
+
+		// 	pka_init();
+		//   /*   * Key Exchange   */
+		//   memcpy(ecc_client.point_in.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+		//   memcpy(ecc_client.point_in.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
+		//   memcpy(ecc_client2.point_in.x, pk_uint3, sizeof(uint32_t) * 8);
+		//   memcpy(ecc_client2.point_in.y, pk_uint4, sizeof(uint32_t) * 8);
+		//   /*   * Round 2   */
+		//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
+
+		//     	// puts("-----------------------------------------1");
+
+		//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2));
+		//     	// puts("-----------------------------------------2");
+
+		//   memcpy(state1.a, ecc_client.point_out.x, sizeof(uint32_t) * 8);
+		//   memcpy(state1.b, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+
+		//   PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
+		//   if(state1.result) {
+		//     puts("shared secrets do not match");
+		//   } else {
+		//     puts("shared secrets MATCH");
+		//   }
+
+	//   puts("-----------------------------------------\n"
+	//        "Disabling pka...");
+	//   pka_disable();
+
 
 
 
@@ -787,7 +754,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 #if EDU_DEBUG
 		printf("EDU: while(1) 2\n"); //EDU: DEBUG
 #endif
-		if(NETSTACK_ROUTING.node_is_reachable()) {
+		if(pubkey_is_generated && NETSTACK_ROUTING.node_is_reachable()) {
 			if(etimer_expired(&et) ) {
 				timeout_handler();
 			} else if(ev == tcpip_event) {
@@ -796,6 +763,10 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				printf("Received another kind of event\n");
 				// timeout_handler();
 			}
+		} else if (ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, pubkey_generated) == 0 ) {
+			pubkey_is_generated = true;
+			printf("Client Public Key Generated\n");
+			etimer_set(&et, 0.5 * CLOCK_SECOND);
 		} else {
 			printf("BR not reachable\n");
 			etimer_set(&et, 2 * CLOCK_SECOND);

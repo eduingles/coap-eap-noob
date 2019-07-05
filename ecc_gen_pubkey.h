@@ -29,18 +29,25 @@
  *
  *  See CONTRIBUTORS for more information.
  */
-/*
- * Configuration file for EAP-NOOB
- *
- */
 
-#ifndef EAPNOOBCONF_H
-#define EAPNOOBCONF_H
+#ifndef ECC_GEN_PUBKEY_H
+#define ECC_GEN_PUBKEY_H
 
-#define PEER_INFO "{\"Make\":\"Acme\",\"Type\":\"None\",\"Serial\":\"DU-9999\"}"
+#include "include.h"
 
-#define VERS    1        // Supported versions
-#define CSUIT   1        // Supported cryptosuites
-#define OOBDIR  1        // OOB direction: P2S
+// ECC implementation
+#include "dev/ecc-algorithm.h"
+#include "dev/ecc-curve.h"
+#include "lib/random.h"
+#include "sys/rtimer.h"
+#include "sys/pt.h"
+
+PROCESS_NAME(ecdh_generate_pubkey);
+// PROCESS(ecdh_generate_pubkey, "ECDH Generate Client Public Key");
+
+uint32_t private_secret[8];
+
+// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
+// static ec_point_t client_pk2; // Generator Point
 
 #endif
