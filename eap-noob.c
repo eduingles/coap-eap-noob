@@ -42,78 +42,126 @@ static const unsigned char base64_table[65] =
  * @src: Data to be encoded
  * @len: Length of the data to be encoded
  * @out_len: Pointer to output length variable, or %NULL if not used
- * Returns: Allocated buffer of out_len bytes of encoded data,
- * or %NULL on failure
- *
- * Caller is responsible for freeing the returned buffer. Returned buffer is
- * nul terminated to make it easier to use as a C string. The nul terminator is
- * not included in out_len.
  */
-void base64_encode(const unsigned char *src, size_t len,
-			      size_t *out_len, unsigned char *dst)
+void base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
 {
 	unsigned char *pos;
 	const unsigned char *end, *in;
 	size_t olen;
-	int line_len;
+	// int line_len;
 
-	olen = len * 4 / 3 + 4; /* 3-byte blocks to 4-byte */
-	olen += olen / 72; /* line feeds */
-	olen++; /* nul termination */
-	if (olen < len){
-		return NULL; /* integer overflow */
-    }
+	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
+	olen += olen / 72;      // line feeds
+	olen++;                 // null termination
+	if (olen < len)
+		return NULL;        // integer overflow
+
 	unsigned char out[olen];
-	if (out == NULL){
+	if (out == NULL)
 		return NULL;
-    }
 
 	end = src + len;
 	in = src;
 	pos = out;
-	line_len = 0;
+	// line_len = 0;
 	while (end - in >= 3) {
 		*pos++ = base64_table[in[0] >> 2];
 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
 		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
 		*pos++ = base64_table[in[2] & 0x3f];
 		in += 3;
-		line_len += 4;
-		if (line_len >= 72) {
-		// 	*pos++ = '\n';
-			line_len = 0;
-		}
+		// line_len += 4;
+		// if (line_len >= 72)
+		// 	line_len = 0;
 	}
-
 	if (end - in) {
 		*pos++ = base64_table[in[0] >> 2];
-		if (end - in == 1) {
+		if (end-in == 1) {
 			*pos++ = base64_table[(in[0] & 0x03) << 4];
 			// *pos++ = '=';
 		} else {
-			*pos++ = base64_table[((in[0] & 0x03) << 4) |
-					      (in[1] >> 4)];
+			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
 		}
 		// *pos++ = '=';
-		// line_len += 4;
 	}
-
-	// if (line_len)
-		// *pos++ = '\n';
-
 	*pos = '\0';
-	if (out_len){
+	if (out_len)
 		*out_len = pos - out;
-    }
-    uint16_t strlen_tmp = *out_len;
-    // sprintf(dst,"%s", out);
-    // memcpy(dst, out, sizeof(char)* strlen_tmp );
-    memcpy(dst, out, *out_len+1);
 
-    printf("Base64 result: %s\n", dst);
-	// return out;
+    uint16_t strlen_tmp = *out_len;
+    memcpy(dst, out, *out_len+1);
 }
+
+/**
+ * base64_decode - Base64 decode
+ * @src: Data to be decoded
+ * @len: Length of the data to be decoded
+ * @out_len: Pointer to output length variable
+ * Returns: Allocated buffer of out_len bytes of decoded data,
+ * or %NULL on failure
+ *
+ * Caller is responsible for freeing the returned buffer.
+ */
+
+// static void base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
+// {
+// 	unsigned char dtable[256], *pos, block[4], tmp;
+// 	size_t i, count, olen;
+// 	int pad = 0;
+
+// 	memset(dtable, 0x80, 256);
+// 	for (i = 0; i < sizeof(base64_table) - 1; i++)
+// 		dtable[base64_table[i]] = (unsigned char) i;
+// 	dtable['='] = 0;
+
+// 	count = 0;
+// 	for (i = 0; i < len; i++) {
+// 		if (dtable[src[i]] != 0x80)
+// 			count++;
+// 	}
+
+// 	if (count == 0 || count % 4)
+// 		return NULL;
+
+// 	olen = count / 4 * 3;
+// 	unsigned char out[olen];
+// 	pos = out;
+// 	if (out == NULL)
+// 		return NULL;
+
+// 	count = 0;
+// 	for (i = 0; i < len; i++) {
+// 		tmp = dtable[src[i]];
+// 		if (tmp == 0x80)
+// 			continue;
+
+// 		if (src[i] == '=')
+// 			pad++;
+// 		block[count] = tmp;
+// 		count++;
+// 		if (count == 4) {
+// 			*pos++ = (block[0] << 2) | (block[1] >> 4);
+// 			*pos++ = (block[1] << 4) | (block[2] >> 2);
+// 			*pos++ = (block[2] << 6) | block[3];
+// 			count = 0;
+// 			if (pad) {
+// 				if (pad == 1)
+// 					pos--;
+// 				else if (pad == 2)
+// 					pos -= 2;
+// 				else {
+// 					/* Invalid padding */
+// 					return NULL;
+// 				}
+// 				break;
+// 			}
+// 		}
+// 	}
+
+// 	*out_len = pos - out;
+// 	memcpy(dst, out, *out_len+1);
+// }
 
 /**
  * jsonparse_copy_next : Copy next value from js to dst
@@ -422,37 +470,55 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, const uint8_t id
 
 
 
-
-
-    char pk_str[82];
-    uint16_t len_b64;
-    unsigned char pk_x_b64[120];
-    unsigned char pk_y_b64[120];
-    int length = 0;
-
-    printf("PK.x: ");    
-    for(int i = 7 ;i>=0;i--){
-        printf("%u",client_pk.x[i]);
-        length += sprintf(pk_str+length,"%u", client_pk.x[i]);
+    unsigned char pk_str1[32];
+    printf("PK.X hex: ");
+    // for(int i = 0 ;i < 8;i++){
+    for(int i = 7 ;i >=0;i--){ //Little endian (change order to 3,2,1,0)
+        printf("%X", client_pk.x[i]);
+        pk_str1[i*4+3] = client_pk.x[i] >> 24;
+        pk_str1[i*4+2] = client_pk.x[i] >> 16;
+        pk_str1[i*4+1] = client_pk.x[i] >> 8;
+        pk_str1[i*4+0] = client_pk.x[i];
     }
     printf("\n");
-    base64_encode(pk_str, length, &len_b64, pk_x_b64);
-    printf("pk_x_b64 %d: %s\n", length, pk_x_b64);
+	// pk_str1[32] = '\0';
 
-    length = 0;
-    printf("PK.y: ");    
-    for(int i = 7 ;i>=0;i--){
-        printf("%u",client_pk.y[i]);
-        length += sprintf(pk_str+length,"%u", client_pk.y[i]);
+    // printf("A PK.X char: ");
+    // for (int i = 0; i < 32; i++)
+    //     printf("%u", pk_str1[i]);
+    // printf("\n");
+
+    uint16_t len_b64_x = 0;
+    unsigned char pk_x_b64[45];
+    base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
+    // printf("pk_x_b64 %d: %s\n", len_b64_x, pk_x_b64);
+
+    unsigned char pk_str2[32];
+    printf("PK.Y hex: ");
+    // for(int i = 0 ;i < 8;i++){
+    for(int i = 7 ;i >=0;i--){ //Little endian (change order to 3,2,1,0)
+        printf("%X", client_pk.y[i]);
+        pk_str2[i*4+3] = client_pk.y[i] >> 24;
+        pk_str2[i*4+2] = client_pk.y[i] >> 16;
+        pk_str2[i*4+1] = client_pk.y[i] >> 8;
+        pk_str2[i*4+0] = client_pk.y[i];
     }
     printf("\n");
+	// pk_str2[32] = '\0';
 
-    base64_encode(pk_str, length, &len_b64, pk_y_b64);
-    printf("pk_y_b64 %d: %s\n", len_b64, pk_y_b64);
+    // printf("A PK.Y char: ");
+    // for (int i = 0; i < 32; i++)
+    //     printf("%u", pk_str2[i]);
+    // printf("\n");
+
+    uint16_t len_b64_y = 0;
+    unsigned char pk_y_b64[45];
+    base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
+    // printf("pk_y_b64 %d: %s\n", len_b64_y, pk_y_b64);
 
     // TODO: generate fresh nonce
     // TODO: update cryptosuite
-    char tmpResponseType2[370];
+    char tmpResponseType2[350];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64, "\", \"y\":\"", pk_y_b64, "\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
     
     // Curve25519 example

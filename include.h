@@ -100,8 +100,16 @@
 uint8_t msk_key [MSK_LENGTH];
 
 //ECC Implementation
-#define PRIVATE_SECRET_LEN 8
-uint32_t private_secret[PRIVATE_SECRET_LEN];
+// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 ec_point_t client_pk; // Generator Point
+ec_point_t server_pk; // Generator Point
+// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
+// static ec_point_t client_pk2; // Generator Point
+
+#if EDU_DEBUG
+//Stack guard
+// #include "sys/stack-check.h"
+#endif
+
 
 #endif

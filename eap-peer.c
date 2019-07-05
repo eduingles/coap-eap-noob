@@ -13,7 +13,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 
 #include "eap-peer.h"
-#include "node-id.h"
+
+#if EDU_DEBUG
+//Stack guard
+// #include "sys/stack-check.h"
+#endif
 
 #define reqIdPeer ((struct eap_msg *)msg)->id
 #define reqMethodPeer ((struct eap_msg *)msg)->method
@@ -30,6 +34,7 @@ static void buildIdentity(const uint8_t id){
 
 //EAP peer state machine step function
 void eap_peer_sm_step(const uint8_t* msg){
+
 	//INITIALIZE STATE
 	if (eapRestart){
 

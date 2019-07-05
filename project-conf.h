@@ -19,11 +19,11 @@
 #ifdef CONF_EDU
     // Custom configuration
     #define EDU_DEBUG 1
+    //Stack Guard (Atiselsts)
+    // #define STACK_CHECK_CONF_ENABLED 1
 #else
     #define EDU_DEBUG 0
 #endif
-
-
 
 // #define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_DBG

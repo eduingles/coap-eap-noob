@@ -37,17 +37,166 @@
 // ECC implementation
 #include "include.h"
 
+
+
+
+
+
+// static const unsigned char base64_table[65] =
+// 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/**
+ * base64_decode - Base64 decode
+ * @src: Data to be decoded
+ * @len: Length of the data to be decoded
+ * @out_len: Pointer to output length variable
+ * Returns: Allocated buffer of out_len bytes of decoded data,
+ * or %NULL on failure
+ *
+ * Caller is responsible for freeing the returned buffer.
+ */
+
+// static void base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
+// {
+// 	if (src == NULL)
+// 		printf("base64_decode: src NULL\n");
+// 	if (dst == NULL)
+// 		printf("base64_decode: dst NULL\n");
+// 	if (out_len == NULL)
+// 		printf("base64_decode: outlen NULL\n");
+// 	if (len == NULL)
+// 		printf("base64_decode: len == 0\n");
+
+
+// 	unsigned char dtable[256], *pos, block[4], tmp;
+// 	size_t i, count, olen;
+// 	int pad = 0;
+
+// 	memset(dtable, 0x80, 256);
+// 	for (i = 0; i < sizeof(base64_table) - 1; i++)
+// 		dtable[base64_table[i]] = (unsigned char) i;
+// 	dtable['='] = 0;
+
+// 	count = 0;
+// 	for (i = 0; i < len; i++) {
+// 		if (dtable[src[i]] != 0x80)
+// 			count++;
+// 	}
+
+// 	if (count == 0 || count % 4)
+// 		return NULL;
+
+// 	olen = count / 4 * 3;
+// 	unsigned char out[olen];
+// 	pos = out;
+// 	if (out == NULL)
+// 		return NULL;
+
+// 	count = 0;
+// 	for (i = 0; i < len; i++) {
+// 		tmp = dtable[src[i]];
+// 		if (tmp == 0x80)
+// 			continue;
+
+// 		if (src[i] == '=')
+// 			pad++;
+// 		block[count] = tmp;
+// 		count++;
+// 		if (count == 4) {
+// 			*pos++ = (block[0] << 2) | (block[1] >> 4);
+// 			*pos++ = (block[1] << 4) | (block[2] >> 2);
+// 			*pos++ = (block[2] << 6) | block[3];
+// 			count = 0;
+// 			if (pad) {
+// 				if (pad == 1)
+// 					pos--;
+// 				else if (pad == 2)
+// 					pos -= 2;
+// 				else {
+// 					/* Invalid padding */
+// 					return NULL;
+// 				}
+// 				break;
+// 			}
+// 		}
+// 	}
+
+// 	*out_len = pos - out;
+// 	memcpy(dst, out, *out_len+1);
+// 	// return out;
+// }
+
+
+// /**
+//  * base64_encode : Base64 encoding
+//  * @src: data to be encoded
+//  * @len: length of the data to be encoded
+//  * @out_len: pointer to output length variable, or NULL if not used
+//  */
+// static void base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
+// {
+// 	unsigned char *pos;
+// 	const unsigned char *end, *in;
+// 	size_t olen;
+// 	int line_len;
+
+// 	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
+// 	olen += olen / 72;      // line feeds
+// 	olen++;                 // null termination
+// 	if (olen < len)
+//         return NULL;        // integer overflow
+
+//     unsigned char out[olen];
+// 	if (out == NULL)
+// 		return NULL;
+
+// 	end = src + len;
+// 	in = src;
+// 	pos = out;
+// 	line_len = 0;
+// 	while (end-in >= 3) {
+// 		*pos++ = base64_table[in[0] >> 2];
+// 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+// 		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+// 		*pos++ = base64_table[in[2] & 0x3f];
+// 		in += 3;
+// 		line_len += 4;
+// 		if (line_len >= 72)
+// 			line_len = 0;
+// 	}
+// 	if (end-in) {
+// 		*pos++ = base64_table[in[0] >> 2];
+// 		if (end-in == 1) {
+// 			*pos++ = base64_table[(in[0] & 0x03) << 4];
+// 			// *pos++ = '=';
+// 		} else {
+// 			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+// 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
+// 		}
+// 		// *pos++ = '=';
+// 	}
+// 	*pos = '\0';
+// 	if (out_len)
+// 		*out_len = pos - out;
+
+//     uint16_t strlen_tmp = *out_len;
+//     memcpy(dst, out, *out_len+1);
+// }
+
+
+
+
 static void
 ecc_set_random(uint32_t *secret)
 {
   int i;
-  printf("EDU: ecc_set_random: ");
+//   printf("EDU: ecc_set_random: ");
 
-  for(i = 0; i < PRIVATE_SECRET_LEN; ++i) {
+  for(i = 0; i < 8; ++i) {
     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
-    printf("%u ", (unsigned int)secret[i]);
+    // printf("%u ", (unsigned int)secret[i]);
   }
-  printf("\n");
+//   printf("\n");
 }
 
 #include <string.h>
@@ -72,8 +221,8 @@ static uint32_t currentPort;
 PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
 /*---------------------------------------------------------------------------*/
-uint8_t 	sent	 [500];
-uint8_t 	received [500];
+uint8_t 	sent	 [400];
+uint8_t 	received [400];
 uint16_t 	sent_len;
 uint16_t 	received_len;
 char 		URI[8] = {'/','b','o','o','t', 0, 0, 0};
@@ -87,15 +236,15 @@ uint32_t nonce_c, nonce_s;
 unsigned char auth_key[16] = {0};
 unsigned char sequence[26] = {0};
 
-static uint8_t authKeyAvailable; 	//EDU: static
-static uint8_t state;				 //EDU: static
+uint8_t authKeyAvailable; 	//EDU: static
+uint8_t state;				 //EDU: static
 static uint8_t last_seq_id = 0;
 
 char URIcheck[10] = {0};
 uint16_t URIcheck_len;
 
 
-static CoapPDU *response, *request;
+CoapPDU *response, *request;
 
 
 static void
@@ -294,7 +443,7 @@ tcpip_handler(void)
 #if EDU_DEBUG
 	printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 #endif
-	etimer_set(&et, 20 * CLOCK_SECOND);
+	etimer_set(&et, 10 * CLOCK_SECOND);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -334,10 +483,7 @@ timeout_handler(void)
 	_setURI(request,"/boot",5);// CoAP URI to start communication with CoAP-EAP Controller
 
 	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
-#if EDU_DEBUG
-	printf("EDU: %s Set TIMEOUT_INTERVAL_NO_RESPONSE\n", __func__); //EDU: DEBUG
-#endif
-	etimer_set(&et, 45 * CLOCK_SECOND);
+	etimer_set(&et, 15 * CLOCK_SECOND);
 
 }
 /*---------------------------------------------------------------------------*/
@@ -407,24 +553,24 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-
 	request = _CoapPDU();
 	response = _CoapPDU();
 
     init_eap_noob();
 
-	// ECC implementation
+	// ECC implementation SIDE A
 	pka_init();
-    static ecc_compare_state_t state = {
+    static ecc_compare_state_t state1 = {
         .process = &boostrapping_service_process,
         .size    = 8,
     };
-	memcpy(state.b, nist_p_256.n, sizeof(uint32_t) * 8);
+	uint32_t private_secret[8];
+	memcpy(state1.b, nist_p_256.n, sizeof(uint32_t) * 8);
 	do {
 		ecc_set_random(private_secret);
-		memcpy(state.a, private_secret, sizeof(uint32_t) * PRIVATE_SECRET_LEN);
-		PT_SPAWN(&(boostrapping_service_process.pt), &(state.pt), ecc_compare(&state));
-	} while(state.result != PKA_STATUS_A_LT_B);
+		memcpy(state1.a, private_secret, sizeof(uint32_t) * 8);
+		PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
+	} while(state1.result != PKA_STATUS_A_LT_B);
 	
 	static ecc_multiply_state_t ecc_client = {
 		.process    = &boostrapping_service_process,
@@ -437,29 +583,201 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client)); 
 	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
 	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
-    pka_disable();
 
-	printf("PK.X: ");
+  	pka_disable();
+  	puts("-----------------------------------------");
+  	puts("        CLIENT PUBLIC KEY PAIR");
+  	puts("-----------------------------------------");
+	printf("     A PK.X: ");
 	for(int i = 0; i < 8; ++i) {
-		printf("%u ", (unsigned int)client_pk.x[i]);
+		printf("%u", (unsigned int)client_pk.x[i]);
 	}
 	printf("\n");
-	printf("PK.Y: ");
+	printf("     A PK.Y: ");
 	for(int i = 0; i < 8; ++i) {
-		printf("%u ", (unsigned int)client_pk.y[i]);
+		printf("%u", (unsigned int)client_pk.y[i]);
 	}
 	printf("\n");
-	
+  	puts("-----------------------------------------");
+	// ECC implementation - end
 	
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 	etimer_set(&et, 1*CLOCK_SECOND);
 
 
-#if EDU_DEBUG
-  	puts("-----------------------------------------");
-#endif
-	// ECC implementation - end
+
+
+
+
+
+
+
+//     static unsigned char pk_str1[33];
+//     for(int i = 0 ;i < 8;i++){
+//         pk_str1[i*4+0] = client_pk.x[i] >> 24;
+//         pk_str1[i*4+1] = client_pk.x[i] >> 16;
+//         pk_str1[i*4+2] = client_pk.x[i] >> 8;
+//         pk_str1[i*4+3] = client_pk.x[i];
+//     }
+// 	pk_str1[32] = '\0';
+
+//     printf("A PK.X char: ");
+//     for (int i = 0; i < 32; i++)
+//         printf("%u", pk_str1[i]);
+//     printf("\n");
+
+//     static uint16_t len_b64_x = 0;
+//     static unsigned char pk_x_b64[45];
+//     base64_encode(pk_str1, 33, &len_b64_x, pk_x_b64);
+
+//     static unsigned char pk_str2[33];
+//     for(int i = 0 ;i < 8;i++){
+//         pk_str2[i*4+0] = client_pk.y[i] >> 24;
+//         pk_str2[i*4+1] = client_pk.y[i] >> 16;
+//         pk_str2[i*4+2] = client_pk.y[i] >> 8;
+//         pk_str2[i*4+3] = client_pk.y[i];
+//     }
+// 	pk_str2[33] = '\0';
+
+//     printf("A PK.Y char: ");
+//     for (int i = 0; i < 33; i++)
+//         printf("%u", pk_str2[i]);
+//     printf("\n");
+
+//     static uint16_t len_b64_y = 0;
+//     static unsigned char pk_y_b64[45];
+//     base64_encode(pk_str2, 33, &len_b64_y, pk_y_b64);
+
+//   	puts("    	  DECODE SIDE A");
+//     static unsigned char pk_str3[33];
+//     static unsigned char pk_str4[33];
+// 	static uint32_t pk_uint3[8];
+// 	static uint32_t pk_uint4[8];
+// 	static uint16_t len_plain = 0;
+// 	static uint16_t len_plain2 = 0;
+
+// 	base64_decode(pk_x_b64, len_b64_x, &len_plain, pk_str3);
+//     printf("PK.X %02u chr: ", len_plain);    
+//     for (int i = 0; i < 32; i++)
+//         printf("%u", pk_str3[i]);
+//     printf("\n");
+
+// 	for (int i = 0; i < 32; i += 4)
+// 		pk_uint3[i/4] = pk_str3[i+3] | (uint32_t)pk_str3[i+2] << 8 | (uint32_t)pk_str3[i+1] << 16 | (uint32_t)pk_str3[i] << 24;
+
+//     printf("    PK.X %02u: ", len_plain);    
+//     for(int i = 0 ;i < 8;i++)
+//         printf("%u",pk_uint3[i]);
+//     printf("\n");
+	
+// 	printf("  Orig PK.X: ");
+// 	for(int i = 0; i < 8; ++i)
+// 		printf("%u", (unsigned int)client_pk.x[i]);
+// 	printf("\n");
+
+// 	base64_decode(pk_y_b64, len_b64_y, &len_plain2, pk_str4);
+//     printf("PK.Y %02u chr: ", len_plain2);    
+//     for (int i = 0; i < 32; i++)
+//         printf("%u", pk_str4[i]);
+//     printf("\n");
+// 	for (int i = 0; i < 32; i += 4)
+// 		pk_uint4[i/4] = pk_str4[i+3] | (uint32_t)pk_str4[i+2] << 8 | (uint32_t)pk_str4[i+1] << 16 | (uint32_t)pk_str4[i] << 24;
+
+//     printf("    PK.y %02u: ", len_plain2);    
+//     for(int i = 0 ;i < 8;i++)
+//         printf("%u",pk_uint4[i]);
+//     printf("\n");
+	
+	
+// 	printf("  Orig PK.Y: ");
+// 	for(int i = 0; i < 8; ++i) 
+// 		printf("%u", (unsigned int)client_pk.y[i]);
+// 	printf("\n");
+
+
+
+
+
+//   	puts("-----------------------------------------");
+//   	puts("    		  SIDE B ECC PROCESS");
+//   	puts("-----------------------------------------");
+
+// 	// ECC implementation SIDE B
+// 	pka_init();
+
+//     static ecc_compare_state_t state2 = {
+//         .process = &boostrapping_service_process,
+//         .size    = 8,
+//     };
+// 	memcpy(state2.b, nist_p_256.n, sizeof(uint32_t) * 8);
+// 	do {
+// 		ecc_set_random(private_secret2);
+// 		memcpy(state2.a, private_secret2, sizeof(uint32_t) * 8);
+// 		PT_SPAWN(&(boostrapping_service_process.pt), &(state2.pt), ecc_compare(&state2));
+// 	} while(state2.result != PKA_STATUS_A_LT_B);
+// 	static ecc_multiply_state_t ecc_client2 = {
+// 		.process    = &boostrapping_service_process,
+// 		.curve_info = &nist_p_256,
+// 	};
+// 	memcpy(ecc_client2.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
+// 	memcpy(ecc_client2.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
+// 	memcpy(ecc_client2.secret, private_secret2, sizeof(private_secret2));
+// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2)); 
+// 	memcpy(client_pk2.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+// 	memcpy(client_pk2.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
+    
+// 	pka_disable();
+
+// 	printf("    B PK.X: ");
+// 	for(int i = 0; i < 8; ++i) {
+// 		printf("%u ", (unsigned int)client_pk2.x[i]);
+// 	}
+// 	printf("\n");
+// 	printf("    B PK.Y: ");
+// 	for(int i = 0; i < 8; ++i) {
+// 		printf("%u ", (unsigned int)client_pk2.y[i]);
+// 	}
+// 	printf("\n");
+// #if EDU_DEBUG
+//   	puts("-----------------------------------------");
+//   	puts("             KEY ECHANGE");
+//   	puts("-----------------------------------------");
+// #endif
+// 	// ECC implementation - end
+
+
+
+
+// 	pka_init();
+//   /*   * Key Exchange   */
+//   memcpy(ecc_client.point_in.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+//   memcpy(ecc_client.point_in.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
+//   memcpy(ecc_client2.point_in.x, pk_uint3, sizeof(uint32_t) * 8);
+//   memcpy(ecc_client2.point_in.y, pk_uint4, sizeof(uint32_t) * 8);
+//   /*   * Round 2   */
+//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
+
+//     	// puts("-----------------------------------------1");
+
+//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2));
+//     	// puts("-----------------------------------------2");
+
+//   memcpy(state1.a, ecc_client.point_out.x, sizeof(uint32_t) * 8);
+//   memcpy(state1.b, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
+
+//   PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
+//   if(state1.result) {
+//     puts("shared secrets do not match");
+//   } else {
+//     puts("shared secrets MATCH");
+//   }
+
+//   puts("-----------------------------------------\n"
+//        "Disabling pka...");
+//   pka_disable();
+
+
 
 	while(1) {
 #if EDU_DEBUG
