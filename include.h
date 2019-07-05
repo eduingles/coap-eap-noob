@@ -102,8 +102,6 @@ uint8_t msk_key [MSK_LENGTH];
 //ECC Implementation
 // static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 ec_point_t client_pk; // Generator Point
-ec_point_t server_pk; // Generator Point
-// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 // static ec_point_t client_pk2; // Generator Point
 
 #if EDU_DEBUG

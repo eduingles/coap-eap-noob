@@ -580,7 +580,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
 	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
 
-	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client)); 
+	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
 	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
 	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
 
