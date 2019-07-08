@@ -122,9 +122,10 @@ static uint8_t base64_decode(const unsigned char *src, size_t len, size_t *out_l
 		if (dtable[src[i]] != 0x80)
 			count++;
 	}
-
-	if (count == 0 || count % 4)
+    
+	if (count == 0 || count % 4){ // EDU: Check padding
 		return NULL;
+    }
 
 	olen = count / 4 * 3;
 	unsigned char out[olen];
@@ -442,7 +443,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp[2][100];
+    char tmp[2][130];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
@@ -453,18 +454,48 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
                     eap_noob_err_msg(id, eapRespData, E2004);
                     return;
                 }
-            }
-            else if (
-                !strcmp(tmp[0], "PKs") ||
-                !strcmp(tmp[0], "Ns")  ||
-                !strcmp(tmp[0], "SleepTime")
-            )
+            } else if ( !strcmp(tmp[0], "PKs") ){
                 write_db(tmp[0], tmp[1]);
+                struct jsonparse_state pks;
+                jsonparse_setup(&pks, tmp[1], strlen(tmp[1]));
+                while((type = jsonparse_next(&pks)) != 0) {
+                    if(type == JSON_TYPE_PAIR_NAME) {
+                        jsonparse_copy_next(&pks, tmp[0], size);
+                        jsonparse_next(&pks);
+                        jsonparse_copy_next(&pks, tmp[1], size);
+                        if (!strcmp(tmp[0], "x")) {
+                            size_t len_x = 0;
+                            unsigned char x[33];
+                            sprintf(tmp[1], "%s""=", tmp[1]);
+                            base64_decode(tmp[1], strlen(tmp[1]), &len_x, x);
+                            memcpy(server_pk.x,x, 32);
+                        } else if (!strcmp(tmp[0], "y")) {
+                            size_t len_y = 0;
+                            unsigned char y[33];
+                            sprintf(tmp[1], "%s""=", tmp[1]);
+                            base64_decode(tmp[1], strlen(tmp[1]), &len_y, y);
+                            memcpy(server_pk.y,y, 32);
+                        }
+                    }
+                }
+            } else if ( !strcmp(tmp[0], "Ns")  ||
+                !strcmp(tmp[0], "SleepTime") ) {
+                write_db(tmp[0], tmp[1]);
+            }
         }
+
     }
 
-    // Build response
+    printf("Server PK.X hex: ");
+    for(int i = 0 ;i <8;i++)
+        printf("%0lX", NTOHL(server_pk.x[i]) );
+    printf("\n");
+    printf("Server PK.Y hex: ");
+    for(int i = 0 ;i <8;i++)
+        printf("%0lX", NTOHL(server_pk.y[i]) );
+    printf("\n");
 
+    // Build response
     unsigned char pk_str1[32];
     printf("PK.X hex: ");
     // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
@@ -483,7 +514,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
     //     printf("%u", pk_str1[i]);
     // printf("\n");
 
-    uint16_t len_b64_x = 0;
+    size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
     // printf("pk_x_b64 %d: %s\n", len_b64_x, pk_x_b64);
@@ -506,7 +537,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
     //     printf("%u", pk_str2[i]);
     // printf("\n");
 
-    uint16_t len_b64_y = 0;
+    size_t len_b64_y = 0;
     unsigned char pk_y_b64[45];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
     // printf("pk_y_b64 %d: %s\n", len_b64_y, pk_y_b64);
@@ -531,6 +562,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
     sprintf(nai, "%s%s", PeerId, "+s1@noob.example.com");
 
     printf("EAP-NOOB: Response type 2: %s\n", tmpResponseType2);
+
 
 
     // eap_noob_rsp_type_two(id, eapRespData);
