@@ -21,16 +21,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #define reqIdPeer ((struct eap_msg *)msg)->id
 #define reqMethodPeer ((struct eap_msg *)msg)->method
+#define reqLengthPeer ((struct eap_msg *)msg)->length
 
 //Build the Identity message
 static void buildIdentity(const uint8_t id){
+	char nai[NAI_MAX_LEN];
+	eap_noob_build_identity(nai);
+
 	((struct eap_msg*) eapRespData)->code = RESPONSE_CODE;
 	((struct eap_msg*) eapRespData)->id = id;
-	((struct eap_msg*) eapRespData)->length = HTONS((sizeof(struct eap_msg) + strlen(nai)));
+	((struct eap_msg*) eapRespData)->length = HTONS(sizeof(struct eap_msg) + strlen(nai) + 1);
 	((struct eap_msg*) eapRespData)->method = IDENTITY;
-
-	sprintf((char *)eapRespData + sizeof(struct eap_msg), "%s", (char *)nai);
-	printf("EDU: %s - nai: %s\n", __func__, eapRespData+sizeof(struct eap_msg));
+	memcpy(eapRespData + 5, nai, strlen(nai)+1);
 }
 
 //EAP peer state machine step function
@@ -159,8 +161,24 @@ _SUCCESS:
 _METHOD:
 	//METHOD STATE
     printf("METHOD STATE\n");
+	/* Condition removed. _METHOD is called if this condition is TRUE:
+	 && ((struct eap_msg *)eapRespData)->code == REQUEST_CODE
+	*/
 	if (((struct eap_msg *)msg)->method == EAP_NOOB) {
-		eap_noob_process(msg, &methodState, &decision, (struct eap_msg *) eapRespData);
+		((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+		((struct eap_msg *)eapRespData)->id = reqIdPeer;
+		((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+		uint8_t eapPayload[EAP_MSG_LEN]; // EAP Payload
+		size_t eapRespLen = 0; // EAP Payload Length
+
+		eap_noob_process(msg+5, NTOHS(reqLengthPeer) - 5, &methodState, &decision, eapPayload, &eapRespLen);
+        printf("EDU: NEW: %s: - %s\n", __func__, eapPayload);
+
+		((struct eap_msg *)eapRespData)->length = HTONS(sizeof(struct eap_msg)+ eapRespLen + 1);
+		memcpy(eapRespData + 5, eapPayload, eapRespLen+1);
+
+
 		goto _SEND_RESPONSE;
 	} else if (((struct eap_msg *)msg)->method == EAP_PSK) {
         goto _DISCARD; // TODO: add support for EAP-PSK

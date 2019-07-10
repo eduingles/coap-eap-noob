@@ -22,9 +22,9 @@
 #define EAP_PEER
 
 #include "include.h"
+#include "eap-noob.h"
 
 #define EAP_MSG_LEN 360
-#define NAI_LEN     44
 
 // Struct of a eap message
 struct eap_msg{
@@ -40,9 +40,11 @@ uint8_t eapRestart;
 uint8_t eapReq;
 
 uint8_t eapRespData [EAP_MSG_LEN];
+// uint8_t eapPayload [EAP_MSG_LEN]; // EAP Payload
+
 uint8_t eapResp;
 
-uint8_t eapKeyAvailable;
+// uint8_t eapKeyAvailable;
 
 uint8_t eapSuccess;
 uint8_t eapFail;
@@ -55,8 +57,6 @@ uint8_t lastId;
 
 uint8_t altAccept;
 uint8_t altReject;
-
-uint8_t nai [NAI_LEN];
 
 //Functions
 void eap_peer_sm_step(const uint8_t * msg);

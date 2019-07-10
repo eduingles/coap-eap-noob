@@ -28,37 +28,37 @@
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *  See CONTRIBUTORS for more information.
- */ 
+ */
 
 #include "ecc_shared_secret.h"
 
-
 PROCESS(ecc_derive_secret, "ECDH Shared Secret Derivation");
 PROCESS_THREAD(ecc_derive_secret, ev, data) {
-    PROCESS_BEGIN();
 
-    static ecc_multiply_state_t ec_server = {
-        .process    = &ecc_derive_secret,
-        .curve_info = &nist_p_256,
-    };
-    memcpy(ec_server.point_in.x, server_pk.x, sizeof(uint32_t) * 8);
-    memcpy(ec_server.point_in.y, server_pk.y, sizeof(uint32_t) * 8);
+	PROCESS_BEGIN();
 
-    pka_init();
-    PT_SPAWN(&(ecc_derive_secret.pt), &(ec_server.pt), ecc_multiply(&ec_server));
-    pka_disable();
+	pka_init();
 
-    memcpy(shared_secret, ec_server.point_out.x, sizeof(uint32_t) * 8);
+	static ecc_multiply_state_t ec_server = {
+		.process    = &ecc_derive_secret,
+		.curve_info = &nist_p_256,
+	};
+	memcpy(ec_server.point_in.x, server_pk.x, sizeof(uint32_t) * 8);
+	memcpy(ec_server.point_in.y, server_pk.y, sizeof(uint32_t) * 8);
+	memcpy(ec_server.secret, private_secret, sizeof(private_secret));
 
-    puts("-----------------------------------------");
-    puts("         Derived Shared Secret");
-    puts("-----------------------------------------");
-    // for(int i = 0 ;i < 8;i++){
-    for(int i = 7 ;i >=0;i--){ //Little endian (change order to 3,2,1,0)
-        printf("%X", shared_secret[i]);
-    }
-    puts("\n-----------------------------------------\n"
+	PT_SPAWN(&(ecc_derive_secret.pt), &(ec_server.pt), ecc_multiply(&ec_server)); 
+	memcpy(shared_secret, ec_server.point_out.x, sizeof(uint32_t) * 8);
 
-    PROCESS_END();
+  	pka_disable();
+
+  	puts("-----------------------------------------");
+  	puts("        Derived Shared Secret");
+  	puts("-----------------------------------------");
+	for(int i = 7 ;i >=0;i--){ //Little endian (change order to 3,2,1,0)
+		printf("%lX", shared_secret[i]);
+	}
+  	puts("\n-----------------------------------------\n");
+  PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

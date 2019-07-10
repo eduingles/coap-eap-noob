@@ -38,14 +38,9 @@
 // ECC implementation
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"
+#include "lib/random.h"
 #include "sys/pt.h"
 
-PROCESS_NAME(ecdh_generate_pubkey);
-// PROCESS(ecdh_generate_pubkey, "ECDH Generate Client Public Key");
-
-uint32_t private_secret[8];
-
-// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
-// static ec_point_t client_pk2; // Generator Point
+PROCESS_NAME(ecc_derive_secret);
 
 #endif

@@ -19,7 +19,7 @@
 // Maximum payload size for CoAP
 //  500 for EAP-NOOB
 //  110 for EAP-PSK
-#define COAP_PAYLOAD_SIZE 500
+#define COAP_PAYLOAD_SIZE 400
 
 #define INFO(...) printf(__VA_ARGS__); printf(DBG_NEWLINE);
 #define INFOX(...); printf(__VA_ARGS__);

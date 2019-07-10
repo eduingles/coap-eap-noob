@@ -33,7 +33,13 @@
 #ifndef EAPNOOB_H
 #define EAPNOOB_H
 
-#include "eap-peer.h"
+// #include "eap-peer.h"
+#include "include.h"
+#include "jsonparse.h"
+#include "cfs/cfs.h"
+
+/* ECC implementation */
+#include "ecc_shared_secret.h"
 
 /* Configuration file */
 #include "eap-noob-conf.h"
@@ -43,10 +49,10 @@
 #define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
 
 /* Get EAP message values */
-#define reqId ((struct eap_msg *)eapReqData)->id
-#define reqMethod ((struct eap_msg *)eapReqData)->method
-#define reqCode ((struct eap_msg *)eapReqData)->code
-#define reqLength ((struct eap_msg *)eapReqData)->length
+// #define reqId ((struct eap_msg *)eapReqData)->id
+// #define reqMethod ((struct eap_msg *)eapReqData)->method
+// #define reqCode ((struct eap_msg *)eapReqData)->code
+// #define reqLength ((struct eap_msg *)eapReqData)->length
 
 /* All the pre-processors of EAP-NOOB */
 
@@ -57,11 +63,17 @@
 #define EMPTY_NOOB          0
 
 /* MAX values for the fields */
-
+#define NAI_MAX_LEN         44
 #define MAX_PEER_ID_LEN     22
 
-/* Keywords for json encoding and decoding */
+// typedef struct {
+//   char data[NAI_MAX_LEN];
+//   uint8_t length;
+// } nai;
 
+uint8_t eapKeyAvailable; // Previously in eap-peer.h
+
+/* Keywords for json encoding and decoding */
 enum {
     EAP_NOOB_TYPE_0,
     EAP_NOOB_TYPE_1,
@@ -74,8 +86,6 @@ enum {
     EAP_NOOB_ERROR
 };
 
-static uint8_t PeerId [MAX_PEER_ID_LEN];
-
 enum {
     E1001, E1002, E1003, E1004, E1007,
     E2001, E2002, E2003, E2004, E2005,
@@ -84,35 +94,8 @@ enum {
     E5001, E5002, E5003, E5004
 };
 
-const int error_code[] = {
-    1001, 1002, 1003, 1004, 1007,
-    2001, 2002, 2003, 2004, 2005,
-    3001, 3002, 3003,
-    4001,
-    5001, 5002, 5003, 5004
-};
-
-const char *error_info[] = {
-    "Invalid NAI",
-    "Invalid message structure",
-    "Invalid data",
-    "Unexpected message type",
-    "Invalid ECDHE key",
-    "Unwanted peer",
-    "State mismatch, user action required",
-    "Unrecognized OOB message identifier",
-    "Unexpected peer identifier",
-    "Unrecognized Kz identifier",
-    "No mutually supported protocol version",
-    "No mutually supported cryptosuite",
-    "No mutually supported OOB direction",
-    "HMAC verification failure",
-    "Application-specific error",
-    "Invalid server info",
-    "Invalid server URL",
-    "Invalid peer info"
-};
-
+/* Public functions */
 void init_eap_noob(void);
-
+void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *methodState, uint8_t *decision, uint8_t *eapRespData, size_t *eapRespLen);
+void eap_noob_build_identity(char *nai);
 #endif

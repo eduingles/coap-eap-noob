@@ -31,9 +31,10 @@
  */
 
 #include "eap-noob.h"
-#include "include.h"
-#include "jsonparse.h"
-#include "cfs/cfs.h"
+
+static char nai [NAI_MAX_LEN];
+static char PeerId [MAX_PEER_ID_LEN];
+static char RealM [] = "noob.example.com";
 
 static const unsigned char base64_table[65] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -55,11 +56,11 @@ static uint8_t base64_encode(const unsigned char *src, size_t len, size_t *out_l
 	olen += olen / 72;      // line feeds
 	olen++;                 // null termination
 	if (olen < len)
-		return NULL;        // integer overflow
+		return 0;        // integer overflow
 
 	unsigned char out[olen];
 	if (out == NULL)
-		return NULL;
+		return 0;
 
 	end = src + len;
 	in = src;
@@ -90,7 +91,6 @@ static uint8_t base64_encode(const unsigned char *src, size_t len, size_t *out_l
 	if (out_len)
 		*out_len = pos - out;
 
-    uint16_t strlen_tmp = *out_len;
     memcpy(dst, out, *out_len+1);
     return 1;
 }
@@ -123,15 +123,15 @@ static uint8_t base64_decode(const unsigned char *src, size_t len, size_t *out_l
 			count++;
 	}
     
-	if (count == 0 || count % 4){ // EDU: Check padding
-		return NULL;
+	if (count == 0 || count % 4){ // Check padding
+		return 0;
     }
 
 	olen = count / 4 * 3;
 	unsigned char out[olen];
 	pos = out;
 	if (out == NULL)
-		return NULL;
+		return 0;
 
 	count = 0;
 	for (i = 0; i < len; i++) {
@@ -155,7 +155,7 @@ static uint8_t base64_decode(const unsigned char *src, size_t len, size_t *out_l
 					pos -= 2;
 				else {
 					/* Invalid padding */
-					return NULL;
+					return 0;
 				}
 				break;
 			}
@@ -184,7 +184,8 @@ static void jsonparse_copy_next(struct jsonparse_state *js, char *dst, int size)
     int i = 0;
     int v = 0;
 
-    int type = jsonparse_get_type(js);
+    // int type = jsonparse_get_type(js);
+    jsonparse_get_type(js);
 
     char c;
     do {
@@ -238,6 +239,14 @@ void init_eap_noob()
 }
 
 /**
+ * initMethodEap : Initialise EAP method
+**/
+void eap_noob_build_identity(char *eapRespData){
+	memcpy(eapRespData, nai, strlen(nai)+1);
+
+}
+
+/**
  * write_db : Write data to database
  * @key : key
  * @val : value
@@ -263,18 +272,18 @@ static int write_db(char *key , char *val)
  * print_db : Print database to stdout
  * TEMPORARY - FOR DEBUGGING PURPOSES
 **/
-static void print_db()
-{
-    int db;
-    if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {
-        size_t size = cfs_seek(db, 0, CFS_SEEK_END);
-        cfs_seek(db, 0, CFS_SEEK_SET);
-        char dst[size];
-        cfs_read(db, dst, size);
-        cfs_close(db);
-        printf("Database after parsing request \n%s\n", dst);
-    }
-}
+// static void print_db()
+// {
+//     int db;
+//     if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {
+//         size_t size = cfs_seek(db, 0, CFS_SEEK_END);
+//         cfs_seek(db, 0, CFS_SEEK_SET);
+//         char dst[size];
+//         cfs_read(db, dst, size);
+//         cfs_close(db);
+//         printf("Database after parsing request \n%s\n", dst);
+//     }
+// }
 
 /**
  * value_in_array : Check if a value exists in an array
@@ -293,13 +302,42 @@ static int value_in_array(uint8_t val, char *arr)
     return -1;
 }
 
+const char* error_info[] = {
+    "Invalid NAI",
+    "Invalid message structure",
+    "Invalid data",
+    "Unexpected message type",
+    "Invalid ECDHE key",
+    "Unwanted peer",
+    "State mismatch, user action required",
+    "Unrecognized OOB message identifier",
+    "Unexpected peer identifier",
+    "Unrecognized Kz identifier",
+    "No mutually supported protocol version",
+    "No mutually supported cryptosuite",
+    "No mutually supported OOB direction",
+    "HMAC verification failure",
+    "Application-specific error",
+    "Invalid server info",
+    "Invalid server URL",
+    "Invalid peer info"
+};
+
+const int error_code[] = {
+    1001, 1002, 1003, 1004, 1007,
+    2001, 2002, 2003, 2004, 2005,
+    3001, 3002, 3003,
+    4001,
+    5001, 5002, 5003, 5004
+};
+
 /**
  * eap_noob_err_msg : Prepare error message
  * @id : method identifier
  * @eapRespData : EAP response data
  * @error : error code
 **/
-void eap_noob_err_msg(const uint8_t id, uint8_t *eapRespData, uint8_t error)
+void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
 {
     // Build error message
     char tmpResponseType0[200];
@@ -311,13 +349,15 @@ void eap_noob_err_msg(const uint8_t id, uint8_t *eapRespData, uint8_t error)
     DEBUG_NOOB(error_info[error]);
     ERROR_NOOB("Sending error code", error_code[error]);
 
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-        + strlen(tmpResponseType0)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
+    //     + strlen(tmpResponseType0)) + 1);
+    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
 
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType0);
+    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType0);
+    *eapRespLen = strlen(tmpResponseType0);
+    memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
 }
 
@@ -327,22 +367,23 @@ void eap_noob_err_msg(const uint8_t id, uint8_t *eapRespData, uint8_t error)
  * @eapRespData : EAP response data
  * @dirp : negotiated OOB direction
 **/
-void eap_noob_rsp_type_one(const uint8_t id, uint8_t *eapRespData, int dirp)
+void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 {
     char tmpResponseType1[200];
     sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s",
         "{\"Type\":1,\"Verp\":",VERS,",\"PeerId\":\"",PeerId,
         "\",\"Cryptosuitep\":",CSUIT,",\"Dirp\":",dirp,",\"PeerInfo\":",
-        PEER_INFO,"}")
-    ;
+        PEER_INFO,"}");
 
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-        + strlen(tmpResponseType1)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
+    //     + strlen(tmpResponseType1)) + 1);
+    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType1);
 
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType1);
+    *eapRespLen = strlen(tmpResponseType1);
+    memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
 }
 
@@ -351,151 +392,8 @@ void eap_noob_rsp_type_one(const uint8_t id, uint8_t *eapRespData, int dirp)
  * @id : method identifier
  * @eapRespData : EAP response data
 **/
-void eap_noob_rsp_type_two(const uint8_t id, uint8_t *eapRespData)
+void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
-}
-
-/**
- * eap_noob_rsp_type_three : Prepare response type three
- * @id : method identifier
- * @eapRespData : EAP response data
-**/
-void eap_noob_rsp_type_three(const uint8_t id, uint8_t *eapRespData)
-{
-    char tmpResponseType3[50];
-    sprintf(tmpResponseType3, "%s%s%s",
-        "{\"Type\":3,\"PeerId\":\"",PeerId,"\"}"
-    );
-
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-        + strlen(tmpResponseType3)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
-    eapKeyAvailable = FALSE;
-}
-
-/**
- * eap_noob_req_type_one : Decode request type one
- * @eapReqData : EAP request data
- * @size : size of eapReqData
- * @id : method identifier
- * @eapRespData : EAP response data
-**/
-void eap_noob_req_type_one(char *eapReqData, const size_t size,
-    const uint8_t id, uint8_t *eapRespData)
-{
-    // Parse request
-    struct jsonparse_state js_req;
-    jsonparse_setup(&js_req, eapReqData, size);
-    int type, dirp, dirs;
-    char tmp[2][100];
-    while((type = jsonparse_next(&js_req)) != 0) {
-        if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
-            jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                strcpy(PeerId, tmp[1]);
-            } else if(!strcmp(tmp[0], "Vers")) {
-                if (value_in_array(VERS, tmp[1]) == -1) {
-                    eap_noob_err_msg(id, eapRespData, E3001);
-                    return;
-                }
-            } else if(!strcmp(tmp[0], "Cryptosuites")) {
-                if (value_in_array(CSUIT, tmp[1]) == -1) {
-                    eap_noob_err_msg(id, eapRespData, E3002);
-                    return;
-                }
-            } else if(!strcmp(tmp[0], "Dirs")) {
-                dirs = tmp[1][0] - '0';
-                if (dirs == OOBDIR)
-                    dirp = dirs;
-                else if (dirs == 3)
-                    dirp = OOBDIR;
-                else if (OOBDIR == 3)
-                    dirp = dirs;
-                else {
-                    eap_noob_err_msg(id, eapRespData, E3003);
-                    return;
-                }
-            }
-            write_db(tmp[0], tmp[1]);
-        }
-    }
-    // Build response
-    eap_noob_rsp_type_one(id, eapRespData, dirp);
-}
-
-/**
- * eap_noob_req_type_two : Decode request type two
- * @eapReqData : EAP request data
- * @size : size of eapReqData
- * @id : method identifier
- * @eapRespData : EAP response data
-**/
-void eap_noob_req_type_two(char *eapReqData, const size_t size,
-    const uint8_t id, uint8_t *eapRespData)
-{
-    // Parse request
-    struct jsonparse_state js_req;
-    jsonparse_setup(&js_req, eapReqData, size);
-    int type;
-    char tmp[2][130];
-    while((type = jsonparse_next(&js_req)) != 0) {
-        if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
-            jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1])) {
-                    eap_noob_err_msg(id, eapRespData, E2004);
-                    return;
-                }
-            } else if ( !strcmp(tmp[0], "PKs") ){
-                write_db(tmp[0], tmp[1]);
-                struct jsonparse_state pks;
-                jsonparse_setup(&pks, tmp[1], strlen(tmp[1]));
-                while((type = jsonparse_next(&pks)) != 0) {
-                    if(type == JSON_TYPE_PAIR_NAME) {
-                        jsonparse_copy_next(&pks, tmp[0], size);
-                        jsonparse_next(&pks);
-                        jsonparse_copy_next(&pks, tmp[1], size);
-                        if (!strcmp(tmp[0], "x")) {
-                            size_t len_x = 0;
-                            unsigned char x[33];
-                            sprintf(tmp[1], "%s""=", tmp[1]);
-                            base64_decode(tmp[1], strlen(tmp[1]), &len_x, x);
-                            memcpy(server_pk.x,x, 32);
-                        } else if (!strcmp(tmp[0], "y")) {
-                            size_t len_y = 0;
-                            unsigned char y[33];
-                            sprintf(tmp[1], "%s""=", tmp[1]);
-                            base64_decode(tmp[1], strlen(tmp[1]), &len_y, y);
-                            memcpy(server_pk.y,y, 32);
-                        }
-                    }
-                }
-            } else if ( !strcmp(tmp[0], "Ns")  ||
-                !strcmp(tmp[0], "SleepTime") ) {
-                write_db(tmp[0], tmp[1]);
-            }
-        }
-
-    }
-
-    printf("Server PK.X hex: ");
-    for(int i = 0 ;i <8;i++)
-        printf("%0lX", NTOHL(server_pk.x[i]) );
-    printf("\n");
-    printf("Server PK.Y hex: ");
-    for(int i = 0 ;i <8;i++)
-        printf("%0lX", NTOHL(server_pk.y[i]) );
-    printf("\n");
-
-    // Build response
     unsigned char pk_str1[32];
     printf("PK.X hex: ");
     // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
@@ -549,23 +447,171 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
     // Curve25519 example
     // sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
 
-    ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-        + strlen(tmpResponseType2)) + 1);
-    ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
+    //     + strlen(tmpResponseType2)) + 1);
+    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
 
-    sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
-    eapKeyAvailable = FALSE;
+    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
+    // eapKeyAvailable = FALSE;
+
+    *eapRespLen = strlen(tmpResponseType2);
+    memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1);
 
     // Update NAI
-    sprintf(nai, "%s%s", PeerId, "+s1@noob.example.com");
+    sprintf(nai, "%s+s1@%s", PeerId, RealM);
 
     printf("EAP-NOOB: Response type 2: %s\n", tmpResponseType2);
 
 
+}
 
-    // eap_noob_rsp_type_two(id, eapRespData);
+/**
+ * eap_noob_rsp_type_three : Prepare response type three
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
+{
+    char tmpResponseType3[80];
+    sprintf(tmpResponseType3, "%s%s%s",
+        "{\"Type\":3,\"PeerId\":\"",PeerId,"\"}"
+    );
+
+    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
+    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
+    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
+    //     + strlen(tmpResponseType3)) + 1);
+    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
+
+    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
+
+    *eapRespLen = strlen(tmpResponseType3);
+    memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1); //  + 1 => \0
+    eapKeyAvailable = FALSE;
+}
+
+/**
+ * eap_noob_req_type_one : Decode request type one
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapRespData, size_t *eapRespLen)
+{
+    // Parse request
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
+    int type, dirp, dirs;
+    char tmp[2][100];
+    while((type = jsonparse_next(&js_req)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
+            if (!strcmp(tmp[0], "PeerId")) {
+                strcpy(PeerId, tmp[1]);
+            } else if(!strcmp(tmp[0], "Vers")) {
+                if (value_in_array(VERS, tmp[1]) == -1) {
+                    eap_noob_err_msg(eapRespData, E3001, eapRespLen);
+                    return;
+                }
+            } else if(!strcmp(tmp[0], "Cryptosuites")) {
+                if (value_in_array(CSUIT, tmp[1]) == -1) {
+                    eap_noob_err_msg(eapRespData, E3002, eapRespLen);
+                    return;
+                }
+            } else if(!strcmp(tmp[0], "Dirs")) {
+                dirs = tmp[1][0] - '0';
+                if (dirs == OOBDIR)
+                    dirp = dirs;
+                else if (dirs == 3)
+                    dirp = OOBDIR;
+                else if (OOBDIR == 3)
+                    dirp = dirs;
+                else {
+                    eap_noob_err_msg(eapRespData, E3003, eapRespLen);
+                    return;
+                }
+            }
+            write_db(tmp[0], tmp[1]);
+        }
+    }
+    // Build response
+    eap_noob_rsp_type_one(eapRespData, dirp, eapRespLen);
+}
+
+/**
+ * eap_noob_req_type_two : Decode request type two
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapRespData, size_t *eapRespLen)
+{
+    // Parse request
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
+    int type;
+    char tmp[2][130];
+    while((type = jsonparse_next(&js_req)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
+            if (!strcmp(tmp[0], "PeerId")) {
+                if (strcmp(PeerId, tmp[1])) {
+                    eap_noob_err_msg(eapRespData, E2004, eapRespLen);
+                    return;
+                }
+            } else if ( !strcmp(tmp[0], "PKs") ){
+                write_db(tmp[0], tmp[1]);
+                struct jsonparse_state pks;
+                jsonparse_setup(&pks, tmp[1], strlen(tmp[1]));
+                while((type = jsonparse_next(&pks)) != 0) {
+                    if(type == JSON_TYPE_PAIR_NAME) {
+                        jsonparse_copy_next(&pks, tmp[0], size);
+                        jsonparse_next(&pks);
+                        jsonparse_copy_next(&pks, tmp[1], size);
+                        if (!strcmp(tmp[0], "x")) {
+                            size_t len_x = 0;
+                            unsigned char x[33];
+                            sprintf(tmp[1], "%s""=", tmp[1]);
+                            base64_decode((unsigned char *)tmp[1], strlen(tmp[1]), &len_x, x);
+                            memcpy(server_pk.x,x, 32);
+                        } else if (!strcmp(tmp[0], "y")) {
+                            size_t len_y = 0;
+                            unsigned char y[33];
+                            sprintf(tmp[1], "%s""=", tmp[1]);
+                            base64_decode((unsigned char *)tmp[1], strlen(tmp[1]), &len_y, y);
+                            memcpy(server_pk.y,y, 32);
+                        }
+                    }
+                }
+            } else if ( !strcmp(tmp[0], "Ns")  ||
+                !strcmp(tmp[0], "SleepTime") ) {
+                write_db(tmp[0], tmp[1]);
+            }
+        }
+
+    }
+
+    printf("Server PK.X hex: ");
+    for(int i = 0 ;i <8;i++)
+        printf("%0lX", NTOHL(server_pk.x[i]) );
+    printf("\n");
+    printf("Server PK.Y hex: ");
+    for(int i = 0 ;i <8;i++)
+        printf("%0lX", NTOHL(server_pk.y[i]) );
+    printf("\n");
+
+    process_start(&ecc_derive_secret, NULL);
+
+    // Build response
+    eap_noob_rsp_type_two(eapRespData, eapRespLen);
 }
 
 /**
@@ -575,8 +621,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size,
  * @id : method identifier
  * @eapRespData : EAP response data
 **/
-void eap_noob_req_type_three(char *eapReqData, const size_t size,
-    const uint8_t id, uint8_t *eapRespData)
+void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRespData, size_t *eapRespLen)
 {
     // Parse request
     struct jsonparse_state js_req;
@@ -590,7 +635,7 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size,
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
                 if (strcmp(PeerId, tmp[1])) {
-                    eap_noob_err_msg(id, eapRespData, E2004);
+                    eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
             }
@@ -598,7 +643,7 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size,
         }
     }
     // Build response
-    eap_noob_rsp_type_three(id, eapRespData);
+    eap_noob_rsp_type_three(eapRespData, eapRespLen);
 }
 
 /**
@@ -606,20 +651,21 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size,
  * @eapReqData : EAP request data
  * @methodState : method state
  * @decision : FAIL or SUCC
- * @eapRespData : EAP response data
+ * @eapRespData : EAP response data. Only payload
+ * @eapRespLen : EAP payload length
 **/
-void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState,
-    uint8_t *decision, uint8_t *eapRespData)
+void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *methodState,
+    uint8_t *decision, uint8_t *eapRespData, size_t *eapRespLen)
 {
-    if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
+    // Condition must be done in eap-peer.c
+    // if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
         *(methodState) = CONT;
         *(decision) = FAIL;
 
         size_t size;
-        size = NTOHS(reqLength) - 5;
-
+        size = eapReqLen;
         struct jsonparse_state req_obj;
-        jsonparse_setup(&req_obj, (char *)eapReqData+5, size);
+        jsonparse_setup(&req_obj, (char *)eapReqData, size);
 
         int msgtype;
         msgtype = json_integer_value(&req_obj, "Type");
@@ -629,15 +675,15 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState,
         switch (msgtype) {
             case EAP_NOOB_TYPE_1:
                 DEBUG_NOOB("Message type 1");
-                eap_noob_req_type_one((char *)eapReqData+5, size, reqId, eapRespData);
+                eap_noob_req_type_one((char *)eapReqData, size, eapRespData, eapRespLen);
                 break;
             case EAP_NOOB_TYPE_2:
                 DEBUG_NOOB("Message type 2");
-                eap_noob_req_type_two((char *)eapReqData+5, size, reqId, eapRespData);
+                eap_noob_req_type_two((char *)eapReqData, size, eapRespData, eapRespLen);
                 break;
             case EAP_NOOB_TYPE_3:
                 DEBUG_NOOB("Message type 3");
-                eap_noob_req_type_three((char *)eapReqData+5, size, reqId, eapRespData);
+                eap_noob_req_type_three((char *)eapReqData, size, eapRespData, eapRespLen);
                 break;
             case EAP_NOOB_TYPE_4:
                 *(methodState) = MAY_CONT;
@@ -654,5 +700,5 @@ void eap_noob_process(const uint8_t *eapReqData, uint8_t *methodState,
                 ERROR_NOOB("Unknown request received:", msgtype);
                 break;
         }
-	}
+	// }
 }

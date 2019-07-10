@@ -268,8 +268,8 @@ tcpip_handler(void)
 
 		if(!validate(request))
 			return;
-
-		getURI(request, URIcheck, 10, &URIcheck_len);
+		int URIcheck_len_tmp = (int)URIcheck_len;
+		getURI(request, URIcheck, 10, &URIcheck_len_tmp );
 		if(memcmp(URIcheck, URI , URIcheck_len) != 0)
 			return;
 
@@ -372,10 +372,15 @@ tcpip_handler(void)
 			// Got ACK from GET
 			return;
 		}
+
 		reset(response);
 		setVersion(response,1);
 		setType(response,COAP_ACKNOWLEDGEMENT);
 		setCode(response,responsecode);
+		/*
+		 FIXME: setToken -> Null Pointer in coap_pdu->_pduLength
+		  Error solved with COAP_PAYLOAD_SIZE = 400
+		*/
 		setToken(response,
 				getTokenPointer(request),
 				(uint8_t)getTokenLength(request));
@@ -487,7 +492,6 @@ timeout_handler(void)
 
 	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
 	etimer_set(&et, 40 * CLOCK_SECOND);
-
 }
 /*---------------------------------------------------------------------------*/
 	static void
@@ -565,20 +569,16 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
 	etimer_set(&et, START_INTERVAL);
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-	etimer_set(&et, 1*CLOCK_SECOND);
 
 	// ECDH - Generate Client Public Key
-	static bool pubkey_is_generated = false;
 	static char pubkey_generated[] = "pubkey_generated";
 	process_start(&ecdh_generate_pubkey, NULL);
+
+	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, pubkey_generated) == 0);
+	printf("Client Public Key Generated\n");
+	etimer_set(&et, 1*CLOCK_SECOND);
 	// ECDH - end
 	
-
-
-
-
-
-
 
 
 
@@ -747,7 +747,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	//   pka_disable();
 
 
-
+	
 
 	while(1) {
 #if EDU_DEBUG
@@ -757,7 +757,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 #if EDU_DEBUG
 		printf("EDU: while(1) 2\n"); //EDU: DEBUG
 #endif
-		if(pubkey_is_generated && NETSTACK_ROUTING.node_is_reachable()) {
+		if(NETSTACK_ROUTING.node_is_reachable()) {
 			if(etimer_expired(&et) ) {
 				timeout_handler();
 			} else if(ev == tcpip_event) {
@@ -766,10 +766,6 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				printf("Received another kind of event\n");
 				// timeout_handler();
 			}
-		} else if (ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, pubkey_generated) == 0 ) {
-			pubkey_is_generated = true;
-			printf("Client Public Key Generated\n");
-			etimer_set(&et, 0.5 * CLOCK_SECOND);
 		} else {
 			printf("BR not reachable\n");
 			etimer_set(&et, 2 * CLOCK_SECOND);
