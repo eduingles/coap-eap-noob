@@ -578,9 +578,6 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	printf("Client Public Key Generated\n");
 	etimer_set(&et, 1*CLOCK_SECOND);
 	// ECDH - end
-	
-
-
 
 	//     static unsigned char pk_str1[33];
 	//     for(int i = 0 ;i < 8;i++){
@@ -745,9 +742,6 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	//   puts("-----------------------------------------\n"
 	//        "Disabling pka...");
 	//   pka_disable();
-
-
-	
 
 	while(1) {
 #if EDU_DEBUG

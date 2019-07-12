@@ -557,6 +557,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
     char tmp[2][130];
+
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
@@ -598,15 +599,6 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
         }
 
     }
-
-    printf("Server PK.X hex: ");
-    for(int i = 0 ;i <8;i++)
-        printf("%0lX", NTOHL(server_pk.x[i]) );
-    printf("\n");
-    printf("Server PK.Y hex: ");
-    for(int i = 0 ;i <8;i++)
-        printf("%0lX", NTOHL(server_pk.y[i]) );
-    printf("\n");
 
     process_start(&ecc_derive_secret, NULL);
 
