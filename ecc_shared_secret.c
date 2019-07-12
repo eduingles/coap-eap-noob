@@ -63,6 +63,9 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
 	memcpy(shared_secret, ec_server.point_out.x, sizeof(uint32_t) * 8);
   	pka_disable();
 
+   	process_post(&boostrapping_service_process,
+                PROCESS_EVENT_CONTINUE, "sharedkey_generated");
+				
   	puts("-----------------------------------------");
   	puts("        Derived Shared Secret");
   	puts("-----------------------------------------");

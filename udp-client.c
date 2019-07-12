@@ -571,10 +571,10 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
 	// ECDH - Generate Client Public Key
-	static char pubkey_generated[] = "pubkey_generated";
+	// static char pubkey_generated[] = "pubkey_generated";
 	process_start(&ecdh_generate_pubkey, NULL);
 
-	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, pubkey_generated) == 0);
+	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
 	printf("Client Public Key Generated\n");
 	etimer_set(&et, 1*CLOCK_SECOND);
 	// ECDH - end
@@ -756,6 +756,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				timeout_handler();
 			} else if(ev == tcpip_event) {
 				tcpip_handler();
+			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
+				printf("Generated shared secret\n");
 			} else {
 				printf("Received another kind of event\n");
 				// timeout_handler();
