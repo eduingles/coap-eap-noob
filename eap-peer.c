@@ -25,7 +25,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 //Build the Identity message
 static void buildIdentity(const uint8_t id){
-	char nai[NAI_MAX_LEN];
+	char nai[MAX_NAI_LEN];
 	eap_noob_build_identity(nai);
 
 	((struct eap_msg*) eapRespData)->code = RESPONSE_CODE;
