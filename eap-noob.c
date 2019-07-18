@@ -39,6 +39,37 @@ static char RealM [] = "noob.example.com";
 static const unsigned char base64_table[65] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
+/* EAP-NOOB error codes */
+const int error_code[] = {
+    1001, 1002, 1003, 1004, 1007,
+    2001, 2002, 2003, 2004, 2005,
+    3001, 3002, 3003,
+    4001,
+    5001, 5002, 5003, 5004
+};
+
+/* EAP-NOOB error messages */
+const char* error_info[] = {
+    "Invalid NAI",
+    "Invalid message structure",
+    "Invalid data",
+    "Unexpected message type",
+    "Invalid ECDHE key",
+    "Unwanted peer",
+    "State mismatch, user action required",
+    "Unrecognized OOB message identifier",
+    "Unexpected peer identifier",
+    "Unrecognized Kz identifier",
+    "No mutually supported protocol version",
+    "No mutually supported cryptosuite",
+    "No mutually supported OOB direction",
+    "HMAC verification failure",
+    "Application-specific error",
+    "Invalid server info",
+    "Invalid server URL",
+    "Invalid peer info"
+};
+
 /**
  * base64_encode : Base64 encoding
  * @src : data to be encoded
@@ -293,34 +324,33 @@ static int value_in_array(uint8_t val, char *arr)
     return -1;
 }
 
-const char* error_info[] = {
-    "Invalid NAI",
-    "Invalid message structure",
-    "Invalid data",
-    "Unexpected message type",
-    "Invalid ECDHE key",
-    "Unwanted peer",
-    "State mismatch, user action required",
-    "Unrecognized OOB message identifier",
-    "Unexpected peer identifier",
-    "Unrecognized Kz identifier",
-    "No mutually supported protocol version",
-    "No mutually supported cryptosuite",
-    "No mutually supported OOB direction",
-    "HMAC verification failure",
-    "Application-specific error",
-    "Invalid server info",
-    "Invalid server URL",
-    "Invalid peer info"
-};
+/**
+ * generate_nonce : Generate fresh nonce
+ * @size : size of the nonce
+ * @dst : destination array
+ **/
+void generate_nonce(size_t size, unsigned char *dst)
+{
+    char nonce[size];
+    int i;
+    for (i = 0; i < size-1; i++)
+        nonce[i] = base64_table[random_rand() % 64];
+    nonce[i] = '\0';
+    // Base64 encode the nonce
+    size_t len_b64_nonce = 0;
+    base64_encode(nonce, size, &len_b64_nonce, dst);
+}
 
-const int error_code[] = {
-    1001, 1002, 1003, 1004, 1007,
-    2001, 2002, 2003, 2004, 2005,
-    3001, 3002, 3003,
-    4001,
-    5001, 5002, 5003, 5004
-};
+/**
+ * generate_noob : Generate fresh 16 byte nonce and save it to the database
+ **/
+void generate_noob()
+{
+    unsigned char noob[23];
+    generate_nonce(16, noob);
+    noob[22] = '\0';
+    write_db("Noob", noob);
+}
 
 /**
  * eap_noob_err_msg : Prepare error message
@@ -374,7 +404,6 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
     unsigned char pk_str1[32];
     DEBUG_NOOB("PK.X hex: ");
-    // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
     int i;
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
         printf("%lX", client_pk.x[i]);
@@ -384,21 +413,13 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
         pk_str1[i*4+0] = client_pk.x[i];
     }
     printf("\n");
-    // pk_str1[32] = '\0';
-
-    // printf("A PK.X char: ");
-    // for (int i = 0; i < 32; i++)
-    //     printf("%u", pk_str1[i]);
-    // printf("\n");
 
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
-    // printf("pk_x_b64 %d: %s\n", len_b64_x, pk_x_b64);
 
     unsigned char pk_str2[32];
     DEBUG_NOOB("PK.Y hex: ");
-    // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
         printf("%lX", client_pk.y[i]);
         pk_str2[i*4+3] = client_pk.y[i] >> 24;
@@ -407,27 +428,14 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
         pk_str2[i*4+0] = client_pk.y[i];
     }
     printf("\n");
-    // pk_str2[32] = '\0';
-
-    // printf("A PK.Y char: ");
-    // for (int i = 0; i < 32; i++)
-    //     printf("%u", pk_str2[i]);
-    // printf("\n");
 
     size_t len_b64_y = 0;
-    unsigned char pk_y_b64[45];
+    unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
-    // printf("pk_y_b64 %d: %s\n", len_b64_y, pk_y_b64);
 
     // Generate nonce
-    char Np[33];
-    for (i = 0; i < 32; i++)
-        Np[i] = base64_table[random_rand() % 64];
-    Np[i] = '\0';
-    // Base64 encode the nonce
-    unsigned char Np_b64[45];
-    size_t len_b64_Np = 0;
-    base64_encode(Np, 32, &len_b64_Np, Np_b64);
+    unsigned char Np_b64[44];
+    generate_nonce(32, Np_b64);
 
     char tmpResponseType2[250];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
@@ -568,6 +576,9 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
             }
         }
     }
+    // Generate new Noob
+    generate_noob();
+    // Derive shared secret key and build OOB message
     process_start(&ecc_derive_secret, NULL);
 
     // Build response
