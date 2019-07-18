@@ -32,138 +32,129 @@
 
 #include "eap-noob.h"
 
-static char nai [NAI_MAX_LEN];
+static char nai [MAX_NAI_LEN];
 static char PeerId [MAX_PEER_ID_LEN];
 static char RealM [] = "noob.example.com";
 
 static const unsigned char base64_table[65] =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 /**
  * base64_encode : Base64 encoding
- * @src: data to be encoded
- * @len: length of the data to be encoded
- * @out_len: pointer to output length variable, or NULL if not used
+ * @src : data to be encoded
+ * @len : length of the data to be encoded
+ * @out_len : pointer to output length variable, or NULL if not used
+ * Returns :
  */
 static uint8_t base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
 {
-	unsigned char *pos;
-	const unsigned char *end, *in;
-	size_t olen;
-	// int line_len;
+    unsigned char *pos;
+    const unsigned char *end, *in;
+    size_t olen;
 
-	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
-	olen += olen / 72;      // line feeds
-	olen++;                 // null termination
-	if (olen < len)
-		return 0;        // integer overflow
+    olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
+    olen += olen / 72;      // line feeds
+    olen++;                 // null termination
+    if (olen < len)
+        return 0;           // integer overflow
 
-	unsigned char out[olen];
-	if (out == NULL)
-		return 0;
+    unsigned char out[olen];
+    if (out == NULL)
+        return 0;
 
-	end = src + len;
-	in = src;
-	pos = out;
-	// line_len = 0;
-	while (end - in >= 3) {
-		*pos++ = base64_table[in[0] >> 2];
-		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
-		*pos++ = base64_table[in[2] & 0x3f];
-		in += 3;
-		// line_len += 4;
-		// if (line_len >= 72)
-		// 	line_len = 0;
-	}
-	if (end - in) {
-		*pos++ = base64_table[in[0] >> 2];
-		if (end-in == 1) {
-			*pos++ = base64_table[(in[0] & 0x03) << 4];
-			*pos++ = '=';
-		} else {
-			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-			*pos++ = base64_table[(in[1] & 0x0f) << 2];
-		}
-		// *pos++ = '=';
-	}
-	*pos = '\0';
-	if (out_len)
-		*out_len = pos - out;
+    end = src + len;
+    in = src;
+    pos = out;
+
+    while (end - in >= 3) {
+        *pos++ = base64_table[in[0] >> 2];
+        *pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+        *pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+        *pos++ = base64_table[in[2] & 0x3f];
+        in += 3;
+    }
+    if (end - in) {
+        *pos++ = base64_table[in[0] >> 2];
+        if (end-in == 1) {
+            *pos++ = base64_table[(in[0] & 0x03) << 4];
+            *pos++ = '=';
+        } else {
+            *pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+            *pos++ = base64_table[(in[1] & 0x0f) << 2];
+        }
+    }
+    *pos = '\0';
+    if (out_len)
+        *out_len = pos - out;
 
     memcpy(dst, out, *out_len+1);
     return 1;
 }
 
 /**
- * base64_decode - Base64 decode
- * @src: Data to be decoded
- * @len: Length of the data to be decoded
- * @out_len: Pointer to output length variable
- * Returns: Allocated buffer of out_len bytes of decoded data,
- * or %NULL on failure
+ * base64_decode - Base64 decoding
+ * @src : data to be decoded
+ * @len : length of the data to be decoded
+ * @out_len : pointer to output length variable
+ * Returns : allocated buffer of out_len bytes of decoded data, or NULL on failure
  *
  * Caller is responsible for freeing the returned buffer.
  */
-
 static uint8_t base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
 {
-	unsigned char dtable[256], *pos, block[4], tmp;
-	size_t i, count, olen;
-	int pad = 0;
+    unsigned char dtable[256], *pos, block[4], tmp;
+    size_t i, count, olen;
+    int pad = 0;
 
-	memset(dtable, 0x80, 256);
-	for (i = 0; i < sizeof(base64_table) - 1; i++)
-		dtable[base64_table[i]] = (unsigned char) i;
-	dtable['='] = 0;
+    memset(dtable, 0x80, 256);
+    for (i = 0; i < sizeof(base64_table) - 1; i++)
+        dtable[base64_table[i]] = (unsigned char) i;
+    dtable['='] = 0;
 
-	count = 0;
-	for (i = 0; i < len; i++) {
-		if (dtable[src[i]] != 0x80)
-			count++;
-	}
-    
-	if (count == 0 || count % 4){ // Check padding
-		return 0;
+    count = 0;
+    for (i = 0; i < len; i++) {
+        if (dtable[src[i]] != 0x80)
+        count++;
     }
 
-	olen = count / 4 * 3;
-	unsigned char out[olen];
-	pos = out;
-	if (out == NULL)
-		return 0;
+    if (count == 0 || count % 4) // Check padding
+        return 0;
 
-	count = 0;
-	for (i = 0; i < len; i++) {
-		tmp = dtable[src[i]];
-		if (tmp == 0x80)
-			continue;
+    olen = count / 4 * 3;
+    unsigned char out[olen];
+    pos = out;
+    if (out == NULL)
+        return 0;
 
-		if (src[i] == '=')
-			pad++;
-		block[count] = tmp;
-		count++;
-		if (count == 4) {
-			*pos++ = (block[0] << 2) | (block[1] >> 4);
-			*pos++ = (block[1] << 4) | (block[2] >> 2);
-			*pos++ = (block[2] << 6) | block[3];
-			count = 0;
-			if (pad) {
-				if (pad == 1)
-					pos--;
-				else if (pad == 2)
-					pos -= 2;
-				else {
-					/* Invalid padding */
-					return 0;
-				}
-				break;
-			}
-		}
-	}
+    count = 0;
+    for (i = 0; i < len; i++) {
+        tmp = dtable[src[i]];
+        if (tmp == 0x80)
+            continue;
 
-	*out_len = pos - out;
-	memcpy(dst, out, *out_len+1);
+        if (src[i] == '=')
+            pad++;
+        block[count] = tmp;
+        count++;
+        if (count == 4) {
+            *pos++ = (block[0] << 2) | (block[1] >> 4);
+            *pos++ = (block[1] << 4) | (block[2] >> 2);
+            *pos++ = (block[2] << 6) | block[3];
+            count = 0;
+            if (pad) {
+                if (pad == 1)
+                    pos--;
+                else if (pad == 2)
+                    pos -= 2;
+                else /* Invalid padding */
+                    return 0;
+            break;
+            }
+        }
+    }
+
+    *out_len = pos - out;
+    memcpy(dst, out, *out_len+1);
     return 1;
 }
 
@@ -239,11 +230,11 @@ void init_eap_noob()
 }
 
 /**
- * initMethodEap : Initialise EAP method
+ * eap_noob_build_identity : Build EAP-NOOB identity
+ * @eapRespData : EAP response data
 **/
-void eap_noob_build_identity(char *eapRespData){
-	memcpy(eapRespData, nai, strlen(nai)+1);
-
+void eap_noob_build_identity(char *eapRespData) {
+    memcpy(eapRespData, nai, strlen(nai)+1);
 }
 
 /**
@@ -272,18 +263,18 @@ static int write_db(char *key , char *val)
  * print_db : Print database to stdout
  * TEMPORARY - FOR DEBUGGING PURPOSES
 **/
-// static void print_db()
-// {
-//     int db;
-//     if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {
-//         size_t size = cfs_seek(db, 0, CFS_SEEK_END);
-//         cfs_seek(db, 0, CFS_SEEK_SET);
-//         char dst[size];
-//         cfs_read(db, dst, size);
-//         cfs_close(db);
-//         printf("Database after parsing request \n%s\n", dst);
-//     }
-// }
+static void print_db()
+{
+    int db;
+    if ((db = cfs_open(DB_NAME, CFS_READ)) >= 0) {
+        size_t size = cfs_seek(db, 0, CFS_SEEK_END);
+        cfs_seek(db, 0, CFS_SEEK_SET);
+        char dst[size];
+        cfs_read(db, dst, size);
+        cfs_close(db);
+        printf("Database after parsing request \n%s\n", dst);
+    }
+}
 
 /**
  * value_in_array : Check if a value exists in an array
@@ -349,13 +340,6 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
     DEBUG_NOOB(error_info[error]);
     ERROR_NOOB("Sending error code", error_code[error]);
 
-    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-    //     + strlen(tmpResponseType0)) + 1);
-    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType0);
     *eapRespLen = strlen(tmpResponseType0);
     memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
@@ -373,14 +357,8 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
     sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s",
         "{\"Type\":1,\"Verp\":",VERS,",\"PeerId\":\"",PeerId,
         "\",\"Cryptosuitep\":",CSUIT,",\"Dirp\":",dirp,",\"PeerInfo\":",
-        PEER_INFO,"}");
-
-    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-    //     + strlen(tmpResponseType1)) + 1);
-    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType1);
+        PEER_INFO,"}"
+    );
 
     *eapRespLen = strlen(tmpResponseType1);
     memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1); //  + 1 => \0
@@ -395,9 +373,10 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
     unsigned char pk_str1[32];
-    printf("PK.X hex: ");
+    DEBUG_NOOB("PK.X hex: ");
     // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
-    for(int i = 7 ;i >=0;i--){ //Little endian (order: 3,2,1,0)
+    int i;
+    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
         printf("%lX", client_pk.x[i]);
         pk_str1[i*4+3] = client_pk.x[i] >> 24;
         pk_str1[i*4+2] = client_pk.x[i] >> 16;
@@ -405,7 +384,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
         pk_str1[i*4+0] = client_pk.x[i];
     }
     printf("\n");
-	// pk_str1[32] = '\0';
+    // pk_str1[32] = '\0';
 
     // printf("A PK.X char: ");
     // for (int i = 0; i < 32; i++)
@@ -418,9 +397,9 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     // printf("pk_x_b64 %d: %s\n", len_b64_x, pk_x_b64);
 
     unsigned char pk_str2[32];
-    printf("PK.Y hex: ");
+    DEBUG_NOOB("PK.Y hex: ");
     // for(int i = 0 ;i < 8;i++){ //Big endian (order: 0,1,2,3)
-    for(int i = 7 ;i >=0;i--){ //Little endian (order: 3,2,1,0)
+    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
         printf("%lX", client_pk.y[i]);
         pk_str2[i*4+3] = client_pk.y[i] >> 24;
         pk_str2[i*4+2] = client_pk.y[i] >> 16;
@@ -428,7 +407,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
         pk_str2[i*4+0] = client_pk.y[i];
     }
     printf("\n");
-	// pk_str2[32] = '\0';
+    // pk_str2[32] = '\0';
 
     // printf("A PK.Y char: ");
     // for (int i = 0; i < 32; i++)
@@ -440,21 +419,23 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
     // printf("pk_y_b64 %d: %s\n", len_b64_y, pk_y_b64);
 
-    // TODO: generate fresh nonce
-    char tmpResponseType2[300];
-    sprintf(tmpResponseType2, "%s%s%s%s%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64, "\", \"y\":\"", pk_y_b64, "\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
-    
-    // Curve25519 example
-    // sprintf(tmpResponseType2, "%s%s%s", "{\"Type\":2,\"PeerId\":\"", PeerId, "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"Curve25519\",\"x\":\"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08\"},\"Np\":\"HIvB6g0n2btpxEcU7YXnWB-451ED6L6veQQd6ugiPFU\"}");
+    // Generate nonce
+    char Np[33];
+    for (i = 0; i < 32; i++)
+        Np[i] = base64_table[random_rand() % 64];
+    Np[i] = '\0';
+    // Base64 encode the nonce
+    unsigned char Np_b64[45];
+    size_t len_b64_Np = 0;
+    base64_encode(Np, 32, &len_b64_Np, Np_b64);
 
-    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-    //     + strlen(tmpResponseType2)) + 1);
-    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType2);
-    // eapKeyAvailable = FALSE;
+    char tmpResponseType2[250];
+    sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
+        "{\"Type\":2,\"PeerId\":\"", PeerId,
+        "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64,
+        "\", \"y\":\"", pk_y_b64,
+        "\"},\"Np\":\"", Np_b64, "\"}"
+    );
 
     *eapRespLen = strlen(tmpResponseType2);
     memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1);
@@ -463,8 +444,6 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     sprintf(nai, "%s+s1@%s", PeerId, RealM);
 
     printf("EAP-NOOB: Response type 2: %s\n", tmpResponseType2);
-
-
 }
 
 /**
@@ -478,14 +457,6 @@ void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
     sprintf(tmpResponseType3, "%s%s%s",
         "{\"Type\":3,\"PeerId\":\"",PeerId,"\"}"
     );
-
-    // ((struct eap_msg *)eapRespData)->code = RESPONSE_CODE;
-    // ((struct eap_msg *)eapRespData)->id = (uint8_t)id;
-    // ((struct eap_msg *)eapRespData)->length = HTONS((sizeof(struct eap_msg)
-    //     + strlen(tmpResponseType3)) + 1);
-    // ((struct eap_msg *)eapRespData)->method = (uint8_t)EAP_NOOB;
-
-    // sprintf((char *)eapRespData + 5, "%s", (char *)tmpResponseType3);
 
     *eapRespLen = strlen(tmpResponseType3);
     memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1); //  + 1 => \0
@@ -568,7 +539,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
-            } else if ( !strcmp(tmp[0], "PKs") ){
+            } else if (!strcmp(tmp[0], "PKs")) {
                 write_db(tmp[0], tmp[1]);
                 struct jsonparse_state pks;
                 jsonparse_setup(&pks, tmp[1], strlen(tmp[1]));
@@ -592,14 +563,11 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         }
                     }
                 }
-            } else if ( !strcmp(tmp[0], "Ns")  ||
-                !strcmp(tmp[0], "SleepTime") ) {
+            } else if (!strcmp(tmp[0], "Ns") || !strcmp(tmp[0], "SleepTime") ) {
                 write_db(tmp[0], tmp[1]);
             }
         }
-
     }
-
     process_start(&ecc_derive_secret, NULL);
 
     // Build response
@@ -646,51 +614,47 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRe
  * @eapRespData : EAP response data. Only payload
  * @eapRespLen : EAP payload length
 **/
-void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *methodState,
-    uint8_t *decision, uint8_t *eapRespData, size_t *eapRespLen)
+void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *methodState, uint8_t *decision, uint8_t *eapRespData, size_t *eapRespLen)
 {
-    // Condition must be done in eap-peer.c
-    // if (reqMethod == EAP_NOOB && reqCode == REQUEST_CODE) {
-        *(methodState) = CONT;
-        *(decision) = FAIL;
+    *(methodState) = CONT;
+    *(decision) = FAIL;
 
-        size_t size;
-        size = eapReqLen;
-        struct jsonparse_state req_obj;
-        jsonparse_setup(&req_obj, (char *)eapReqData, size);
+    size_t size;
+    size = eapReqLen;
+    struct jsonparse_state req_obj;
+    jsonparse_setup(&req_obj, (char *)eapReqData, size);
 
-        int msgtype;
-        msgtype = json_integer_value(&req_obj, "Type");
-        if (msgtype < 0)
-            DEBUG_NOOB("Invalid request type");
+    int msgtype;
+    msgtype = json_integer_value(&req_obj, "Type");
+    if (msgtype < 0)
+        DEBUG_NOOB("Invalid request type");
 
-        switch (msgtype) {
-            case EAP_NOOB_TYPE_1:
-                DEBUG_NOOB("Message type 1");
-                eap_noob_req_type_one((char *)eapReqData, size, eapRespData, eapRespLen);
-                break;
-            case EAP_NOOB_TYPE_2:
-                DEBUG_NOOB("Message type 2");
-                eap_noob_req_type_two((char *)eapReqData, size, eapRespData, eapRespLen);
-                break;
-            case EAP_NOOB_TYPE_3:
-                DEBUG_NOOB("Message type 3");
-                eap_noob_req_type_three((char *)eapReqData, size, eapRespData, eapRespLen);
-                break;
-            case EAP_NOOB_TYPE_4:
-                *(methodState) = MAY_CONT;
-                *(decision) = COND_SUCC;
-            case EAP_NOOB_TYPE_5:
-            case EAP_NOOB_TYPE_6:
-            case EAP_NOOB_TYPE_7:
-                *(methodState) = MAY_CONT;
-                *(decision) = COND_SUCC;
-            case EAP_NOOB_TYPE_0:
-                ERROR_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
-                break;
-            default:
-                ERROR_NOOB("Unknown request received:", msgtype);
-                break;
-        }
-	// }
+    switch (msgtype) {
+        case EAP_NOOB_TYPE_1:
+            DEBUG_NOOB("Message type 1");
+            eap_noob_req_type_one((char*)eapReqData, size, eapRespData, eapRespLen);
+            break;
+        case EAP_NOOB_TYPE_2:
+            DEBUG_NOOB("Message type 2");
+            eap_noob_req_type_two((char*)eapReqData, size, eapRespData, eapRespLen);
+            break;
+        case EAP_NOOB_TYPE_3:
+            DEBUG_NOOB("Message type 3");
+            eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
+            break;
+        case EAP_NOOB_TYPE_4:
+            *(methodState) = MAY_CONT;
+            *(decision) = COND_SUCC;
+        case EAP_NOOB_TYPE_5:
+        case EAP_NOOB_TYPE_6:
+        case EAP_NOOB_TYPE_7:
+            *(methodState) = MAY_CONT;
+            *(decision) = COND_SUCC;
+        case EAP_NOOB_TYPE_0:
+            ERROR_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
+            break;
+        default:
+            ERROR_NOOB("Unknown request received:", msgtype);
+            break;
+    }
 }

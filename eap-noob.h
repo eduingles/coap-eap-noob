@@ -63,7 +63,7 @@
 #define EMPTY_NOOB          0
 
 /* MAX values for the fields */
-#define NAI_MAX_LEN         44
+#define MAX_NAI_LEN         44
 #define MAX_PEER_ID_LEN     22
 
 // typedef struct {
