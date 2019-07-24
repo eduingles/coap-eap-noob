@@ -33,7 +33,7 @@
 #include "eap-noob.h"
 
 static char nai [MAX_NAI_LEN];
-static char PeerId [MAX_PEER_ID_LEN];
+static char PeerId [MAX_PEERID_LEN];
 static char RealM [] = "noob.example.com";
 
 static const unsigned char base64_table[65] =
@@ -42,7 +42,7 @@ static const unsigned char base64_table[65] =
 /* EAP-NOOB error codes */
 const int error_code[] = {
     1001, 1002, 1003, 1004, 1007,
-    2001, 2002, 2003, 2004, 2005,
+    2001, 2002, 2003, 2004,
     3001, 3002, 3003,
     4001,
     5001, 5002, 5003, 5004
@@ -59,7 +59,6 @@ const char* error_info[] = {
     "State mismatch, user action required",
     "Unrecognized OOB message identifier",
     "Unexpected peer identifier",
-    "Unrecognized Kz identifier",
     "No mutually supported protocol version",
     "No mutually supported cryptosuite",
     "No mutually supported OOB direction",
@@ -384,7 +383,7 @@ void generate_noob()
 {
     unsigned char noob[23];
     generate_nonce(16, noob);
-    noob[22] = '\0';
+    noob[22] = '\0'; // Get rid of padding character ('=') at the end
     write_db("Noob", noob);
 }
 
@@ -482,7 +481,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     );
 
     *eapRespLen = strlen(tmpResponseType2);
-    memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1);
+    memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1); //  + 1 => \0
 
     // Update NAI
     sprintf(nai, "%s+s1@%s", PeerId, RealM);
@@ -508,6 +507,28 @@ void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
 }
 
 /**
+ * eap_noob_rsp_type_four : Prepare response type four
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
+{
+    char tmpResponseType4[140];
+    char MACp[44];
+    // TODO: calculate MACp
+    sprintf(tmpResponseType4, "%s%s%s%s%s",
+        "{\"Type\":4,\"PeerId\":\"",PeerId,"\",\"MACp\":\"",MACp,"\"}"
+    );
+
+    *eapRespLen = strlen(tmpResponseType4);
+    memcpy(eapRespData, tmpResponseType4, *eapRespLen + 1); //  + 1 => \0
+    eapKeyAvailable = TRUE;
+
+    // Update NAI
+    sprintf(nai, "%s+s4@%s", PeerId, RealM);
+}
+
+/**
  * eap_noob_req_type_one : Decode request type one
  * @eapReqData : EAP request data
  * @size : size of eapReqData
@@ -530,11 +551,13 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
                 strcpy(PeerId, tmp[1]);
             } else if(!strcmp(tmp[0], "Vers")) {
                 if (value_in_array(VERS, tmp[1]) == -1) {
+                    // Error: No mutually supported protocol version
                     eap_noob_err_msg(eapRespData, E3001, eapRespLen);
                     return;
                 }
             } else if(!strcmp(tmp[0], "Cryptosuites")) {
                 if (value_in_array(CSUIT, tmp[1]) == -1) {
+                    // Error: No mutually supported cryptosuite
                     eap_noob_err_msg(eapRespData, E3002, eapRespLen);
                     return;
                 }
@@ -547,6 +570,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
                 else if (OOBDIR == 3)
                     dirp = dirs;
                 else {
+                    // Error: No mutually supported OOB direction
                     eap_noob_err_msg(eapRespData, E3003, eapRespLen);
                     return;
                 }
@@ -580,6 +604,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
                 if (strcmp(PeerId, tmp[1])) {
+                    // Error: Unexpected peer identifier
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
@@ -607,8 +632,10 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         }
                     }
                 }
-            } else if (!strcmp(tmp[0], "Ns") || !strcmp(tmp[0], "SleepTime") ) {
+            } else if (!strcmp(tmp[0], "Ns")) {
                 write_db(tmp[0], tmp[1]);
+            } else if (!strcmp(tmp[0], "SleepTime")) {
+                // TODO: set SleepTime
             }
         }
     }
@@ -616,7 +643,6 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
     generate_noob();
     // Derive shared secret key and build OOB message
     process_start(&ecc_derive_secret, NULL);
-
     // Build response
     eap_noob_rsp_type_two(eapRespData, eapRespLen);
 }
@@ -642,15 +668,65 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRe
             jsonparse_copy_next(&js_req, tmp[1], size);
             if (!strcmp(tmp[0], "PeerId")) {
                 if (strcmp(PeerId, tmp[1])) {
+                    // Error: Unexpected peer identifier
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
+            } else if (!strcmp(tmp[0], "SleepTime")) {
+                // TODO: update SleepTime
             }
-            // TODO: update SleepTime
         }
     }
     // Build response
     eap_noob_rsp_type_three(eapRespData, eapRespLen);
+}
+
+/**
+ * eap_noob_req_type_four : Decode request type four
+ * @eapReqData : EAP request data
+ * @size : size of eapReqData
+ * @id : method identifier
+ * @eapRespData : EAP response data
+**/
+void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRespData, size_t *eapRespLen)
+{
+    // Parse request
+    struct jsonparse_state js_req;
+    jsonparse_setup(&js_req, eapReqData, size);
+    int type;
+    char tmp[2][100];
+    while((type = jsonparse_next(&js_req)) != 0) {
+        if(type == JSON_TYPE_PAIR_NAME) {
+            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_next(&js_req);
+            jsonparse_copy_next(&js_req, tmp[1], size);
+            if (!strcmp(tmp[0], "PeerId")) {
+                if (strcmp(PeerId, tmp[1])) {
+                    // Error: Unexpected peer identifier
+                    eap_noob_err_msg(eapRespData, E2004, eapRespLen);
+                    return;
+                }
+            } else if (!strcmp(tmp[0], "NoobId")) {
+                char NoobId[24];
+                // TODO: calculate NoobId from Noob
+                if (strcmp(NoobId, tmp[1])) {
+                    // Error: Unrecognized OOB message identifier
+                    eap_noob_err_msg(eapRespData, E2003, eapRespLen);
+                    return;
+                }
+            } else if (!strcmp(tmp[0], "MACs")) {
+                char MACs[44];
+                // TODO: calculate MACs
+                if (strcmp(MACs, tmp[1])) {
+                    // Error: HMAC verification failure
+                    eap_noob_err_msg(eapRespData, E4001, eapRespLen);
+                    return;
+                }
+            }
+        }
+    }
+    // Build response
+    eap_noob_rsp_type_four(eapRespData, eapRespLen);
 }
 
 /**
@@ -665,39 +741,43 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
 {
     *(methodState) = CONT;
     *(decision) = FAIL;
-
+    // Parse request payload to get message type
     size_t size;
     size = eapReqLen;
     struct jsonparse_state req_obj;
     jsonparse_setup(&req_obj, (char *)eapReqData, size);
-
     int msgtype;
     msgtype = json_integer_value(&req_obj, "Type");
     if (msgtype < 0)
         DEBUG_NOOB("Invalid request type");
 
     switch (msgtype) {
-        case EAP_NOOB_TYPE_1:
+        case EAP_NOOB_TYPE_1: // Initial Exchange
             DEBUG_NOOB("Message type 1");
             eap_noob_req_type_one((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
-        case EAP_NOOB_TYPE_2:
+        case EAP_NOOB_TYPE_2: // Initial Exchange
             DEBUG_NOOB("Message type 2");
             eap_noob_req_type_two((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
-        case EAP_NOOB_TYPE_3:
+        case EAP_NOOB_TYPE_3: // Waiting Exchange
             DEBUG_NOOB("Message type 3");
             eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
-        case EAP_NOOB_TYPE_4:
+        case EAP_NOOB_TYPE_4: // Completion Exchange
+            DEBUG_NOOB("Message type 4");
+            eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
             *(methodState) = MAY_CONT;
             *(decision) = COND_SUCC;
-        case EAP_NOOB_TYPE_5:
-        case EAP_NOOB_TYPE_6:
-        case EAP_NOOB_TYPE_7:
+            break;
+        case EAP_NOOB_TYPE_5: // Reconnect Exchange
+        case EAP_NOOB_TYPE_6: // Reconnect Exchange
+        case EAP_NOOB_TYPE_7: // Reconnect Exchange
             *(methodState) = MAY_CONT;
             *(decision) = COND_SUCC;
-        case EAP_NOOB_TYPE_0:
+        case EAP_NOOB_TYPE_8: // Completion Exchange
+            // TODO: implement S2P OOB direction
+        case EAP_NOOB_TYPE_0: // Error message
             ERROR_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
             break;
         default:

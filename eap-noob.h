@@ -48,12 +48,6 @@
 #define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
 #define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
 
-/* Get EAP message values */
-// #define reqId ((struct eap_msg *)eapReqData)->id
-// #define reqMethod ((struct eap_msg *)eapReqData)->method
-// #define reqCode ((struct eap_msg *)eapReqData)->code
-// #define reqLength ((struct eap_msg *)eapReqData)->length
-
 /* All the pre-processors of EAP-NOOB */
 
 #define DB_NAME             "peer_db.txt"
@@ -64,7 +58,7 @@
 
 /* MAX values for the fields */
 #define MAX_NAI_LEN         44
-#define MAX_PEER_ID_LEN     22
+#define MAX_PEERID_LEN      22
 
 // typedef struct {
 //   char data[NAI_MAX_LEN];
@@ -83,12 +77,13 @@ enum {
     EAP_NOOB_TYPE_5,
     EAP_NOOB_TYPE_6,
     EAP_NOOB_TYPE_7,
+    EAP_NOOB_TYPE_8,
     EAP_NOOB_ERROR
 };
 
 enum {
     E1001, E1002, E1003, E1004, E1007,
-    E2001, E2002, E2003, E2004, E2005,
+    E2001, E2002, E2003, E2004,
     E3001, E3002, E3003,
     E4001,
     E5001, E5002, E5003, E5004
