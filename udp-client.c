@@ -36,7 +36,6 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 
-#include "_cantcoap.h"
 #include "uthash.h"
 #include "eax.h" //do_omac()
 
@@ -45,171 +44,14 @@
 #include "ecc_pubkey.h"
 #include "sys/process.h" // process_start()
 
-// static const unsigned char base64_table[65] =
-// 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-
-/**
- * base64_decode - Base64 decode
-	* @src: Data to be decoded
-	* @len: Length of the data to be decoded
-	* @out_len: Pointer to output length variable
-	* Returns: Allocated buffer of out_len bytes of decoded data,
-	* or %NULL on failure
-	*
-	* Caller is responsible for freeing the returned buffer.
-	*/
-
-	// static void base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
-	// {
-	// 	if (src == NULL)
-	// 		printf("base64_decode: src NULL\n");
-	// 	if (dst == NULL)
-	// 		printf("base64_decode: dst NULL\n");
-	// 	if (out_len == NULL)
-	// 		printf("base64_decode: outlen NULL\n");
-	// 	if (len == NULL)
-	// 		printf("base64_decode: len == 0\n");
-
-
-	// 	unsigned char dtable[256], *pos, block[4], tmp;
-	// 	size_t i, count, olen;
-	// 	int pad = 0;
-
-	// 	memset(dtable, 0x80, 256);
-	// 	for (i = 0; i < sizeof(base64_table) - 1; i++)
-	// 		dtable[base64_table[i]] = (unsigned char) i;
-	// 	dtable['='] = 0;
-
-	// 	count = 0;
-	// 	for (i = 0; i < len; i++) {
-	// 		if (dtable[src[i]] != 0x80)
-	// 			count++;
-	// 	}
-
-	// 	if (count == 0 || count % 4)
-	// 		return NULL;
-
-	// 	olen = count / 4 * 3;
-	// 	unsigned char out[olen];
-	// 	pos = out;
-	// 	if (out == NULL)
-	// 		return NULL;
-
-	// 	count = 0;
-	// 	for (i = 0; i < len; i++) {
-	// 		tmp = dtable[src[i]];
-	// 		if (tmp == 0x80)
-	// 			continue;
-
-	// 		if (src[i] == '=')
-	// 			pad++;
-	// 		block[count] = tmp;
-	// 		count++;
-	// 		if (count == 4) {
-	// 			*pos++ = (block[0] << 2) | (block[1] >> 4);
-	// 			*pos++ = (block[1] << 4) | (block[2] >> 2);
-	// 			*pos++ = (block[2] << 6) | block[3];
-	// 			count = 0;
-	// 			if (pad) {
-	// 				if (pad == 1)
-	// 					pos--;
-	// 				else if (pad == 2)
-	// 					pos -= 2;
-	// 				else {
-	// 					/* Invalid padding */
-	// 					return NULL;
-	// 				}
-	// 				break;
-	// 			}
-	// 		}
-	// 	}
-
-	// 	*out_len = pos - out;
-	// 	memcpy(dst, out, *out_len+1);
-	// 	// return out;
-	// }
-
-
-// /**
-//  * base64_encode : Base64 encoding
-	//  * @src: data to be encoded
-	//  * @len: length of the data to be encoded
-	//  * @out_len: pointer to output length variable, or NULL if not used
-	//  */
-	// static void base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst)
-	// {
-	// 	unsigned char *pos;
-	// 	const unsigned char *end, *in;
-	// 	size_t olen;
-	// 	int line_len;
-
-	// 	olen = len * 4 / 3 + 4; // 3-byte blocks to 4-byte
-	// 	olen += olen / 72;      // line feeds
-	// 	olen++;                 // null termination
-	// 	if (olen < len)
-	//         return NULL;        // integer overflow
-
-	//     unsigned char out[olen];
-	// 	if (out == NULL)
-	// 		return NULL;
-
-	// 	end = src + len;
-	// 	in = src;
-	// 	pos = out;
-	// 	line_len = 0;
-	// 	while (end-in >= 3) {
-	// 		*pos++ = base64_table[in[0] >> 2];
-	// 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-	// 		*pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
-	// 		*pos++ = base64_table[in[2] & 0x3f];
-	// 		in += 3;
-	// 		line_len += 4;
-	// 		if (line_len >= 72)
-	// 			line_len = 0;
-	// 	}
-	// 	if (end-in) {
-	// 		*pos++ = base64_table[in[0] >> 2];
-	// 		if (end-in == 1) {
-	// 			*pos++ = base64_table[(in[0] & 0x03) << 4];
-	// 			// *pos++ = '=';
-	// 		} else {
-	// 			*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-	// 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
-	// 		}
-	// 		// *pos++ = '=';
-	// 	}
-	// 	*pos = '\0';
-	// 	if (out_len)
-	// 		*out_len = pos - out;
-
-	//     uint16_t strlen_tmp = *out_len;
-	//     memcpy(dst, out, *out_len+1);
-	// }
-
-
-
-
-// static void
-// ecc_set_random(uint32_t *secret)
-	// {
-	//   int i;
-	// //   printf("EDU: ecc_set_random: ");
-
-	//   for(i = 0; i < 8; ++i) {
-	//     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
-	//     // printf("%u ", (unsigned int)secret[i]);
-	//   }
-	// //   printf("\n");
-	// }
+// CoAP Library (Contiki - Erbium)
+#include "os/net/app-layer/coap/coap.h"
+#include "os/net/app-layer/coap/coap.c"
 
 #include <string.h>
 
 #define DEBUG DEBUG_PRINT
-#include "net/ipv6/uip-debug.h"
-
-// TICKS indicates the print of a log line to measure the time
-// a given operation or group of operations take
-#define TICKS 0
+// #include "net/ipv6/uip-debug.h" // print_local_addresses() y PRINT6ADDR()
 
 #define START_INTERVAL      5 * CLOCK_SECOND
 #define SEND_INTERVAL	    5 * CLOCK_SECOND
@@ -219,35 +61,39 @@
 
 static struct uip_udp_conn *client_conn;
 static uint32_t currentPort;
-
+#define UDP_CLIENT_PORT 3000
+#define UDP_SERVER_PORT 5683
 /*---------------------------------------------------------------------------*/
 PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
 /*---------------------------------------------------------------------------*/
-uint8_t 	sent	 [400];
-uint8_t 	received [400];
+/* Saving locally UDP messages sent or received */
+uint8_t 	sent	 [400]; //TODO: Fit value
+uint8_t 	received [400]; //TODO: Fit value
 uint16_t 	sent_len;
 uint16_t 	received_len;
-char 		URI[8] = {'/','b','o','o','t', 0, 0, 0};
+char 		URI[8] = {'/','b','o','o','t', 0, 0, 0}; // CoAP
 
 uint8_t resent = 0;
 uint8_t nAuth = 0;
 
 static struct etimer et;
-uint32_t nonce_c, nonce_s;
+uint32_t nonce_c, nonce_s; //EDU: TODO: See usage
 
 unsigned char auth_key[16] = {0};
 unsigned char sequence[26] = {0};
 
-uint8_t authKeyAvailable; 	//EDU: static
-uint8_t state;				 //EDU: static
+uint8_t authKeyAvailable;
+//TODO: Define usage of var state
+uint8_t state;
 static uint8_t last_seq_id = 0;
 
-char URIcheck[10] = {0};
-uint16_t URIcheck_len;
+char URIcheck[10] = {0}; //DAN: CoAP
+uint16_t URIcheck_len; //DAN: CoAP
 
 
-CoapPDU *response, *request;
+// CoapPDU *response, *request; //DAN: CoAP
+static coap_message_t response[1], request[1]; //EDU: CoAP
 
 
 static void
@@ -264,38 +110,45 @@ tcpip_handler(void)
 
 		// Store last message received
 		memcpy(received, uip_appdata, uip_datalen());
-		_CoapPDU_buf_withCPDU(request, (uint8_t*)uip_appdata,uip_datalen());
+		// _CoapPDU_buf_withCPDU(request, (uint8_t*)uip_appdata,uip_datalen()); //DAN: CoAP
 
-		if(!validate(request))
-			return;
-		int URIcheck_len_tmp = (int)URIcheck_len;
-		getURI(request, URIcheck, 10, &URIcheck_len_tmp );
-		if(memcmp(URIcheck, URI , URIcheck_len) != 0)
-			return;
+		/* Parse CoAP message stored in UDP payload */
+		coap_parse_message(request, (uint8_t*)uip_appdata,uip_datalen()); //EDU: CoAP
 
-		if(last_seq_id >= ntohs(getMessageID(request)) || getType(request) == COAP_ACKNOWLEDGEMENT )
-			return;
+		// EDU: Already done in coap_parse_message
+		// if(!validate(request)) //DAN: CoAP
+		// 	return;
+		// int URIcheck_len_tmp = (int)URIcheck_len;
+		// getURI(request, URIcheck, 10, &URIcheck_len_tmp ); //DAN: CoAP
+		// if(memcmp(URIcheck, URI , URIcheck_len) != 0) //DAN: CoAP
+		// 	return;
 
-		unsigned char *payload, *ptr;
+		//EDU: Dan says it is a hack
+		// if(last_seq_id >= ntohs(getMessageID(request)) || getType(request) == COAP_ACKNOWLEDGEMENT ) //DAN: CoAP
+		// 	return;
+
+		unsigned char *payload, *ptr; //TODO: ptr usage?? Maybe remove it
 		uint8_t mac2check[16] 	={0};
 		uint8_t mac[16] 	={0};
-		uint8_t responsecode = COAP_CHANGED;
+		uint8_t response_code = CHANGED_2_04;
 
-		if((getCode(request) == COAP_POST)){
+		// if((getCode(request) == COAP_POST)){ //DAN: CoAP
+		if((request->code == COAP_POST)){ //DAN: CoAP
 			if(!state) {
 				//state = 1;
 				nonce_s = rand();
-				responsecode = COAP_CREATED;
+				response_code = CREATED_2_01;
 
 				// We create the sequence
-				memcpy(&nonce_c, getPayloadPointer(request),(size_t)getPayloadLength(request));
+				// memcpy(&nonce_c, getPayloadPointer(request),(size_t)getPayloadLength(request)); //DAN: CoAP
+				memcpy(&nonce_c, request->payload,request->payload_len); //EDU: CoAP
 				ptr = (unsigned char*)&sequence;
 
 				unsigned char label[] = "IETF COAP AUTH";
 				memcpy(ptr,label,(size_t)14);
 				ptr += 14;
 
-				memcpy(ptr,getTokenPointer(request),(size_t)getTokenLength(request));
+				memcpy(ptr, request->token,request->token_len); //DAN: CoAP
 				ptr += 4;
 
 				memcpy(ptr, &(nonce_c),sizeof(uint32_t));
@@ -314,7 +167,6 @@ tcpip_handler(void)
 				URI[6] = '0' + (rand() % 9);
 			}
 
-			//else if((getCode(request) == COAP_PUT)){ // EAP EXCHANGE FINISHED
 			else{
 				if(eapKeyAvailable){
 					do_omac(msk_key, sequence, 26, auth_key);
@@ -323,11 +175,11 @@ tcpip_handler(void)
 					// Verify the AUTH Option
 
 					// Copy the mac
-					memcpy(&mac2check,getPDUPointer(request)+getPDULength(request)-16-5,16);
+					memcpy(&mac2check,request->payload+request->payload_len-16-5,16); //DAN: CoAP
 					// Zeroing the mac in meesage
-					memcpy(getPDUPointer(request)+getPDULength(request)-16-5,&mac,16);
+					memcpy(request->payload+request->payload_len-16-5,&mac,16); //DAN: CoAP
 					// Setting the MAC
-					do_omac(auth_key, getPDUPointer(request),getPDULength(request), mac);
+					do_omac(auth_key, request->payload,request->payload_len, mac); //DAN: CoAP
 
 					if(memcmp(&mac2check, &mac,16) != 0)
 					{
@@ -340,17 +192,17 @@ tcpip_handler(void)
 				}
 
 				eapReq = TRUE;
-				payload = getPayloadPointer(request);
+				payload = request->payload;
 #if EDU_DEBUG
 				printf("EDU: %s print PayLoad\n",__func__); //EDU: DEBUG
 				printf("      Request Hdr: '");
 				for (int i = 0; i < 2; i++)
-					printf("%02x ", request->_pdu[i]);
+					printf("%02x ", request->payload[i]);
 				printf("'\n");
 				printf("      Value: '");
 				for (int i = 0; i < 5; i++)
 					printf("%02x", payload[i]);
-				for (int i = 5; i < getPDULength(request); i++)
+				for (int i = 5; i < request->payload_len; i++) //EDU: CoAP
 					printf("%c", payload[i]);
 				printf("'\n");
 #endif
@@ -373,32 +225,38 @@ tcpip_handler(void)
 			return;
 		}
 
-		reset(response);
-		setVersion(response,1);
-		setType(response,COAP_ACKNOWLEDGEMENT);
-		setCode(response,responsecode);
+		// reset(response); //DAN: CoAP
+		// setVersion(response,1); //DAN: CoAP
+		// setType(response,COAP_ACKNOWLEDGEMENT); //DAN: CoAP
+		// setCode(response,responsecode); //DAN: CoAP
 		/*
 		 FIXME: setToken -> Null Pointer in coap_pdu->_pduLength
 		  Error solved with COAP_PAYLOAD_SIZE = 400
 		*/
-		setToken(response,
-				getTokenPointer(request),
-				(uint8_t)getTokenLength(request));
+		// setToken(response,
+		// 		getTokenPointer(request),
+		// 		(uint8_t)getTokenLength(request)); //DAN: CoAP
 
-		setMessageID(response,getMessageID(request));
+		// setMessageID(response,getMessageID(request)); //DAN: CoAP
+
+		/* reset CoAP response with new response_code and request message ID */
+		coap_init_message(response, COAP_TYPE_ACK, response_code, request->mid); //EDU: CoAP
+		/* Set request token and message ID */
+		coap_set_token(response, request->token, request->token_len); //EDU: CoAP
+		
 
 #if EDU_DEBUG
 		unsigned char *tmpPayload;
 		printf("EDU: %s print PayLoad again\n",__func__); //EDU: DEBUG
 		printf("      Request Hdr: '");
 		for (int i = 0; i < 2; i++)
-			printf("%02x ", request->_pdu[i]);
+			printf("%02x ", request->buffer[i]);
 		printf("'\n");
 		printf("      Value: '");
-		tmpPayload = getPayloadPointer(request);
+		tmpPayload = request->payload; //EDU: CoAP
 		for (int i = 0; i < 5; i++)
 			printf("%02x", tmpPayload[i]);
-		for (int i = 5; i < getPDULength(request); i++)
+		for (int i = 5; i < request->payload_len; i++) //EDU: CoAP
 			printf("%c", tmpPayload[i]);
 		printf("'\n");
 #endif
@@ -406,7 +264,7 @@ tcpip_handler(void)
 #if EDU_DEBUG
 	printf("EDU:  if getCode(request) == COAP_POST\n");
 #endif
-		if((getCode(request) == COAP_POST)){
+		if(request->code == COAP_POST){ //EDU: CoAP
 #if EDU_DEBUG
 	printf("EDU:  YES getCode(request) == COAP_POST\n");
 #endif
@@ -415,30 +273,45 @@ tcpip_handler(void)
 					printf("EDU:  no state\n");
 				#endif
 				state++;
-				_setURI(response,&URI[0],7);
-				setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request));
-			}
-			else{
+				// _setURI(response,&URI[0],7); //DAN: CoAP
+				// setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request)); //DAN: CoAP
+				coap_set_header_uri_path(response, URI); //EDU: CoAP -> _setURI()
+				printf("EDU: ---------------------------\n");
+				printf("EDU: SET PAYLOAD NONCE_S\n");
+				printf("EDU: ---------------------------\n");
+				coap_set_payload(response, (uint8_t *)&nonce_s, request->payload_len); //EDU: CoAP
+			} else{
 				#if EDU_DEBUG
 					printf("EDU:  YES state\n");
 				#endif
 				if(!authKeyAvailable){
 					if (eapResp){
-						uint16_t len = ntohs( ((struct eap_msg*) eapRespData)->length);
-						setPayload(response,eapRespData, len);
+						uint16_t len = NTOHS( ((struct eap_msg*) eapRespData)->length);
+						// setPayload(response,eapRespData, len); //DAN: CoAP
+						coap_set_payload(response, eapRespData, len); //EDU: CoAP
+				printf("EDU: ---------------------------\n");
+				printf("EDU: SET PAYLOAD EAP RESP DATA\n");
+				printf("EDU: ---------------------------\n");
 					}
 				}else{
-					addOption(response,COAP_OPTION_AUTH, 16, (uint8_t *)&mac2check);
-					do_omac(auth_key, getPDUPointer(response),
-							getPDULength(response), mac2check);
-					memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16);
+					/**
+					 * TODO: Several issues
+					 * - CoAP library (Contiki) does not support COAP_OPTION_AUTH
+					 * - Check if this code snippet is needed.
+					 * - Do we need mac2check in EAP-NOOB?
+					 */
+					// addOption(response,COAP_OPTION_AUTH, 16, (uint8_t *)&mac2check); //DAN: CoAP
+					// do_omac(auth_key, getPDUPointer(response),
+					// 		getPDULength(response), mac2check); //DAN: CoAP
+					// memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16); //DAN: CoAP
 				}
 			}
 
-			uip_udp_packet_send(client_conn, getPDUPointer(response), (size_t)getPDULength(response));
-			memcpy(sent, getPDUPointer(response), (size_t)getPDULength(response));
-			sent_len = getPDULength(response);
-
+			static uint8_t udp_payload[300];
+			size_t coap_len = coap_serialize_message(response, udp_payload); //EDU: TODO: Buffer with or without \0?
+			uip_udp_packet_send(client_conn, udp_payload, coap_len);
+			memcpy(sent, udp_payload, coap_len); //DAN: CoAP
+			sent_len = coap_len; //DAN: CoAP
 		}
 	}
 
@@ -478,38 +351,63 @@ timeout_handler(void)
 	currentPort++;
 
 	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
-
 	printf("Send /boot to CoAP-EAP Controller to start communication.\n");
+			printf("EDU: UDP-CLIENT 1\n");
 
-	reset(request);
-	setVersion(request,1);
-	setType(request,COAP_CONFIRMABLE);
-	setCode(request,COAP_POST);
-	int token=1;
-	setToken(request,(uint8_t*)&token,4);
-	setMessageID(request,htons(0x0000));
-	_setURI(request,"/boot",5);// CoAP URI to start communication with CoAP-EAP Controller
+	// reset(request); //DAN: CoAP
+	// setVersion(request,1); //DAN: CoAP
+	// setType(request,COAP_CONFIRMABLE); //DAN: CoAP
+	// setCode(request,COAP_POST); //DAN: CoAP
+	// int token=1; //DAN: CoAP
+	// setToken(request,(uint8_t*)&token,4); //DAN: CoAP
+	// setMessageID(request,htons(0x0000)); //DAN: CoAP
+	// _setURI(request,"/boot",5); //DAN: CoAP // CoAP URI to start communication with CoAP-EAP Controller
 
-	uip_udp_packet_send(client_conn,getPDUPointer(request),(size_t)getPDULength(request));
+	/* Initiate request: NON_CONFIRMABLE, POST, MessageID = 0 */
+	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0); //EDU: CoAP
+	/* Set empty payload */
+	coap_set_payload(request, "", 0);
+	/* Set CoAP header values: 
+	version = 1 by default
+	message ID starts with 0.
+	token: It does not matter. Set to 1. TODO: Change tu uint_8 - size 1
+	*/
+			printf("EDU: UDP-CLIENT 2\n");
+	uint8_t token=1;
+	coap_set_token(request, &token, 1); //EDU: CoAP
+	/* Set URI path */
+			printf("EDU: UDP-CLIENT 3\n");
+	coap_set_header_uri_path(request, "/boot"); //EDU: CoAP -> _setURI()
+			printf("EDU: UDP-CLIENT 4\n");
+
+	/* Put CoAP message (header and payload) in buffer. It returns the length */
+	static uint8_t udp_payload[100];
+	udp_payload[0] = 0x00;
+			printf("EDU: UDP-CLIENT 5\n");
+	size_t coap_len = coap_serialize_message(request, udp_payload); //EDU: TODO: Buffer with or without \0?
+			printf("EDU: UDP-CLIENT 6\n");
+	
+	uip_udp_packet_send(client_conn, udp_payload, coap_len);
+			printf("EDU: UDP-CLIENT 7\n");
 	etimer_set(&et, 40 * CLOCK_SECOND);
 }
 /*---------------------------------------------------------------------------*/
-	static void
-print_local_addresses(void)
-{
-	int i;
-	uint8_t state;
+// 	static void
+// print_local_addresses(void)
+// {
+// 	int i;
+// 	uint8_t state;
 
-	printf("Client IPv6 addresses: ");
-	for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-		state = uip_ds6_if.addr_list[i].state;
-		if(uip_ds6_if.addr_list[i].isused &&
-				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-			PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-			printf("\n");
-		}
-	}
-}
+// 	printf("Client IPv6 addresses: ");
+// 	for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+// 		state = uip_ds6_if.addr_list[i].state;
+// 		if(uip_ds6_if.addr_list[i].isused &&
+// 				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+// 			PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+// 			printf("\n");
+// 		}
+// 	}
+// }
 /*---------------------------------------------------------------------------*/
 #if UIP_CONF_ROUTER
 	static void
@@ -547,8 +445,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 #if UIP_CONF_ROUTER
 	set_global_address();
 #endif
-
-	print_local_addresses();
+	/* Initialize UDP connection */
+	// print_local_addresses();
 	rand();
 	set_connection_address(&ipaddr);
 	currentPort = 3000;
@@ -556,13 +454,15 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	client_conn = udp_new(&ipaddr, UIP_HTONS(5683), NULL);
 	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
 
-	//printf("Created a connection with the server ");
-	PRINT6ADDR(&client_conn->ripaddr);
+	printf("Created a connection with the server ");
+	// PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-	request = _CoapPDU();
-	response = _CoapPDU();
-	
+	// request = _CoapPDU(); //DAN: CoAP
+	// response = _CoapPDU(); //DAN: CoAP
+	// coap_init_connection(void); // TODO: Initiate CoAP message ID with rand number.
+	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0); //EDU: CoAP
+
 	//TODO: Move to EAP-Peer
 	//TODO: Differentiate between EAP_NOOB and EAP_PSK
 	init_eap_noob();
@@ -571,177 +471,12 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
 	// ECDH - Generate Client Public Key
-	// static char pubkey_generated[] = "pubkey_generated";
 	process_start(&ecdh_generate_pubkey, NULL);
 
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
 	printf("Client Public Key Generated\n");
-	etimer_set(&et, 1*CLOCK_SECOND);
 	// ECDH - end
-
-	//     static unsigned char pk_str1[33];
-	//     for(int i = 0 ;i < 8;i++){
-		//         pk_str1[i*4+0] = client_pk.x[i] >> 24;
-		//         pk_str1[i*4+1] = client_pk.x[i] >> 16;
-		//         pk_str1[i*4+2] = client_pk.x[i] >> 8;
-		//         pk_str1[i*4+3] = client_pk.x[i];
-		//     }
-		// 	pk_str1[32] = '\0';
-
-		//     printf("A PK.X char: ");
-		//     for (int i = 0; i < 32; i++)
-		//         printf("%u", pk_str1[i]);
-		//     printf("\n");
-
-		//     static uint16_t len_b64_x = 0;
-		//     static unsigned char pk_x_b64[45];
-		//     base64_encode(pk_str1, 33, &len_b64_x, pk_x_b64);
-
-		//     static unsigned char pk_str2[33];
-		//     for(int i = 0 ;i < 8;i++){
-		//         pk_str2[i*4+0] = client_pk.y[i] >> 24;
-		//         pk_str2[i*4+1] = client_pk.y[i] >> 16;
-		//         pk_str2[i*4+2] = client_pk.y[i] >> 8;
-		//         pk_str2[i*4+3] = client_pk.y[i];
-		//     }
-		// 	pk_str2[33] = '\0';
-
-		//     printf("A PK.Y char: ");
-		//     for (int i = 0; i < 33; i++)
-		//         printf("%u", pk_str2[i]);
-		//     printf("\n");
-
-		//     static uint16_t len_b64_y = 0;
-		//     static unsigned char pk_y_b64[45];
-		//     base64_encode(pk_str2, 33, &len_b64_y, pk_y_b64);
-
-		//   	puts("    	  DECODE SIDE A");
-		//     static unsigned char pk_str3[33];
-		//     static unsigned char pk_str4[33];
-		// 	static uint32_t pk_uint3[8];
-		// 	static uint32_t pk_uint4[8];
-		// 	static uint16_t len_plain = 0;
-		// 	static uint16_t len_plain2 = 0;
-
-		// 	base64_decode(pk_x_b64, len_b64_x, &len_plain, pk_str3);
-		//     printf("PK.X %02u chr: ", len_plain);    
-		//     for (int i = 0; i < 32; i++)
-		//         printf("%u", pk_str3[i]);
-		//     printf("\n");
-
-		// 	for (int i = 0; i < 32; i += 4)
-		// 		pk_uint3[i/4] = pk_str3[i+3] | (uint32_t)pk_str3[i+2] << 8 | (uint32_t)pk_str3[i+1] << 16 | (uint32_t)pk_str3[i] << 24;
-
-		//     printf("    PK.X %02u: ", len_plain);    
-		//     for(int i = 0 ;i < 8;i++)
-		//         printf("%u",pk_uint3[i]);
-		//     printf("\n");
-			
-		// 	printf("  Orig PK.X: ");
-		// 	for(int i = 0; i < 8; ++i)
-		// 		printf("%u", (unsigned int)client_pk.x[i]);
-		// 	printf("\n");
-
-		// 	base64_decode(pk_y_b64, len_b64_y, &len_plain2, pk_str4);
-		//     printf("PK.Y %02u chr: ", len_plain2);    
-		//     for (int i = 0; i < 32; i++)
-		//         printf("%u", pk_str4[i]);
-		//     printf("\n");
-		// 	for (int i = 0; i < 32; i += 4)
-		// 		pk_uint4[i/4] = pk_str4[i+3] | (uint32_t)pk_str4[i+2] << 8 | (uint32_t)pk_str4[i+1] << 16 | (uint32_t)pk_str4[i] << 24;
-
-		//     printf("    PK.y %02u: ", len_plain2);    
-		//     for(int i = 0 ;i < 8;i++)
-		//         printf("%u",pk_uint4[i]);
-		//     printf("\n");
-			
-			
-		// 	printf("  Orig PK.Y: ");
-		// 	for(int i = 0; i < 8; ++i) 
-		// 		printf("%u", (unsigned int)client_pk.y[i]);
-		// 	printf("\n");
-
-
-
-
-
-		//   	puts("-----------------------------------------");
-		//   	puts("    		  SIDE B ECC PROCESS");
-		//   	puts("-----------------------------------------");
-
-		// 	// ECC implementation SIDE B
-		// 	pka_init();
-
-		//     static ecc_compare_state_t state2 = {
-		//         .process = &boostrapping_service_process,
-		//         .size    = 8,
-		//     };
-		// 	memcpy(state2.b, nist_p_256.n, sizeof(uint32_t) * 8);
-		// 	do {
-		// 		ecc_set_random(private_secret2);
-		// 		memcpy(state2.a, private_secret2, sizeof(uint32_t) * 8);
-		// 		PT_SPAWN(&(boostrapping_service_process.pt), &(state2.pt), ecc_compare(&state2));
-		// 	} while(state2.result != PKA_STATUS_A_LT_B);
-		// 	static ecc_multiply_state_t ecc_client2 = {
-		// 		.process    = &boostrapping_service_process,
-		// 		.curve_info = &nist_p_256,
-		// 	};
-		// 	memcpy(ecc_client2.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
-		// 	memcpy(ecc_client2.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
-		// 	memcpy(ecc_client2.secret, private_secret2, sizeof(private_secret2));
-		// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2)); 
-		// 	memcpy(client_pk2.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
-		// 	memcpy(client_pk2.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
-			
-		// 	pka_disable();
-
-		// 	printf("    B PK.X: ");
-		// 	for(int i = 0; i < 8; ++i) {
-		// 		printf("%u ", (unsigned int)client_pk2.x[i]);
-		// 	}
-		// 	printf("\n");
-		// 	printf("    B PK.Y: ");
-		// 	for(int i = 0; i < 8; ++i) {
-		// 		printf("%u ", (unsigned int)client_pk2.y[i]);
-		// 	}
-		// 	printf("\n");
-		// #if EDU_DEBUG
-		//   	puts("-----------------------------------------");
-		//   	puts("             KEY ECHANGE");
-		//   	puts("-----------------------------------------");
-		// #endif
-		// 	// ECC implementation - end
-
-
-
-
-		// 	pka_init();
-		//   /*   * Key Exchange   */
-		//   memcpy(ecc_client.point_in.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
-		//   memcpy(ecc_client.point_in.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
-		//   memcpy(ecc_client2.point_in.x, pk_uint3, sizeof(uint32_t) * 8);
-		//   memcpy(ecc_client2.point_in.y, pk_uint4, sizeof(uint32_t) * 8);
-		//   /*   * Round 2   */
-		//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
-
-		//     	// puts("-----------------------------------------1");
-
-		//   PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2));
-		//     	// puts("-----------------------------------------2");
-
-		//   memcpy(state1.a, ecc_client.point_out.x, sizeof(uint32_t) * 8);
-		//   memcpy(state1.b, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
-
-		//   PT_SPAWN(&(boostrapping_service_process.pt), &(state1.pt), ecc_compare(&state1));
-		//   if(state1.result) {
-		//     puts("shared secrets do not match");
-		//   } else {
-		//     puts("shared secrets MATCH");
-		//   }
-
-	//   puts("-----------------------------------------\n"
-	//        "Disabling pka...");
-	//   pka_disable();
+	etimer_set(&et, 1*CLOCK_SECOND);
 
 	while(1) {
 #if EDU_DEBUG
