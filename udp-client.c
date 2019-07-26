@@ -42,6 +42,7 @@
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
+#include <string.h>
 
 #include "uthash.h"
 #include "eax.h" //do_omac()
@@ -54,8 +55,9 @@
 // CoAP Library (Contiki - Erbium)
 #include "os/net/app-layer/coap/coap.h"
 #include "os/net/app-layer/coap/coap.c"
-
-#include <string.h>
+static struct uip_udp_conn *client_conn;
+static uint32_t currentPort;
+#define COAP_MAX_MSG_LEN_BUF 300
 
 #define DEBUG DEBUG_PRINT
 // #include "net/ipv6/uip-debug.h" // print_local_addresses() y PRINT6ADDR()
@@ -65,11 +67,6 @@
 
 #include "eap-peer.h"
 
-
-static struct uip_udp_conn *client_conn;
-static uint32_t currentPort;
-#define UDP_CLIENT_PORT 3000
-#define UDP_SERVER_PORT 5683
 /*---------------------------------------------------------------------------*/
 PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
@@ -255,7 +252,7 @@ tcpip_handler(void)
 			 * 		A) Create MACRO
 			 * 		B) Use dynamic mem
 			 */
-			static uint8_t udp_payload[300];
+			static uint8_t udp_payload[COAP_MAX_MSG_LEN_BUF];
 			size_t coap_len = coap_serialize_message(response, udp_payload); //TODO: Buffer with or without \0?
 			uip_udp_packet_send(client_conn, udp_payload, coap_len);
 			memcpy(sent, udp_payload, coap_len);
@@ -308,8 +305,7 @@ timeout_handler(void)
 	/* Set URI path */
 	coap_set_header_uri_path(request, "/boot");
 
-	static uint8_t udp_payload[100];
-	udp_payload[0] = 0x00;
+	static uint8_t udp_payload[30];
 	/* Put CoAP message (header and payload) in udp_payload. 
 	It returns the length */
 	size_t coap_len = coap_serialize_message(request, udp_payload); //TODO: Buffer with or without \0?
@@ -318,20 +314,20 @@ timeout_handler(void)
 	etimer_set(&et, 40 * CLOCK_SECOND);
 }
 /*---------------------------------------------------------------------------*/
-// 	static void
-// print_local_addresses(void)
-// {
-// 	uint8_t state;
-// 	printf("Client IPv6 addresses: ");
-// 	for(int i = 0; i < UIP_DS6_ADDR_NB; i++) {
-// 		state = uip_ds6_if.addr_list[i].state;
-// 		if(uip_ds6_if.addr_list[i].isused &&
-// 				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-// 			PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-// 			printf("\n");
-// 		}
-// 	}
-// }
+	static void
+print_local_addresses(void)
+{
+	uint8_t state;
+	printf("Client IPv6 addresses: ");
+	for(int i = 0; i < UIP_DS6_ADDR_NB; i++) {
+		state = uip_ds6_if.addr_list[i].state;
+		if(uip_ds6_if.addr_list[i].isused &&
+				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+			PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+			printf("\n");
+		}
+	}
+}
 /*---------------------------------------------------------------------------*/
 #if UIP_CONF_ROUTER
 	static void

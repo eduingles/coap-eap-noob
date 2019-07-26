@@ -1,11 +1,12 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
-//EDU: Change UIP buffer size
-//#define UIP_CONF_BUFFER_SIZE 180
-
-//EDU: Change UIP buffer size
-#define UIP_CONF_BUFFER_SIZE 500
+#define COAP_MAX_CHUNK_SIZE 512 // Check macro in coap.h before changing value 
+/** 
+ * Must be bigger than COAP_MAX_CHUNK_SIZE:
+ *      COAP_MAX_PACKET_SIZE > (UIP_BUFSIZE - UIP_IPH_LEN - UIP_UDPH_LEN)
+ */
+#define UIP_CONF_BUFFER_SIZE 600
 
 // Set an alternative PANID other than 0xABCD
 #ifdef ALTERNATIVE_PANID
