@@ -30,60 +30,20 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#ifndef EAPNOOB_H
-#define EAPNOOB_H
+#ifndef DATABASE_H
+#define DATABASE_H
 
-#include "database.h"
-#include "include.h"
-#include "jsonparse.h"
-
-/* ECC implementation */
-#include "ecc_shared_secret.h"
-
-/* Configuration file */
-#include "eap-noob-conf.h"
+#include "cfs/cfs.h"
 
 /* Print debug information */
 #define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
-#define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
 
-/* All the pre-processors of EAP-NOOB */
-#define DEFAULT_REALM       "eap-noob.net"
-#define SUCCESS_NOOB        1
-#define FAILURE_NOOB        -1
-#define EMPTY_NOOB          0
-
-/* MAX values for the fields */
-#define MAX_NAI_LEN         44
-#define MAX_PEERID_LEN      22
-
-uint8_t eapKeyAvailable;
-
-/* Keywords for json encoding and decoding */
-enum {
-    EAP_NOOB_TYPE_0,
-    EAP_NOOB_TYPE_1,
-    EAP_NOOB_TYPE_2,
-    EAP_NOOB_TYPE_3,
-    EAP_NOOB_TYPE_4,
-    EAP_NOOB_TYPE_5,
-    EAP_NOOB_TYPE_6,
-    EAP_NOOB_TYPE_7,
-    EAP_NOOB_TYPE_8,
-    EAP_NOOB_ERROR
-};
-
-enum {
-    E1001, E1002, E1003, E1004, E1007,
-    E2001, E2002, E2003, E2004,
-    E3001, E3002, E3003,
-    E4001,
-    E5001, E5002, E5003, E5004
-};
+/* Name of the database file */
+#define DB_NAME "peer_db.txt"
 
 /* Public functions */
-void init_eap_noob(void);
-void eap_noob_process(const uint8_t*,size_t,uint8_t*,uint8_t*,uint8_t*,size_t*);
-void eap_noob_build_identity(char*);
+int write_db(char*,char*);
+int read_db(char*,char*);
+void print_db(void);
 
 #endif

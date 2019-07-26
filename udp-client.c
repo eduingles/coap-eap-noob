@@ -182,7 +182,7 @@ tcpip_handler(void)
 				eap_peer_sm_step(payload);
 				if (((struct eap_msg *)payload)->code == FAILURE_CODE){
 					etimer_stop(&et);
-					printf("EAP-Failure received\n");
+					printf("UDP CLIENT: EAP-Failure received\n");
 					#if EDU_DEBUG
 						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Failure\n", __func__); //EDU: DEBUG
 					#endif
@@ -296,7 +296,7 @@ timeout_handler(void)
 	currentPort++;
 
 	udp_bind(client_conn, UIP_HTONS(currentPort)  );
-	printf("Send /boot to CoAP-EAP Controller to start communication.\n");
+	printf("UDP CLIENT: Send /boot to CoAP-EAP Controller to start communication.\n");
 
 	/* Initiate request: NON_CONFIRMABLE, POST, MessageID = 0 */
 	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0);
@@ -378,7 +378,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	// PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0); //EDU: CoAP
+	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0);
 
 	//TODO: Move to EAP-Peer
 	//TODO: Differentiate between EAP_NOOB and EAP_PSK
@@ -390,7 +390,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	// ECDH - Generate Client Public Key
 	process_start(&ecdh_generate_pubkey, NULL);
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
-	printf("Client Public Key Generated\n");
+	printf("UDP CLIENT: Client Public Key Generated\n");
 	// ECDH - end
 	etimer_set(&et, 1*CLOCK_SECOND);
 
@@ -408,13 +408,13 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == tcpip_event) {
 				tcpip_handler();
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
-				printf("Generated shared secret\n");
+				printf("UDP CLIENT: Generated shared secret\n");
 			} else {
-				printf("Received another kind of event\n");
+				printf("UDP CLIENT: Received another kind of event\n");
 				// timeout_handler();
 			}
 		} else {
-			printf("BR not reachable\n");
+			printf("UDP CLIENT: BR not reachable\n");
 			etimer_set(&et, 2 * CLOCK_SECOND);
 		}
 	}

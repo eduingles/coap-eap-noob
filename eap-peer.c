@@ -148,19 +148,19 @@ void eap_peer_sm_step(const uint8_t* msg){
 
 _FAILURE:
 	//FAILURE STATE
-    printf("FAILURE STATE\n");
+    printf("EAP-PEER: FAILURE STATE\n");
 	eapFail = TRUE;
 	return;
 
 _SUCCESS:
 	//SUCCESS STATE
-    printf("SUCCESS STATE\n");
+    printf("EAP-PEER: SUCCESS STATE\n");
 	eapSuccess = TRUE;
 	return;
 
 _METHOD:
 	//METHOD STATE
-    printf("METHOD STATE\n");
+    printf("EAP-PEER: METHOD STATE\n");
 	/* Condition removed. _METHOD is called if this condition is TRUE:
 	 && ((struct eap_msg *)eapRespData)->code == REQUEST_CODE
 	*/
@@ -173,7 +173,9 @@ _METHOD:
 		size_t eapRespLen = 0; // EAP Payload Length
 
 		eap_noob_process(msg+5, NTOHS(reqLengthPeer) - 5, &methodState, &decision, eapPayload, &eapRespLen);
-        printf("EDU: NEW: %s: - %s\n", __func__, eapPayload);
+        #if EDU_DEBUG
+                printf("EDU: NEW: %s: - %s\n", __func__, eapPayload);
+        #endif
 
 		((struct eap_msg *)eapRespData)->length = HTONS(sizeof(struct eap_msg)+ eapRespLen + 1);
 		memcpy(eapRespData + 5, eapPayload, eapRespLen+1);
@@ -187,7 +189,7 @@ _METHOD:
 
 _SEND_RESPONSE:
 	//SEND_RESPONSE STATE
-	printf("SEND_RESPONSE STATE\n");
+	printf("EAP-PEER: SEND_RESPONSE STATE\n");
 	lastId = reqIdPeer;
 	eapReq = FALSE;
 	eapResp = TRUE;
@@ -195,7 +197,7 @@ _SEND_RESPONSE:
 
 _DISCARD:
 	//DISCARD STATE
-	printf("DISCARD STATE\n");
+	printf("EAP-PEER: DISCARD STATE\n");
 	eapReq = FALSE;
 	eapNoResp = TRUE;
 	return;

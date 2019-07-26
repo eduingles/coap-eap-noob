@@ -17,6 +17,10 @@ else  # Aleksi
 CFLAGS += -w
 endif
 
+ifeq ($(DEBUG_NOOB),1)
+CFLAGS += -DDEBUG_NOOB=1
+endif
+
 
 CONTIKI = ../..
 include $(CONTIKI)/Makefile.include

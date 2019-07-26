@@ -16,6 +16,10 @@ $ git submodule add https://github.com/eduingles/coap-eap-basic.git coap-eap-bas
 
 Now you should be able to use normal git actions like push, pull, commit, etc.
 
+## Debug flags
+- EAP-NOOB: DEBUG_NOOB
+- EDU: MAKE_CONF_EDU
+
 ## Executing the motes
  - Aleksi:  PANID: 0xABCD (default)
     - Client mote:
@@ -24,7 +28,7 @@ Now you should be able to use normal git actions like push, pull, commit, etc.
         ```
 
     - Bridge mote:
-        
+
         ```bash
         make border-router.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB0
         ```
@@ -41,7 +45,7 @@ Now you should be able to use normal git actions like push, pull, commit, etc.
         NOTE: Remember to set the same PANID in examples/rpl-border-router
 
     - Bridge mote:
-        
+
         ```bash
         make border-router.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB0
         ```
@@ -49,7 +53,3 @@ Now you should be able to use normal git actions like push, pull, commit, etc.
         ```bash
         make TARGET=zoul BOARD=firefly connect-router
         ```
-
-
-
-
