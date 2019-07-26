@@ -28,8 +28,15 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
- *
+ */
+/**
+ * \file
+ *      Client with CoAP + UDP running EAP Framework.
+ * 			EAP Lower-Layer:
+ * 				CoAP - Erbium (Contiki version)
+ * 			EAP Methods:
+ * 				EAP-NOOB
+ * 				EAP-PSK (TBD)
  */
 
 #include "contiki.h"
@@ -78,7 +85,7 @@ uint8_t resent = 0;
 uint8_t nAuth = 0;
 
 static struct etimer et;
-uint32_t nonce_c, nonce_s; //EDU: TODO: See usage
+uint32_t nonce_c, nonce_s; //TODO: See usage
 
 unsigned char auth_key[16] = {0};
 unsigned char sequence[26] = {0};
@@ -88,12 +95,7 @@ uint8_t authKeyAvailable;
 uint8_t state;
 static uint8_t last_seq_id = 0;
 
-char URIcheck[10] = {0}; //DAN: CoAP
-uint16_t URIcheck_len; //DAN: CoAP
-
-
-// CoapPDU *response, *request; //DAN: CoAP
-static coap_message_t response[1], request[1]; //EDU: CoAP
+static coap_message_t response[1], request[1];
 
 
 static void
@@ -101,7 +103,7 @@ tcpip_handler(void)
 {
 
 	if(uip_newdata()) {
-		// Check for retransmission
+		// Check for retransmission - TODO: Check if it is working
 		if(memcmp(uip_appdata, received ,uip_datalen()) == 0)
 		{
 			uip_udp_packet_send(client_conn, sent, sent_len);
@@ -110,52 +112,31 @@ tcpip_handler(void)
 
 		// Store last message received
 		memcpy(received, uip_appdata, uip_datalen());
-		// _CoapPDU_buf_withCPDU(request, (uint8_t*)uip_appdata,uip_datalen()); //DAN: CoAP
 
 		/* Parse CoAP message stored in UDP payload */
-		coap_parse_message(request, (uint8_t*)uip_appdata,uip_datalen()); //EDU: CoAP
-
-		// EDU: Already done in coap_parse_message
-		// if(!validate(request)) //DAN: CoAP
-		// 	return;
-		// int URIcheck_len_tmp = (int)URIcheck_len;
-		// getURI(request, URIcheck, 10, &URIcheck_len_tmp ); //DAN: CoAP
-		// if(memcmp(URIcheck, URI , URIcheck_len) != 0) //DAN: CoAP
-		// 	return;
-
-		//EDU: Dan says it is a hack
-		// if(last_seq_id >= ntohs(getMessageID(request)) || getType(request) == COAP_ACKNOWLEDGEMENT ) //DAN: CoAP
-		// 	return;
+		coap_parse_message(request, (uint8_t*)uip_appdata,uip_datalen());
 
 		unsigned char *payload, *ptr; //TODO: ptr usage?? Maybe remove it
-		uint8_t mac2check[16] 	={0};
-		uint8_t mac[16] 	={0};
+		uint8_t mac2check[16] = {0};
+		uint8_t mac[16] = {0};
 		uint8_t response_code = CHANGED_2_04;
 
-		// if((getCode(request) == COAP_POST)){ //DAN: CoAP
-		if((request->code == COAP_POST)){ //DAN: CoAP
+		if((request->code == COAP_POST)){
 			if(!state) {
-				//state = 1;
 				nonce_s = rand();
 				response_code = CREATED_2_01;
 
 				// We create the sequence
-				// memcpy(&nonce_c, getPayloadPointer(request),(size_t)getPayloadLength(request)); //DAN: CoAP
-				memcpy(&nonce_c, request->payload,request->payload_len); //EDU: CoAP
+				memcpy(&nonce_c, request->payload,request->payload_len);
 				ptr = (unsigned char*)&sequence;
-
 				unsigned char label[] = "IETF COAP AUTH";
 				memcpy(ptr,label,(size_t)14);
 				ptr += 14;
-
-				memcpy(ptr, request->token,request->token_len); //DAN: CoAP
+				memcpy(ptr, request->token,request->token_len);
 				ptr += 4;
-
 				memcpy(ptr, &(nonce_c),sizeof(uint32_t));
 				ptr += 4;
-
 				memcpy(ptr, &(nonce_s),sizeof(uint32_t));
-
 
 				// EAP Restart
 				memset(&msk_key,0, MSK_LENGTH);
@@ -177,18 +158,13 @@ tcpip_handler(void)
 					// Copy the mac
 					memcpy(&mac2check,request->payload+request->payload_len-16-5,16); //DAN: CoAP
 					// Zeroing the mac in meesage
-					memcpy(request->payload+request->payload_len-16-5,&mac,16); //DAN: CoAP
+					memcpy(request->payload+request->payload_len-16-5,&mac,16);
 					// Setting the MAC
-					do_omac(auth_key, request->payload,request->payload_len, mac); //DAN: CoAP
+					do_omac(auth_key, request->payload,request->payload_len, mac);
 
-					if(memcmp(&mac2check, &mac,16) != 0)
-					{
-						printf("error\n");
-					}
+					if(memcmp(&mac2check, &mac,16) != 0) printf("error\n");
 
 					memset(mac2check,0,16);
-
-
 				}
 
 				eapReq = TRUE;
@@ -206,7 +182,6 @@ tcpip_handler(void)
 					printf("%c", payload[i]);
 				printf("'\n");
 #endif
-
 				eap_peer_sm_step(payload);
 				if (((struct eap_msg *)payload)->code == FAILURE_CODE){
 					etimer_stop(&et);
@@ -225,25 +200,10 @@ tcpip_handler(void)
 			return;
 		}
 
-		// reset(response); //DAN: CoAP
-		// setVersion(response,1); //DAN: CoAP
-		// setType(response,COAP_ACKNOWLEDGEMENT); //DAN: CoAP
-		// setCode(response,responsecode); //DAN: CoAP
-		/*
-		 FIXME: setToken -> Null Pointer in coap_pdu->_pduLength
-		  Error solved with COAP_PAYLOAD_SIZE = 400
-		*/
-		// setToken(response,
-		// 		getTokenPointer(request),
-		// 		(uint8_t)getTokenLength(request)); //DAN: CoAP
-
-		// setMessageID(response,getMessageID(request)); //DAN: CoAP
-
 		/* reset CoAP response with new response_code and request message ID */
-		coap_init_message(response, COAP_TYPE_ACK, response_code, request->mid); //EDU: CoAP
+		coap_init_message(response, COAP_TYPE_ACK, response_code, request->mid);
 		/* Set request token and message ID */
-		coap_set_token(response, request->token, request->token_len); //EDU: CoAP
-		
+		coap_set_token(response, request->token, request->token_len);		
 
 #if EDU_DEBUG
 		unsigned char *tmpPayload;
@@ -253,33 +213,22 @@ tcpip_handler(void)
 			printf("%02x ", request->buffer[i]);
 		printf("'\n");
 		printf("      Value: '");
-		tmpPayload = request->payload; //EDU: CoAP
+		tmpPayload = request->payload;
 		for (int i = 0; i < 5; i++)
 			printf("%02x", tmpPayload[i]);
-		for (int i = 5; i < request->payload_len; i++) //EDU: CoAP
+		for (int i = 5; i < request->payload_len; i++)
 			printf("%c", tmpPayload[i]);
 		printf("'\n");
 #endif
 
-#if EDU_DEBUG
-	printf("EDU:  if getCode(request) == COAP_POST\n");
-#endif
-		if(request->code == COAP_POST){ //EDU: CoAP
-#if EDU_DEBUG
-	printf("EDU:  YES getCode(request) == COAP_POST\n");
-#endif
+		if(request->code == COAP_POST){
 			if(! state){
 				#if EDU_DEBUG
 					printf("EDU:  no state\n");
 				#endif
 				state++;
-				// _setURI(response,&URI[0],7); //DAN: CoAP
-				// setPayload(response, (uint8_t *)&nonce_s, getPayloadLength(request)); //DAN: CoAP
-				coap_set_header_uri_path(response, URI); //EDU: CoAP -> _setURI()
-				printf("EDU: ---------------------------\n");
-				printf("EDU: SET PAYLOAD NONCE_S\n");
-				printf("EDU: ---------------------------\n");
-				coap_set_payload(response, (uint8_t *)&nonce_s, request->payload_len); //EDU: CoAP
+				coap_set_header_uri_path(response, URI);
+				coap_set_payload(response, (uint8_t *)&nonce_s, request->payload_len);
 			} else{
 				#if EDU_DEBUG
 					printf("EDU:  YES state\n");
@@ -287,11 +236,7 @@ tcpip_handler(void)
 				if(!authKeyAvailable){
 					if (eapResp){
 						uint16_t len = NTOHS( ((struct eap_msg*) eapRespData)->length);
-						// setPayload(response,eapRespData, len); //DAN: CoAP
-						coap_set_payload(response, eapRespData, len); //EDU: CoAP
-				printf("EDU: ---------------------------\n");
-				printf("EDU: SET PAYLOAD EAP RESP DATA\n");
-				printf("EDU: ---------------------------\n");
+						coap_set_payload(response, eapRespData, len);
 					}
 				}else{
 					/**
@@ -306,12 +251,15 @@ tcpip_handler(void)
 					// memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16); //DAN: CoAP
 				}
 			}
-
+			/** TODO: Fit value. 
+			 * 		A) Create MACRO
+			 * 		B) Use dynamic mem
+			 */
 			static uint8_t udp_payload[300];
-			size_t coap_len = coap_serialize_message(response, udp_payload); //EDU: TODO: Buffer with or without \0?
+			size_t coap_len = coap_serialize_message(response, udp_payload); //TODO: Buffer with or without \0?
 			uip_udp_packet_send(client_conn, udp_payload, coap_len);
-			memcpy(sent, udp_payload, coap_len); //DAN: CoAP
-			sent_len = coap_len; //DAN: CoAP
+			memcpy(sent, udp_payload, coap_len);
+			sent_len = coap_len;
 		}
 	}
 
@@ -350,56 +298,32 @@ timeout_handler(void)
 	authKeyAvailable = 0;
 	currentPort++;
 
-	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
+	udp_bind(client_conn, UIP_HTONS(currentPort)  );
 	printf("Send /boot to CoAP-EAP Controller to start communication.\n");
-			printf("EDU: UDP-CLIENT 1\n");
-
-	// reset(request); //DAN: CoAP
-	// setVersion(request,1); //DAN: CoAP
-	// setType(request,COAP_CONFIRMABLE); //DAN: CoAP
-	// setCode(request,COAP_POST); //DAN: CoAP
-	// int token=1; //DAN: CoAP
-	// setToken(request,(uint8_t*)&token,4); //DAN: CoAP
-	// setMessageID(request,htons(0x0000)); //DAN: CoAP
-	// _setURI(request,"/boot",5); //DAN: CoAP // CoAP URI to start communication with CoAP-EAP Controller
 
 	/* Initiate request: NON_CONFIRMABLE, POST, MessageID = 0 */
-	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0); //EDU: CoAP
-	/* Set empty payload */
-	coap_set_payload(request, "", 0);
-	/* Set CoAP header values: 
-	version = 1 by default
-	message ID starts with 0.
-	token: It does not matter. Set to 1. TODO: Change tu uint_8 - size 1
-	*/
-			printf("EDU: UDP-CLIENT 2\n");
+	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0);
 	uint8_t token=1;
-	coap_set_token(request, &token, 1); //EDU: CoAP
+	coap_set_token(request, &token, 1);
 	/* Set URI path */
-			printf("EDU: UDP-CLIENT 3\n");
-	coap_set_header_uri_path(request, "/boot"); //EDU: CoAP -> _setURI()
-			printf("EDU: UDP-CLIENT 4\n");
+	coap_set_header_uri_path(request, "/boot");
 
-	/* Put CoAP message (header and payload) in buffer. It returns the length */
 	static uint8_t udp_payload[100];
 	udp_payload[0] = 0x00;
-			printf("EDU: UDP-CLIENT 5\n");
-	size_t coap_len = coap_serialize_message(request, udp_payload); //EDU: TODO: Buffer with or without \0?
-			printf("EDU: UDP-CLIENT 6\n");
+	/* Put CoAP message (header and payload) in udp_payload. 
+	It returns the length */
+	size_t coap_len = coap_serialize_message(request, udp_payload); //TODO: Buffer with or without \0?
 	
 	uip_udp_packet_send(client_conn, udp_payload, coap_len);
-			printf("EDU: UDP-CLIENT 7\n");
 	etimer_set(&et, 40 * CLOCK_SECOND);
 }
 /*---------------------------------------------------------------------------*/
 // 	static void
 // print_local_addresses(void)
 // {
-// 	int i;
 // 	uint8_t state;
-
 // 	printf("Client IPv6 addresses: ");
-// 	for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+// 	for(int i = 0; i < UIP_DS6_ADDR_NB; i++) {
 // 		state = uip_ds6_if.addr_list[i].state;
 // 		if(uip_ds6_if.addr_list[i].isused &&
 // 				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
@@ -414,7 +338,6 @@ timeout_handler(void)
 set_global_address(void)
 {
 	uip_ipaddr_t ipaddr;
-
 	uip_ip6addr(&ipaddr, 0xfd00, 0, 0, 0, 0, 0, 0, 0);
 	uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
 	uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
@@ -450,17 +373,15 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	rand();
 	set_connection_address(&ipaddr);
 	currentPort = 3000;
+
 	/* new connection with remote host */
 	client_conn = udp_new(&ipaddr, UIP_HTONS(5683), NULL);
-	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
+	udp_bind(client_conn, UIP_HTONS(currentPort)  );
 
 	printf("Created a connection with the server ");
 	// PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
-	// request = _CoapPDU(); //DAN: CoAP
-	// response = _CoapPDU(); //DAN: CoAP
-	// coap_init_connection(void); // TODO: Initiate CoAP message ID with rand number.
 	coap_init_message(request, COAP_TYPE_NON, COAP_POST, 0); //EDU: CoAP
 
 	//TODO: Move to EAP-Peer
@@ -472,7 +393,6 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
 	// ECDH - Generate Client Public Key
 	process_start(&ecdh_generate_pubkey, NULL);
-
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
 	printf("Client Public Key Generated\n");
 	// ECDH - end
@@ -480,11 +400,11 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
 	while(1) {
 #if EDU_DEBUG
-		printf("EDU: while(1)\n"); //EDU: DEBUG
+		printf("EDU: while(1)\n");
 #endif
 		PROCESS_YIELD();
 #if EDU_DEBUG
-		printf("EDU: while(1) 2\n"); //EDU: DEBUG
+		printf("EDU: while(1) 2\n");
 #endif
 		if(NETSTACK_ROUTING.node_is_reachable()) {
 			if(etimer_expired(&et) ) {
