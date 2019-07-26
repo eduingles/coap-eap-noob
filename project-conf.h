@@ -25,6 +25,12 @@
     #define EDU_DEBUG 0
 #endif
 
+#ifdef DEBUG_NOOB
+    #define NOOB_DEBUG 1
+#else
+    #define NOOB_DEBUG 0
+#endif
+
 // #define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_6LOWPAN                     LOG_LEVEL_DBG

@@ -327,8 +327,10 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
         error_code[error],",\"ErrorInfo\":\"",error_info[error],"\"}"
     );
 
-    DEBUG_NOOB(error_info[error]);
-    ERROR_NOOB("Sending error code", error_code[error]);
+    #if NOOB_DEBUG
+        DEBUG_NOOB(error_info[error]);
+        ERROR_NOOB("Sending error code", error_code[error]);
+    #endif
 
     *eapRespLen = strlen(tmpResponseType0);
     memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1); //  + 1 => \0
@@ -353,6 +355,10 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
     *eapRespLen = strlen(tmpResponseType1);
     memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
+
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: Sending response %s\n", tmpResponseType1);
+    #endif
 }
 
 /**
@@ -363,31 +369,25 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
     unsigned char pk_str1[32];
-    DEBUG_NOOB("PK.X hex: ");
     int i;
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
-        printf("%lX", client_pk.x[i]);
         pk_str1[i*4+3] = client_pk.x[i] >> 24;
         pk_str1[i*4+2] = client_pk.x[i] >> 16;
         pk_str1[i*4+1] = client_pk.x[i] >> 8;
         pk_str1[i*4+0] = client_pk.x[i];
     }
-    printf("\n");
 
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
 
     unsigned char pk_str2[32];
-    DEBUG_NOOB("PK.Y hex: ");
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
-        printf("%lX", client_pk.y[i]);
         pk_str2[i*4+3] = client_pk.y[i] >> 24;
         pk_str2[i*4+2] = client_pk.y[i] >> 16;
         pk_str2[i*4+1] = client_pk.y[i] >> 8;
         pk_str2[i*4+0] = client_pk.y[i];
     }
-    printf("\n");
 
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
@@ -411,7 +411,9 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     // Update NAI
     sprintf(nai, "%s+s1@%s", PeerId, RealM);
 
-    printf("EAP-NOOB: Response type 2: %s\n", tmpResponseType2);
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: Sending response %s\n", tmpResponseType2);
+    #endif
 }
 
 /**
@@ -429,6 +431,10 @@ void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
     *eapRespLen = strlen(tmpResponseType3);
     memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
+
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: Sending response %s\n", tmpResponseType3);
+    #endif
 }
 
 /**
@@ -451,6 +457,10 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
 
     // Update NAI
     sprintf(nai, "%s+s4@%s", PeerId, RealM);
+
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: Sending response %s\n", tmpResponseType4);
+    #endif
 }
 
 /**
@@ -673,24 +683,27 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
     jsonparse_setup(&req_obj, (char *)eapReqData, size);
     int msgtype;
     msgtype = json_integer_value(&req_obj, "Type");
-    if (msgtype < 0)
-        DEBUG_NOOB("Invalid request type");
+    if (msgtype < 0) {
+        #if NOOB_DEBUG
+            DEBUG_NOOB("Invalid request type");
+        #endif
+    }
+
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: Received reqeust %s\n", eapReqData);
+    #endif
 
     switch (msgtype) {
         case EAP_NOOB_TYPE_1: // Initial Exchange
-            DEBUG_NOOB("Message type 1");
             eap_noob_req_type_one((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
         case EAP_NOOB_TYPE_2: // Initial Exchange
-            DEBUG_NOOB("Message type 2");
             eap_noob_req_type_two((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
         case EAP_NOOB_TYPE_3: // Waiting Exchange
-            DEBUG_NOOB("Message type 3");
             eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
         case EAP_NOOB_TYPE_4: // Completion Exchange
-            DEBUG_NOOB("Message type 4");
             eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
             *(methodState) = MAY_CONT;
             *(decision) = COND_SUCC;

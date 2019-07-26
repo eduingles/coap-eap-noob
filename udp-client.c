@@ -358,7 +358,7 @@ tcpip_handler(void)
 				eap_peer_sm_step(payload);
 				if (((struct eap_msg *)payload)->code == FAILURE_CODE){
 					etimer_stop(&et);
-					printf("EAP-Failure received\n");
+					printf("UDP CLIENT: EAP-Failure received\n");
 					#if EDU_DEBUG
 						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Failure\n", __func__); //EDU: DEBUG
 					#endif
@@ -479,7 +479,7 @@ timeout_handler(void)
 
 	udp_bind(client_conn, UIP_HTONS( (currentPort) )  );
 
-	printf("Send /boot to CoAP-EAP Controller to start communication.\n");
+	printf("UDP CLIENT: Send /boot to CoAP-EAP Controller to start communication.\n");
 
 	reset(request);
 	setVersion(request,1);
@@ -562,7 +562,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 
 	request = _CoapPDU();
 	response = _CoapPDU();
-	
+
 	//TODO: Move to EAP-Peer
 	//TODO: Differentiate between EAP_NOOB and EAP_PSK
 	init_eap_noob();
@@ -575,7 +575,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	process_start(&ecdh_generate_pubkey, NULL);
 
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
-	printf("Client Public Key Generated\n");
+	printf("UDP CLIENT: Client Public Key Generated\n");
 	etimer_set(&et, 1*CLOCK_SECOND);
 	// ECDH - end
 
@@ -624,7 +624,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		// 	static uint16_t len_plain2 = 0;
 
 		// 	base64_decode(pk_x_b64, len_b64_x, &len_plain, pk_str3);
-		//     printf("PK.X %02u chr: ", len_plain);    
+		//     printf("PK.X %02u chr: ", len_plain);
 		//     for (int i = 0; i < 32; i++)
 		//         printf("%u", pk_str3[i]);
 		//     printf("\n");
@@ -632,32 +632,32 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		// 	for (int i = 0; i < 32; i += 4)
 		// 		pk_uint3[i/4] = pk_str3[i+3] | (uint32_t)pk_str3[i+2] << 8 | (uint32_t)pk_str3[i+1] << 16 | (uint32_t)pk_str3[i] << 24;
 
-		//     printf("    PK.X %02u: ", len_plain);    
+		//     printf("    PK.X %02u: ", len_plain);
 		//     for(int i = 0 ;i < 8;i++)
 		//         printf("%u",pk_uint3[i]);
 		//     printf("\n");
-			
+
 		// 	printf("  Orig PK.X: ");
 		// 	for(int i = 0; i < 8; ++i)
 		// 		printf("%u", (unsigned int)client_pk.x[i]);
 		// 	printf("\n");
 
 		// 	base64_decode(pk_y_b64, len_b64_y, &len_plain2, pk_str4);
-		//     printf("PK.Y %02u chr: ", len_plain2);    
+		//     printf("PK.Y %02u chr: ", len_plain2);
 		//     for (int i = 0; i < 32; i++)
 		//         printf("%u", pk_str4[i]);
 		//     printf("\n");
 		// 	for (int i = 0; i < 32; i += 4)
 		// 		pk_uint4[i/4] = pk_str4[i+3] | (uint32_t)pk_str4[i+2] << 8 | (uint32_t)pk_str4[i+1] << 16 | (uint32_t)pk_str4[i] << 24;
 
-		//     printf("    PK.y %02u: ", len_plain2);    
+		//     printf("    PK.y %02u: ", len_plain2);
 		//     for(int i = 0 ;i < 8;i++)
 		//         printf("%u",pk_uint4[i]);
 		//     printf("\n");
-			
-			
+
+
 		// 	printf("  Orig PK.Y: ");
-		// 	for(int i = 0; i < 8; ++i) 
+		// 	for(int i = 0; i < 8; ++i)
 		// 		printf("%u", (unsigned int)client_pk.y[i]);
 		// 	printf("\n");
 
@@ -689,10 +689,10 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		// 	memcpy(ecc_client2.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
 		// 	memcpy(ecc_client2.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
 		// 	memcpy(ecc_client2.secret, private_secret2, sizeof(private_secret2));
-		// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2)); 
+		// 	PT_SPAWN(&(boostrapping_service_process.pt), &(ecc_client2.pt), ecc_multiply(&ecc_client2));
 		// 	memcpy(client_pk2.x, ecc_client2.point_out.x, sizeof(uint32_t) * 8);
 		// 	memcpy(client_pk2.y, ecc_client2.point_out.y, sizeof(uint32_t) * 8);
-			
+
 		// 	pka_disable();
 
 		// 	printf("    B PK.X: ");
@@ -757,13 +757,13 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == tcpip_event) {
 				tcpip_handler();
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
-				printf("Generated shared secret\n");
+				printf("UDP CLIENT: Generated shared secret\n");
 			} else {
-				printf("Received another kind of event\n");
+				printf("UDP CLIENT: Received another kind of event\n");
 				// timeout_handler();
 			}
 		} else {
-			printf("BR not reachable\n");
+			printf("UDP CLIENT: BR not reachable\n");
 			etimer_set(&et, 2 * CLOCK_SECOND);
 		}
 	}

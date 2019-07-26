@@ -63,7 +63,7 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
 		memcpy(state1.a, private_secret, sizeof(uint32_t) * 8);
 		PT_SPAWN(&(ecdh_generate_pubkey.pt), &(state1.pt), ecc_compare(&state1));
 	} while(state1.result != PKA_STATUS_A_LT_B);
-	
+
 	static ecc_multiply_state_t ecc_client = {
 		.process    = &ecdh_generate_pubkey,
 		.curve_info = &nist_p_256,
@@ -72,7 +72,7 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
 	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
 	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
 
-	PT_SPAWN(&(ecdh_generate_pubkey.pt), &(ecc_client.pt), ecc_multiply(&ecc_client)); 
+	PT_SPAWN(&(ecdh_generate_pubkey.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
 	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
 	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
 
@@ -80,20 +80,31 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
    	process_post(&boostrapping_service_process,
                 PROCESS_EVENT_CONTINUE, msg);
 
-  	puts("-----------------------------------------");
-  	puts("        CLIENT PUBLIC KEY PAIR");
-  	puts("-----------------------------------------");
-	printf("     A PK.X: ");
-	for(int i = 0; i < 8; ++i) {
-		printf("%u", (unsigned int)client_pk.x[i]);
-	}
-	printf("\n");
-	printf("     A PK.Y: ");
-	for(int i = 0; i < 8; ++i) {
-		printf("%u", (unsigned int)client_pk.y[i]);
-	}
-	printf("\n");
-  	puts("-----------------------------------------");
+    #if NOOB_DEBUG
+        printf("EAP-NOOB: PK.X: ");
+        for(int i = 0; i < 8; ++i)
+            printf("%u", (unsigned int)client_pk.x[i]);
+        printf("\n");
+        printf("EAP-NOOB: PK.Y: ");
+        for(int i = 0; i < 8; ++i)
+            printf("%u", (unsigned int)client_pk.y[i]);
+        printf("\n");
+    #endif
+
+  	// puts("-----------------------------------------");
+  	// puts("        CLIENT PUBLIC KEY PAIR");
+  	// puts("-----------------------------------------");
+	// printf("     A PK.X: ");
+	// for(int i = 0; i < 8; ++i) {
+	// 	printf("%u", (unsigned int)client_pk.x[i]);
+	// }
+	// printf("\n");
+	// printf("     A PK.Y: ");
+	// for(int i = 0; i < 8; ++i) {
+	// 	printf("%u", (unsigned int)client_pk.y[i]);
+	// }
+	// printf("\n");
+  	// puts("-----------------------------------------");
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
