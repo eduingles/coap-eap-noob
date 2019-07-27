@@ -40,15 +40,15 @@
  */
 
 #include "contiki.h"
-#include "contiki-lib.h"
 #include "contiki-net.h"
 #include <string.h>
 
-#include "uthash.h"
+#include "include.h"
+
+// #include "uthash.h"
 #include "eax.h" //do_omac()
 
-// ECC implementation
-#include "include.h"
+// ECDH implementation
 #include "ecc_pubkey.h"
 #include "sys/process.h" // process_start()
 
@@ -252,7 +252,8 @@ tcpip_handler(void)
 			 * 		A) Create MACRO
 			 * 		B) Use dynamic mem
 			 */
-			static uint8_t udp_payload[COAP_MAX_MSG_LEN_BUF];
+			static uint8_t udp_payload[COAP_MAX_PACKET_SIZE + 1]; // '\0'
+			/* Warning: No check for serialization error. */
 			size_t coap_len = coap_serialize_message(response, udp_payload); //TODO: Buffer with or without \0?
 			uip_udp_packet_send(client_conn, udp_payload, coap_len);
 			memcpy(sent, udp_payload, coap_len);
@@ -304,10 +305,10 @@ timeout_handler(void)
 	coap_set_token(request, &token, 1);
 	/* Set URI path */
 	coap_set_header_uri_path(request, "/boot");
-
 	static uint8_t udp_payload[30];
 	/* Put CoAP message (header and payload) in udp_payload. 
 	It returns the length */
+	/* Warning: No check for serialization error. */
 	size_t coap_len = coap_serialize_message(request, udp_payload); //TODO: Buffer with or without \0?
 	
 	uip_udp_packet_send(client_conn, udp_payload, coap_len);
@@ -365,7 +366,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	set_global_address();
 #endif
 	/* Initialize UDP connection */
-	// print_local_addresses();
+	print_local_addresses();
 	rand();
 	set_connection_address(&ipaddr);
 	currentPort = 3000;

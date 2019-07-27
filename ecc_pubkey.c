@@ -37,14 +37,9 @@ static char msg[] = "pubkey_generated";
 static void
 ecc_set_random(uint32_t *secret)
 {
-  int i;
-//   printf("EDU: ecc_set_random: ");
-
-  for(i = 0; i < 8; ++i) {
+  for(int i = 0; i < 8; ++i) {
     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
-    // printf("%u ", (unsigned int)secret[i]);
   }
-//   printf("\n");
 }
 
 PROCESS(ecdh_generate_pubkey, "ECDH Generate Client Public Key");

@@ -35,10 +35,9 @@
 
 #include "include.h"
 
-// ECC implementation
+// ECDH implementation
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"
-#include "lib/random.h"
 #include "sys/pt.h"
 
 PROCESS_NAME(ecdh_generate_pubkey);
