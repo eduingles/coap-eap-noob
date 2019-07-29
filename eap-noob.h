@@ -37,7 +37,7 @@
 #include "include.h"
 #include "jsonparse.h"
 
-/* ECC implementation */
+/* ECDH implementation */
 #include "ecc_shared_secret.h"
 
 /* Configuration file */
@@ -55,7 +55,7 @@
 
 /* MAX values for the fields */
 #define MAX_NAI_LEN         44
-#define MAX_PEERID_LEN      22
+#define MAX_PEERID_LEN      23 // With '\0'
 
 uint8_t eapKeyAvailable;
 

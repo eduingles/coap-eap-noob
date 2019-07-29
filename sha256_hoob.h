@@ -35,11 +35,14 @@
 
 #include "include.h"
 
-// ECDH implementation
-#include "dev/ecc-algorithm.h"
-#include "dev/ecc-curve.h"
-#include "sys/pt.h"
+// Database
+#include "database.h"
 
-PROCESS_NAME(ecc_derive_secret);
+// #include "sys/pt.h"
+
+// SHA256 Implementation
+#include "dev/sha256.h"
+
+PROCESS_NAME(sha256_hoob);
 
 #endif

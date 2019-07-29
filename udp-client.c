@@ -52,6 +52,9 @@
 #include "ecc_pubkey.h"
 #include "sys/process.h" // process_start()
 
+// HOOB Implementation
+#include "sha256_hoob.h"
+
 // CoAP Library (Contiki - Erbium)
 #include "os/net/app-layer/coap/coap.h"
 #include "os/net/app-layer/coap/coap.c"
@@ -410,6 +413,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				tcpip_handler();
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
 				printf("UDP CLIENT: Generated shared secret\n");
+				// Start HOOB generation
+				process_start(&sha256_hoob, NULL);
 			} else {
 				printf("UDP CLIENT: Received another kind of event\n");
 				// timeout_handler();

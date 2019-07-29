@@ -34,9 +34,10 @@
 
 PROCESS(ecc_derive_secret, "ECDH Shared Secret Derivation");
 PROCESS_THREAD(ecc_derive_secret, ev, data) {
-
+	
 	PROCESS_BEGIN();
 
+	/*------------------- ECDH Shared Secret Derivation ------------------ */
 	ec_point_t server_pk_tmp; // Generator Point
     #if NOOB_DEBUG
         printf("EAP-NOOB: Server PK.X: ");
@@ -69,23 +70,26 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
 	memcpy(ec_server.point_in.x, server_pk_tmp.x, sizeof(uint32_t) * 8);
 	memcpy(ec_server.point_in.y, server_pk_tmp.y, sizeof(uint32_t) * 8);
 	memcpy(ec_server.secret, private_secret, sizeof(private_secret));
-	PT_SPAWN(&(ecc_derive_secret.pt), &(ec_server.pt), ecc_multiply(&ec_server));
+	/* ECDH: Derive secret */
+	PT_SPAWN(&(ecc_derive_secret.pt), &(ec_server.pt), ecc_multiply(&ec_server)); 
+	/* ECDH: Save shared secret in 'shared_secret' */
 	memcpy(shared_secret, ec_server.point_out.x, sizeof(uint32_t) * 8);
   	pka_disable();
 
+	/* ECDH: Send notification to main thread. Shared secret is completed */
    	process_post(&boostrapping_service_process,
                 PROCESS_EVENT_CONTINUE, "sharedkey_generated");
 
-  	// puts("-----------------------------------------");
-  	// puts("        Derived Shared Secret");
-  	// puts("-----------------------------------------");
+  	puts("-----------------------------------------");
+  	puts("        Derived Shared Secret");
+  	puts("-----------------------------------------");
     #if NOOB_DEBUG
         printf("EAP-NOOB: Shared secret:");
         for(int i = 7; i >= 0 ; i--)
             printf("%lX", shared_secret[i]);
         printf("\n");
     #endif
-  	// puts("\n-----------------------------------------\n");
+  	puts("\n-----------------------------------------\n");
 
   PROCESS_END();
 }

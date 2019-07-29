@@ -380,6 +380,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
+    write_db("Xp", pk_x_b64);
 
     unsigned char pk_str2[32];
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
@@ -392,10 +393,12 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
+    write_db("Yp", pk_y_b64);
 
     // Generate nonce
     unsigned char Np_b64[44];
     generate_nonce(32, Np_b64);
+    write_db("Np", (char *)Np_b64);
 
     char tmpResponseType2[250];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
@@ -513,6 +516,11 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
             write_db(tmp[0], tmp[1]);
         }
     }
+    write_db("Verp", "1");
+    write_db("Cryptosuitep", "1");
+    write_db("Dirp", "1"); //TODO: Use variable 'dirp'
+    write_db("PeerInfo", PEER_INFO);
+
     // Build response
     eap_noob_rsp_type_one(eapRespData, dirp, eapRespLen);
 }
@@ -553,12 +561,14 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         jsonparse_next(&pks);
                         jsonparse_copy_next(&pks, tmp[1], size);
                         if (!strcmp(tmp[0], "x")) {
+                            write_db("Xs", tmp[1]);
                             size_t len_x = 0;
                             unsigned char x[33];
                             sprintf(tmp[1], "%s""=", tmp[1]);
                             base64_decode((unsigned char *)tmp[1], strlen(tmp[1]), &len_x, x);
                             memcpy(server_pk.x,x, 32);
                         } else if (!strcmp(tmp[0], "y")) {
+                            write_db("Ys", tmp[1]);
                             size_t len_y = 0;
                             unsigned char y[33];
                             sprintf(tmp[1], "%s""=", tmp[1]);
