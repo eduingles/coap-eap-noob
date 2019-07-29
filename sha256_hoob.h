@@ -30,15 +30,14 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#ifndef ECC_SHARED_SECRET_H
-#define ECC_SHARED_SECRET_H
+#ifndef SHA256_H
+#define SHA256_H
 
 #include "include.h"
+#include "base64.h"
 
 // Database
 #include "database.h"
-
-// #include "sys/pt.h"
 
 // SHA256 Implementation
 #include "dev/sha256.h"

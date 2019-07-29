@@ -30,61 +30,17 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#ifndef EAPNOOB_H
-#define EAPNOOB_H
+#ifndef BASE_H
+#define BASE_H
 
-#include "database.h"
-#include "include.h"
-#include "jsonparse.h"
-#include "base64.h"
-
-/* ECDH implementation */
-#include "ecc_shared_secret.h"
-
-/* Configuration file */
-#include "eap-noob-conf.h"
-
-/* Print debug information */
-#define DEBUG_MSG_NOOB(X)   printf("EAP-NOOB: %s\n", X)
-#define ERROR_MSG_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
-
-/* All the pre-processors of EAP-NOOB */
-#define DEFAULT_REALM       "eap-noob.net"
-#define SUCCESS_NOOB        1
-#define FAILURE_NOOB        -1
-#define EMPTY_NOOB          0
-
-/* MAX values for the fields */
-#define MAX_NAI_LEN         44
-#define MAX_PEERID_LEN      23 // With '\0'
-
-uint8_t eapKeyAvailable;
-
-/* Keywords for json encoding and decoding */
-enum {
-    EAP_NOOB_TYPE_0,
-    EAP_NOOB_TYPE_1,
-    EAP_NOOB_TYPE_2,
-    EAP_NOOB_TYPE_3,
-    EAP_NOOB_TYPE_4,
-    EAP_NOOB_TYPE_5,
-    EAP_NOOB_TYPE_6,
-    EAP_NOOB_TYPE_7,
-    EAP_NOOB_TYPE_8,
-    EAP_NOOB_ERROR
-};
-
-enum {
-    E1001, E1002, E1003, E1004, E1007,
-    E2001, E2002, E2003, E2004,
-    E3001, E3002, E3003,
-    E4001,
-    E5001, E5002, E5003, E5004
-};
+#include <string.h> // size_t, memcpy, memset
+#include <stdint.h> // uint8_t
 
 /* Public functions */
-void init_eap_noob(void);
-void eap_noob_process(const uint8_t*,size_t,uint8_t*,uint8_t*,uint8_t*,size_t*);
-void eap_noob_build_identity(char*);
+uint8_t base64_decode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst);
+uint8_t base64_encode(const unsigned char *src, size_t len, size_t *out_len, unsigned char *dst);
+
+static const unsigned char base64_table[65] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 #endif
