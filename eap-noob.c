@@ -704,7 +704,7 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
             eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
             break;
         case EAP_NOOB_TYPE_4: // Completion Exchange
-            eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
+            eap_noob_req_type_four((char*)eapReqData, size, eapRespData, eapRespLen);
             *(methodState) = MAY_CONT;
             *(decision) = COND_SUCC;
             break;
