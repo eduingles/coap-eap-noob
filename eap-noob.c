@@ -298,7 +298,7 @@ void generate_nonce(size_t size, unsigned char *dst)
     nonce[i] = '\0';
     // Base64 encode the nonce
     size_t len_b64_nonce = 0;
-    base64_encode(nonce, size, &len_b64_nonce, dst);
+    base64_encode((const unsigned char*)nonce, size, &len_b64_nonce, dst);
 }
 
 /**
@@ -309,7 +309,7 @@ void generate_noob(void)
     unsigned char noob[23];
     generate_nonce(16, noob);
     noob[22] = '\0'; // Get rid of padding character ('=') at the end
-    write_db("Noob", noob);
+    write_db("Noob", (char *)noob);
 }
 
 /**
@@ -328,8 +328,8 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
     );
 
     #if NOOB_DEBUG
-        DEBUG_NOOB(error_info[error]);
-        ERROR_NOOB("Sending error code", error_code[error]);
+        DEBUG_MSG_NOOB(error_info[error]);
+        ERROR_MSG_NOOB("Sending error code", error_code[error]);
     #endif
 
     *eapRespLen = strlen(tmpResponseType0);
@@ -685,12 +685,12 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
     msgtype = json_integer_value(&req_obj, "Type");
     if (msgtype < 0) {
         #if NOOB_DEBUG
-            DEBUG_NOOB("Invalid request type");
+            DEBUG_MSG_NOOB("Invalid request type");
         #endif
     }
 
     #if NOOB_DEBUG
-        printf("EAP-NOOB: Received reqeust %s\n", eapReqData);
+        printf("EAP-NOOB: Received request %s\n", eapReqData);
     #endif
 
     switch (msgtype) {
@@ -716,10 +716,10 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
         case EAP_NOOB_TYPE_8: // Completion Exchange
             // TODO: implement S2P OOB direction
         case EAP_NOOB_TYPE_0: // Error message
-            ERROR_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
+            ERROR_MSG_NOOB("Received error code", json_integer_value(&req_obj, "ErrorCode"));
             break;
         default:
-            ERROR_NOOB("Unknown request received:", msgtype);
+            ERROR_MSG_NOOB("Unknown request received:", msgtype);
             break;
     }
 }

@@ -16,7 +16,7 @@ int write_db(char *key , char *val)
         cfs_write(db, "\n", 1);
         cfs_close(db);
     } else {
-        DEBUG_NOOB("Could not open database");
+        DEBUG_MSG_DB("Could not open database");
         return -1;
     }
     return 1;
@@ -50,7 +50,7 @@ int read_db(char *key, char *val)
     	}
         return -1;
     } else {
-        DEBUG_NOOB("Could not open database");
+        DEBUG_MSG_DB("Could not open database");
         return -1;
     }
 }
@@ -70,7 +70,6 @@ void print_db(void)
         cfs_close(db);
         printf("Database after parsing request \n%s\n", dst);
     } else {
-        DEBUG_NOOB("Could not open database");
-        return -1;
+        DEBUG_MSG_DB("Could not open database");
     }
 }

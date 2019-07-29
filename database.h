@@ -36,7 +36,7 @@
 #include "cfs/cfs.h"
 
 /* Print debug information */
-#define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
+#define DEBUG_MSG_DB(X) printf("EAP-NOOB: %s\n", X)
 
 /* Name of the database file */
 #define DB_NAME "peer_db.txt"

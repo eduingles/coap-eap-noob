@@ -44,8 +44,8 @@
 #include "eap-noob-conf.h"
 
 /* Print debug information */
-#define DEBUG_NOOB(X) printf("EAP-NOOB: %s\n", X)
-#define ERROR_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
+#define DEBUG_MSG_NOOB(X)   printf("EAP-NOOB: %s\n", X)
+#define ERROR_MSG_NOOB(X,Y) printf("EAP-NOOB: %s %d\n", X, Y)
 
 /* All the pre-processors of EAP-NOOB */
 #define DEFAULT_REALM       "eap-noob.net"
