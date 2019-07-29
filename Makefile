@@ -14,7 +14,7 @@ endif
 ifeq ($(MAKE_CONF_EDU),1)
 	CFLAGS += -DCONF_EDU=1
 else  # Aleksi
-	CFLAGS += -w
+#	CFLAGS += -w
 endif
 
 ifeq ($(DEBUG_NOOB),1)
