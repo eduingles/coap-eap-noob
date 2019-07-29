@@ -380,7 +380,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
-    write_db("Xp", pk_x_b64);
+    write_db("Xp", (char *)pk_x_b64);
 
     unsigned char pk_str2[32];
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
@@ -393,7 +393,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
-    write_db("Yp", pk_y_b64);
+    write_db("Yp", (char *)pk_y_b64);
 
     // Generate nonce
     unsigned char Np_b64[44];
