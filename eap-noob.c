@@ -328,6 +328,7 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
     char tmpResponseType4[140];
     char MACp[44];
     // TODO: calculate MACp
+    // read_db("MACp", MACp);
     sprintf(tmpResponseType4, "%s%s%s%s%s",
         "{\"Type\":4,\"PeerId\":\"",PeerId,"\",\"MACp\":\"",MACp,"\"}"
     );
@@ -530,8 +531,8 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
                     return;
                 }
             } else if (!strcmp(tmp[0], "NoobId")) {
-                char NoobId[24];
-                // TODO: calculate NoobId from Noob
+                char NoobId[23];
+            	read_db("NoobId", NoobId);
                 if (strcmp(NoobId, tmp[1])) {
                     // Error: Unrecognized OOB message identifier
                     eap_noob_err_msg(eapRespData, E2003, eapRespLen);
@@ -540,6 +541,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
             } else if (!strcmp(tmp[0], "MACs")) {
                 char MACs[44];
                 // TODO: calculate MACs
+                // read_db("MACs", MACs);
                 if (strcmp(MACs, tmp[1])) {
                     // Error: HMAC verification failure
                     eap_noob_err_msg(eapRespData, E4001, eapRespLen);

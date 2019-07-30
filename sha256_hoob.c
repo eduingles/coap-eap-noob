@@ -31,6 +31,22 @@
  */
 
 #include "sha256_hoob.h"
+#include "eap-noob-conf.h" 
+
+#define ALGORITHM_ID            "EAP-NOOB"
+#define ALGORITHM_ID_LEN        8
+#define KDF_LEN                 320
+#define MSK_LEN                 64
+#define EMSK_LEN                64
+#define AMSK_LEN                64
+#define KZ_LEN                  32
+#define KMS_LEN                 32
+#define KMP_LEN                 32
+#define MAC_LEN                 32
+#define MAX_X25519_LEN          48
+#define P256_LEN		        32
+#define HASH_LEN                16
+#define METHOD_ID_LEN		    32
 
 PROCESS(sha256_hoob, "SHA256 HOOB Generation");
 PROCESS_THREAD(sha256_hoob, ev, data) {
@@ -76,17 +92,6 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 		"Noob"
 	};
 
-	/* KDF(?): Values used in EAP-NOOB Server (https://github.com/tuomaura/eap-noob)
-		Function: eap_noob_ECDH_KDF_X9_63
-		Values: EAP-NOOB Server		Contiki Client
-				________________	________________
-				Z					shared_secret
-				algorithm_id		"EAP-NOOB"
-				partyUinfo (Np)		Generate (np_nonce)
-				partyVinfo (Ns)		Got from msg Type 2 (DB)
-				suppPrivinfo		Noob (DB)
-	*/
-
 	/* SHA256 Variables */
 	static sha256_state_t state;
 	static uint8_t sha256[32]; /* SHA256: Hash result */
@@ -98,7 +103,6 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 	/* SHA256: Get values to hash from DB and set format */
 	for (int i = 0; i < sizeof(keys_db) / sizeof(keys_db[0]); i++){
 		read_db((char *)keys_db[i], tmp);
-		printf("EDUARDO: %s\n", tmp);
 		if (!strcmp(keys_db[i], "PeerId") || !strcmp(keys_db[i], "Realm") || !strcmp(keys_db[i], "Ns") || !strcmp(keys_db[i], "Np") || !strcmp(keys_db[i], "Noob") || !strcmp(keys_db[i], "Xs") || !strcmp(keys_db[i], "Ys") || !strcmp(keys_db[i], "Xp") || !strcmp(keys_db[i], "Yp") ) {
 			sprintf(hash_str, "%s,\"%s\"",hash_str,tmp);
 		} else {
@@ -139,13 +143,162 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 
 	/* SHA256: Show URL */
 	char peer_id[23];
-	char noob[23];
+	static char noob[23];
 	read_db("PeerId", peer_id);
 	read_db("Noob", noob);
 	/* TODO: Get url from 'ServerInfo' */
 	printf("URL OOB Process:\n\n\thttps://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n\n\n", peer_id, noob, hoob);
 
 	printf("URL OOB Process:\n\n\thttps://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n\n", peer_id, noob, hoob);
+
+	/*--------------------- SHA256 NoobId Generation -------------------- */
+
+	char noobid_str[29]; // "NoobId" + noob + '\0' = 6 + 22 + 1
+	sprintf(noobid_str, "NoobId%s",noob);
+   
+   	crypto_init();
+	sha256_init(&state);
+	len = strlen(noobid_str);
+	ret = sha256_process(&state, noobid_str, len);
+	/* SHA256: Get result in param 'sha256' */
+	ret = sha256_done(&state, sha256);
+	crypto_disable();
+	unsigned char noobid[23];
+    len_b64_hoob = 0;
+    base64_encode(sha256, 16, &len_b64_hoob, noobid);
+	noobid[22] = '\0'; // Remove '=' padding
+	write_db("NoobId", (char *)noobid);
+#if EDU_DEBUG
+	printf("EDU: NoobId generated: %s\n", noobid);
+#endif
+
+	/*----------------------- SHA256 KDF Generation ---------------------- */
+
+	/* KDF Generation: Values used in EAP-NOOB Server (https://github.com/tuomaura/eap-noob)
+		Function: eap_noob_ECDH_KDF_X9_63
+		Values: EAP-NOOB Server		Contiki Client
+				________________	________________
+				Z					shared_secret
+				algorithm_id		"EAP-NOOB"
+				partyUinfo (Np)		Generate (np_nonce)
+				partyVinfo (Ns)		Got from msg Type 2 (DB)
+				suppPrivinfo		Noob (DB)
+	*/
+    static unsigned char ctr[4] = {0};
+	char kdf_hash[321]; 
+	// ctr + shared_secret + Np decoded + Ns decoded + Noob + '\0' = 4 + 32 + 8 + 32 + 32 + 16 + 1
+	
+	char np_ns_encoded[45]; // 45 to include '=' padding
+	size_t len_tmp = 0;
+	static unsigned char np_decoded[33];
+	static unsigned char ns_decoded[33];
+	read_db("Np", np_ns_encoded);
+	sprintf(np_ns_encoded, "%s""=", np_ns_encoded); // Recover '=' to decode
+	base64_decode((unsigned char *)np_ns_encoded, strlen(np_ns_encoded), &len_tmp, np_decoded);
+	read_db("Ns", np_ns_encoded);
+	sprintf(np_ns_encoded, "%s""=", np_ns_encoded); // Recover '=' to decode
+	base64_decode((unsigned char *)np_ns_encoded, strlen(np_ns_encoded), &len_tmp, ns_decoded);
+
+   	crypto_init();
+	static size_t outlen = KDF_LEN;
+    size_t mdlen = 32; // Message Digest size
+	static size_t kdf_hash_len = 0;
+    for (int i = 1;; i++) {
+        // EVP_DigestInit_ex(mctx, md, NULL);
+		sha256_init(&state);
+
+        ctr[3] = i & 0xFF;
+        ctr[2] = (i >> 8) & 0xFF;
+        ctr[1] = (i >> 16) & 0xFF;
+        ctr[0] = (i >> 24) & 0xFF;
+		sha256_process(&state, ctr, sizeof(ctr));
+		sha256_process(&state, shared_secret, sizeof(shared_secret)); // Z or shared_secret
+		sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // ALGORITHM_ID string "EAP-NOOB"
+		// partyUinfo (Np) and partyVinfo (Ns) decoded 
+		sha256_process(&state, np_decoded, sizeof(np_decoded));
+		sha256_process(&state, ns_decoded, sizeof(ns_decoded));
+		sha256_process(&state, noob, sizeof(noob)); // suppPrivinfo or Noob
+
+        if (outlen >= mdlen) {
+			/* SHA256: Get result in param 'sha256' */
+			ret = sha256_done(&state, sha256);
+			memcpy(kdf_hash+kdf_hash_len, sha256, sizeof(sha256));
+            outlen -= mdlen;
+            if (outlen == 0)
+                break;
+            kdf_hash_len += mdlen;
+        } else {
+			/* SHA256: Get result in param 'sha256' */
+			ret = sha256_done(&state, sha256);
+			memcpy(kdf_hash+kdf_hash_len, sha256, outlen);
+            break;
+        }
+    }
+	crypto_disable();
+
+	kdf_hash[320] = '\0'; // End string properly
+	write_db("Kdf", kdf_hash);
+
+#if EDU_DEBUG
+	printf("EDU: KDF generated: %s\n", kdf_hash);
+#endif
+
+	size_t counter = 0;
+	char tmp_res[65];
+	memcpy(tmp_res, kdf_hash, MSK_LEN);
+	tmp_res[MSK_LEN] = '\0';
+	write_db("Msk", tmp_res);
+	counter += MSK_LEN;
+	memcpy(tmp_res+counter, kdf_hash, EMSK_LEN);
+	tmp_res[EMSK_LEN] = '\0';
+	write_db("Emsk", tmp_res);
+	counter += EMSK_LEN;
+	memcpy(tmp_res+counter, kdf_hash, AMSK_LEN);
+	tmp_res[AMSK_LEN] = '\0';
+	write_db("Amsk", tmp_res);
+	counter += AMSK_LEN;
+	memcpy(tmp_res+counter, kdf_hash, METHOD_ID_LEN);
+	tmp_res[METHOD_ID_LEN] = '\0';
+	write_db("MethodId", tmp_res);
+	counter += METHOD_ID_LEN;
+	memcpy(tmp_res+counter, kdf_hash, KMS_LEN);
+	tmp_res[KMS_LEN] = '\0';
+	write_db("Kms", tmp_res);
+	counter += KMS_LEN;
+	memcpy(tmp_res+counter, kdf_hash, KMP_LEN);
+	tmp_res[KMP_LEN] = '\0';
+	write_db("Kmp", tmp_res);
+	counter += KMP_LEN;
+	memcpy(tmp_res+counter, kdf_hash, KZ_LEN);
+	tmp_res[KZ_LEN] = '\0';
+	write_db("Kz", tmp_res);
+	counter += KZ_LEN;
+
+	print_db();
+
+	/*----------------------- SHA256 MACs Generation ---------------------- */
+	// char macs[600];
+	/*
+		TODO: Creating MACs
+		- Recreate JSON 
+		- Compact JSON
+		- Check HMAC OpenSSL process
+		- Emulate process
+	 */
+   	// crypto_init();
+	// sha256_init(&state);
+	// len = strlen(macs);
+	// ret = sha256_process(&state, macs, len);
+	// /* SHA256: Get result in param 'sha256' */
+	// ret = sha256_done(&state, sha256);
+	// crypto_disable();
+
+	// write_db("MACs", macs);
+
+
+	/*----------------------- SHA256 MACp Generation ---------------------- */
+
+
 
   PROCESS_END();
 }
