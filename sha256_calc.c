@@ -53,6 +53,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	PROCESS_BEGIN();
 	/*------------------- SHA256 HOOB Generation ------------------ */
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 	/* SHA256: states */
 	static const char *const str_res[] = {
@@ -126,6 +127,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #endif
 
 	crypto_init();
+//   printf("EDU: 1.1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+
 	sha256_init(&state);
 	len = strlen(hash_str);
 	ret = sha256_process(&state, hash_str, len);
@@ -135,6 +138,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 #if EDU_DEBUG
 	printf("Hoob calculation process: %s\n", str_res[ret]);
+
 	printf("Hash value (hex): ");
 	for (int i = 0;i <32;i++)
 		printf("%02x", sha256[i]);
@@ -162,9 +166,9 @@ PROCESS_THREAD(sha256_calc, ev, data) {
         peer_id, noob, hoob
     );
 
-	// printf("EAP-NOOB: OOB:\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n",
-    //     peer_id, noob, hoob
-    // );
+	printf("EAP-NOOB: OOB:\n\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n",
+        peer_id, noob, hoob
+    );
 
 	/*--------------------- SHA256 NoobId Generation -------------------- */
 
@@ -190,7 +194,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #endif
 
 	/*----------------------- SHA256 KDF Generation ---------------------- */
-
 	/* KDF Generation: Values used in EAP-NOOB Server (https://github.com/tuomaura/eap-noob)
 		Function: eap_noob_ECDH_KDF_X9_63
 		Values: EAP-NOOB Server		Contiki Client
@@ -202,32 +205,31 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 				suppPrivinfo		Noob (DB)
 	*/
 
+    /* Generate KDF */
+    static unsigned char ctr[4] = {0};
+    static uint8_t kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
+                           = 4 + 32 + 8 + 32 + 32 + 16 + 1
+                           = 125 */
+						   
     /* Decode nonces */
 	char nonce[45]; // 45 to include '=' padding
 	size_t len_tmp = 0;
 
+	static unsigned char np_decoded[33];
+	static unsigned char ns_decoded[33];
     // Decode Np
-    static unsigned char np_decoded[33];
 	read_db("Np", nonce);
 	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
 	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, np_decoded);
-
     // Decode Ns
-    static unsigned char ns_decoded[33];
 	read_db("Ns", nonce);
 	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
 	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, ns_decoded);
 
-    /* Generate KDF */
-    static unsigned char ctr[4] = {0};
-    char kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
-                           = 4 + 32 + 8 + 32 + 32 + 16 + 1
-                           = 125 */
+   	crypto_init();
 	static size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	static size_t kdf_hash_len = 0;
-
-    crypto_init();
     for (int i = 1;; i++) {
         // EVP_DigestInit_ex(mctx, md, NULL);
 		sha256_init(&state);
@@ -256,54 +258,75 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			memcpy(kdf_hash+kdf_hash_len, sha256, outlen);
             break;
         }
+
     }
+//   printf("EDU: -3 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+
 	crypto_disable();
+//   printf("EDU: -2 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 	kdf_hash[320] = '\0'; // End string properly
 	// write_db("Kdf", kdf_hash);
+//   printf("EDU: -1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+
+#if EDU_DEBUG
+	printf("EDU: SHA256: KDF Hash (hex): ");
+	for (int i = 0;i <320;i++)
+		printf("%02x", kdf_hash[i]);
+	printf("\n");
+#endif
 
 #if NOOB_DEBUG
 	   printf("EAP-NOOB: KDF generated\n");
 #endif
 
+
     /* Extract values */
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
-    // // MSK
-    // char MSK[MSK_LEN+1];
-	// memcpy(MSK, kdf_hash, MSK_LEN);
-	// MSK[MSK_LEN] = '\0';
-	// write_db("MSK", MSK);
-    // // EMSK
-    // char EMSK[EMSK_LEN+1];
-	// memcpy(EMSK, kdf_hash+64, EMSK_LEN);
-	// EMSK[EMSK_LEN] = '\0';
-	// write_db("EMSK", EMSK);
-    // // AMSK
-    // char AMSK[AMSK_LEN+1];
-	// memcpy(AMSK, kdf_hash+128, AMSK_LEN);
-	// AMSK[AMSK_LEN] = '\0';
-	// write_db("AMSK", AMSK);
-    // // MethodId
-    // char MethodId[METHOD_ID_LEN+1];
-	// memcpy(MethodId, kdf_hash+192, METHOD_ID_LEN);
-	// MethodId[METHOD_ID_LEN] = '\0';
-	// write_db("MethodId", MethodId);
+// 	size_t counter = 0;
+// 	char tmp_res[100];
+// 	memcpy(tmp_res, kdf_hash, MSK_LEN);
+// 	tmp_res[MSK_LEN] = '\0';
+//   printf("EDU: 2 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	write_db("Msk", tmp_res);
+//   printf("EDU: 3 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	counter += MSK_LEN;
+// 	memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
+//   printf("EDU: 4 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	tmp_res[EMSK_LEN] = '\0';
+// 	write_db("Emsk", tmp_res);
+// 	counter += EMSK_LEN;
+//   printf("EDU: 5 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
+//   printf("EDU: 6 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	tmp_res[AMSK_LEN] = '\0';
+// 	write_db("Amsk", tmp_res);
+// 	counter += AMSK_LEN;
+//   printf("EDU: 7 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
+//   printf("EDU: 8 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	tmp_res[METHOD_ID_LEN] = '\0';
+// 	write_db("MethodId", tmp_res);
+// 	counter += METHOD_ID_LEN;
+//   printf("EDU: 9 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
+//   printf("EDU: 10 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	tmp_res[KMS_LEN] = '\0';
+// 	write_db("Kms", tmp_res);
+// 	counter += KMS_LEN;
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// 	tmp_res[KMP_LEN] = '\0';
+// 	write_db("Kmp", tmp_res);
+// 	counter += KMP_LEN;
+// 	memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
+// 	tmp_res[KZ_LEN] = '\0';
+// 	write_db("Kz", tmp_res);
+// 	counter += KZ_LEN;
 
-	// Kms
-    char Kms[KMS_LEN+1];
-	memcpy(Kms, kdf_hash+224, KMS_LEN);
-	Kms[KMS_LEN] = '\0';
-	write_db("Kms", Kms);
-	// Kmp
-    char Kmp[KMP_LEN+1];
-	memcpy(Kmp, kdf_hash+256, KMP_LEN);
-	Kmp[KMP_LEN] = '\0';
-	write_db("Kmp", Kmp);
-	// Kz
-    char Kz[KZ_LEN+1];
-	memcpy(Kz, kdf_hash+288, KZ_LEN);
-	Kz[KZ_LEN] = '\0';
-	write_db("Kz", Kz);
+// 	print_db();
 
 	/*----------------------- SHA256 MAC Generation -----------------------*/
     #define MAC_VALUES  15
@@ -357,7 +380,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     base64_encode(sha256, 32, &len_b64_macs, (unsigned char*) MACs);
     MACs[43] = '\0'; // Get rid of padding character ('=') at the end
 
-	write_db("MACs", MACs);
+	// write_db("MACs", MACs);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated: %s\n", MACs);
@@ -392,7 +415,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
     MACp[43] = '\0'; // Get rid of padding character ('=') at the end
 
-    write_db("MACp", MACp);
+    // write_db("MACp", MACp);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACp generated: %s\n", MACp);
