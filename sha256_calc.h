@@ -40,6 +40,6 @@
 // SHA256 Implementation
 #include "dev/sha256.h"
 
-PROCESS_NAME(sha256_hoob);
+PROCESS_NAME(sha256_calc);
 
 #endif

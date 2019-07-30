@@ -52,8 +52,8 @@
 #include "ecc_pubkey.h"
 #include "sys/process.h" // process_start()
 
-// HOOB Implementation
-#include "sha256_hoob.h"
+// SHA256 calculations
+#include "sha256_calc.h"
 
 // CoAP Library (Contiki - Erbium)
 #include "os/net/app-layer/coap/coap.h"
@@ -203,7 +203,7 @@ tcpip_handler(void)
 		/* reset CoAP response with new response_code and request message ID */
 		coap_init_message(response, COAP_TYPE_ACK, response_code, request->mid);
 		/* Set request token and message ID */
-		coap_set_token(response, request->token, request->token_len);		
+		coap_set_token(response, request->token, request->token_len);
 
 #if EDU_DEBUG
 		unsigned char *tmpPayload;
@@ -222,7 +222,7 @@ tcpip_handler(void)
 #endif
 
 		if(request->code == COAP_POST){
-			if(! state){
+			if (!state){
 				#if EDU_DEBUG
 					printf("EDU:  no state\n");
 				#endif
@@ -251,7 +251,7 @@ tcpip_handler(void)
 					// memcpy(getPDUPointer(response)+getPDULength(response)-16,&mac2check,16); //DAN: CoAP
 				}
 			}
-			/** TODO: Fit value. 
+			/** TODO: Fit value.
 			 * 		A) Create MACRO
 			 * 		B) Use dynamic mem
 			 */
@@ -309,11 +309,11 @@ timeout_handler(void)
 	/* Set URI path */
 	coap_set_header_uri_path(request, "/boot");
 	static uint8_t udp_payload[30];
-	/* Put CoAP message (header and payload) in udp_payload. 
+	/* Put CoAP message (header and payload) in udp_payload.
 	It returns the length */
 	/* Warning: No check for serialization error. */
 	size_t coap_len = coap_serialize_message(request, udp_payload); //TODO: Buffer with or without \0?
-	
+
 	uip_udp_packet_send(client_conn, udp_payload, coap_len);
 	etimer_set(&et, 40 * CLOCK_SECOND);
 }
@@ -322,7 +322,7 @@ timeout_handler(void)
 print_local_addresses(void)
 {
 	uint8_t state;
-	printf("Client IPv6 addresses: ");
+	printf("UDP CLIENT: Client IPv6 addresses: ");
 	for(int i = 0; i < UIP_DS6_ADDR_NB; i++) {
 		state = uip_ds6_if.addr_list[i].state;
 		if(uip_ds6_if.addr_list[i].isused &&
@@ -351,7 +351,7 @@ set_connection_address(uip_ipaddr_t *ipaddr)
 #define QUOTEME(x) _QUOTEME(x)
 #ifdef UDP_CONNECTION_ADDR
 	if(uiplib_ipaddrconv(QUOTEME(UDP_CONNECTION_ADDR), ipaddr) == 0) {
-		printf("UDP client failed to parse address '%s'\n", QUOTEME(UDP_CONNECTION_ADDR));
+		printf("UDP CLIENT: failed to parse address '%s'\n", QUOTEME(UDP_CONNECTION_ADDR));
 	}
 #elif UIP_CONF_ROUTER
 	uip_ip6addr(ipaddr,0xfd00,0,0,0,0,0,0,0x1);
@@ -378,7 +378,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	client_conn = udp_new(&ipaddr, UIP_HTONS(5683), NULL);
 	udp_bind(client_conn, UIP_HTONS(currentPort)  );
 
-	printf("Created a connection with the server ");
+	printf("UDP CLIENT: Created a connection with the server ");
 	// PRINT6ADDR(&client_conn->ripaddr);
 	printf(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
@@ -413,8 +413,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				tcpip_handler();
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
 				printf("UDP CLIENT: Generated shared secret\n");
-				// Start HOOB generation
-				process_start(&sha256_hoob, NULL);
+				// Start SHA256 calculations
+				process_start(&sha256_calc, NULL);
 			} else {
 				printf("UDP CLIENT: Received another kind of event\n");
 				// timeout_handler();

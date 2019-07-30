@@ -30,8 +30,8 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#include "sha256_hoob.h"
-#include "eap-noob-conf.h" 
+#include "sha256_calc.h"
+#include "eap-noob-conf.h"
 
 #define ALGORITHM_ID            "EAP-NOOB"
 #define ALGORITHM_ID_LEN        8
@@ -48,29 +48,27 @@
 #define HASH_LEN                16
 #define METHOD_ID_LEN		    32
 
-PROCESS(sha256_hoob, "SHA256 HOOB Generation");
-PROCESS_THREAD(sha256_hoob, ev, data) {
-	
+PROCESS(sha256_calc, "SHA256 CALCULATIONS");
+PROCESS_THREAD(sha256_calc, ev, data) {
+
 	PROCESS_BEGIN();
 	/*------------------- SHA256 HOOB Generation ------------------ */
 
 	/* SHA256: states */
 	static const char *const str_res[] = {
-	"success",
-	"invalid param",
-	"NULL error",
-	"resource in use",
-	"DMA bus error"
+	    "success",
+	    "invalid param",
+	    "NULL error",
+	    "resource in use",
+	    "DMA bus error"
 	};
-	
-	print_db();
 
 	/* SHA256: Array of key names to extract values from DB
 
 	TODO: Update client and server with the values detailed in EAP-NOOB draft.
 		  Hoob calculation mistmach between code in NodeJS Server and test-vectors (example_messages.py).
 	*/
-	static const char * keys_db[] = {
+	static const char *keys_db[] = {
 		"Vers",
 		"Verp",
 		"PeerId",
@@ -97,20 +95,29 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 	static uint8_t sha256[32]; /* SHA256: Hash result */
 	static uint8_t ret; // Integer code representing operation state (match with str_res)
 	size_t len;
-	char hash_str[600] = "[1"; // First value 'Dir'.
-	char tmp[65]; // Fixme: ATTENTION!! Value based on 'ServerInfo' length (63). It should be larger for PKp or PKs.
+	char hash_str[600] = "[1"; // TODO: get actual Dir from Peer
+	char tmp[65]; /* Fixme: ATTENTION!! Value based on 'ServerInfo' length (63).
+                     It should be larger for PKp or PKs. */
 
 	/* SHA256: Get values to hash from DB and set format */
-	for (int i = 0; i < sizeof(keys_db) / sizeof(keys_db[0]); i++){
+	for (int i = 0; i < sizeof(keys_db)/sizeof(keys_db[0]); i++) {
 		read_db((char *)keys_db[i], tmp);
-		if (!strcmp(keys_db[i], "PeerId") || !strcmp(keys_db[i], "Realm") || !strcmp(keys_db[i], "Ns") || !strcmp(keys_db[i], "Np") || !strcmp(keys_db[i], "Noob") || !strcmp(keys_db[i], "Xs") || !strcmp(keys_db[i], "Ys") || !strcmp(keys_db[i], "Xp") || !strcmp(keys_db[i], "Yp") ) {
-			sprintf(hash_str, "%s,\"%s\"",hash_str,tmp);
-		} else {
-			sprintf(hash_str, "%s,%s",hash_str,tmp);
-		}
-		if (!strcmp(keys_db[i], "PeerInfo") ){ // Add Keying mode (0)
-			sprintf(hash_str, "%s,0",hash_str);
-		}		
+		if (!strcmp(keys_db[i], "PeerId") ||
+            !strcmp(keys_db[i], "Realm")  ||
+            !strcmp(keys_db[i], "Ns")     ||
+            !strcmp(keys_db[i], "Np")     ||
+            !strcmp(keys_db[i], "Noob")   ||
+            !strcmp(keys_db[i], "Xs")     ||
+            !strcmp(keys_db[i], "Ys")     ||
+            !strcmp(keys_db[i], "Xp")     ||
+            !strcmp(keys_db[i], "Yp")
+        )
+            sprintf(hash_str, "%s,\"%s\"", hash_str,tmp);
+        else
+            sprintf(hash_str, "%s,%s", hash_str,tmp);
+
+        if (!strcmp(keys_db[i], "PeerInfo")) // Add Keying mode (0)
+			sprintf(hash_str, "%s,0", hash_str);
 	}
 	sprintf(hash_str, "%s]",hash_str);
 
@@ -125,13 +132,16 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 
 	/* SHA256: Get result in param 'sha256' */
 	ret = sha256_done(&state, sha256);
+
 #if EDU_DEBUG
 	printf("Hoob calculation process: %s\n", str_res[ret]);
-
 	printf("Hash value (hex): ");
 	for (int i = 0;i <32;i++)
 		printf("%02x", sha256[i]);
 	printf("\n");
+#else
+    (void) ret;
+    (void) str_res;
 #endif
 
     size_t len_b64_hoob = 0;
@@ -146,16 +156,22 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 	static char noob[23];
 	read_db("PeerId", peer_id);
 	read_db("Noob", noob);
-	/* TODO: Get url from 'ServerInfo' */
-	printf("URL OOB Process:\n\n\thttps://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n\n\n", peer_id, noob, hoob);
 
-	printf("URL OOB Process:\n\n\thttps://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n\n", peer_id, noob, hoob);
+	/* TODO: Get url from 'ServerInfo' */
+	printf("EAP-NOOB: OOB:\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
+        peer_id, noob, hoob
+    );
+
+	// printf("EAP-NOOB: OOB:\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n",
+    //     peer_id, noob, hoob
+    // );
 
 	/*--------------------- SHA256 NoobId Generation -------------------- */
 
 	char noobid_str[29]; // "NoobId" + noob + '\0' = 6 + 22 + 1
 	sprintf(noobid_str, "NoobId%s",noob);
-   
+
+    /* Generate NoobId */
    	crypto_init();
 	sha256_init(&state);
 	len = strlen(noobid_str);
@@ -168,8 +184,9 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
     base64_encode(sha256, 16, &len_b64_hoob, noobid);
 	noobid[22] = '\0'; // Remove '=' padding
 	write_db("NoobId", (char *)noobid);
-#if EDU_DEBUG
-	printf("EDU: NoobId generated: %s\n", noobid);
+
+#if NOOB_DEBUG
+	printf("NoobId generated\n");
 #endif
 
 	/*----------------------- SHA256 KDF Generation ---------------------- */
@@ -184,40 +201,46 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 				partyVinfo (Ns)		Got from msg Type 2 (DB)
 				suppPrivinfo		Noob (DB)
 	*/
-    static unsigned char ctr[4] = {0};
-	char kdf_hash[321]; 
-	// ctr + shared_secret + Np decoded + Ns decoded + Noob + '\0' = 4 + 32 + 8 + 32 + 32 + 16 + 1
-	
-	char np_ns_encoded[45]; // 45 to include '=' padding
-	size_t len_tmp = 0;
-	static unsigned char np_decoded[33];
-	static unsigned char ns_decoded[33];
-	read_db("Np", np_ns_encoded);
-	sprintf(np_ns_encoded, "%s""=", np_ns_encoded); // Recover '=' to decode
-	base64_decode((unsigned char *)np_ns_encoded, strlen(np_ns_encoded), &len_tmp, np_decoded);
-	read_db("Ns", np_ns_encoded);
-	sprintf(np_ns_encoded, "%s""=", np_ns_encoded); // Recover '=' to decode
-	base64_decode((unsigned char *)np_ns_encoded, strlen(np_ns_encoded), &len_tmp, ns_decoded);
 
-   	crypto_init();
+    /* Decode nonces */
+	char nonce[45]; // 45 to include '=' padding
+	size_t len_tmp = 0;
+
+    // Decode Np
+    static unsigned char np_decoded[33];
+	read_db("Np", nonce);
+	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
+	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, np_decoded);
+
+    // Decode Ns
+    static unsigned char ns_decoded[33];
+	read_db("Ns", nonce);
+	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
+	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, ns_decoded);
+
+    /* Generate KDF */
+    static unsigned char ctr[4] = {0};
+    char kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
+                           = 4 + 32 + 8 + 32 + 32 + 16 + 1
+                           = 125 */
 	static size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	static size_t kdf_hash_len = 0;
+
+    crypto_init();
     for (int i = 1;; i++) {
         // EVP_DigestInit_ex(mctx, md, NULL);
 		sha256_init(&state);
-
         ctr[3] = i & 0xFF;
         ctr[2] = (i >> 8) & 0xFF;
         ctr[1] = (i >> 16) & 0xFF;
         ctr[0] = (i >> 24) & 0xFF;
 		sha256_process(&state, ctr, sizeof(ctr));
-		sha256_process(&state, shared_secret, sizeof(shared_secret)); // Z or shared_secret
-		sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // ALGORITHM_ID string "EAP-NOOB"
-		// partyUinfo (Np) and partyVinfo (Ns) decoded 
-		sha256_process(&state, np_decoded, sizeof(np_decoded));
-		sha256_process(&state, ns_decoded, sizeof(ns_decoded));
-		sha256_process(&state, noob, sizeof(noob)); // suppPrivinfo or Noob
+		sha256_process(&state, shared_secret, sizeof(shared_secret)); // Z: ECDHE shared secret
+		sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // AlgorithmId: "EAP-NOOB"
+		sha256_process(&state, np_decoded, sizeof(np_decoded)); // PartyUInfo: Np
+		sha256_process(&state, ns_decoded, sizeof(ns_decoded)); // PartyVInfo: Ns
+		sha256_process(&state, noob, sizeof(noob)); // SuppPrivInfo: Noob
 
         if (outlen >= mdlen) {
 			/* SHA256: Get result in param 'sha256' */
@@ -237,50 +260,36 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 	crypto_disable();
 
 	kdf_hash[320] = '\0'; // End string properly
-	write_db("Kdf", kdf_hash);
+	// write_db("Kdf", kdf_hash);
 
-#if EDU_DEBUG
-	printf("EDU: KDF generated: %s\n", kdf_hash);
+#if NOOB_DEBUG
+	   printf("EAP-NOOB: KDF generated\n");
 #endif
 
-	size_t counter = 0;
-	char tmp_res[65];
-	memcpy(tmp_res, kdf_hash, MSK_LEN);
-	tmp_res[MSK_LEN] = '\0';
-	write_db("Msk", tmp_res);
-	counter += MSK_LEN;
-	memcpy(tmp_res+counter, kdf_hash, EMSK_LEN);
-	tmp_res[EMSK_LEN] = '\0';
-	write_db("Emsk", tmp_res);
-	counter += EMSK_LEN;
-	memcpy(tmp_res+counter, kdf_hash, AMSK_LEN);
-	tmp_res[AMSK_LEN] = '\0';
-	write_db("Amsk", tmp_res);
-	counter += AMSK_LEN;
-	memcpy(tmp_res+counter, kdf_hash, METHOD_ID_LEN);
-	tmp_res[METHOD_ID_LEN] = '\0';
-	write_db("MethodId", tmp_res);
-	counter += METHOD_ID_LEN;
-	memcpy(tmp_res+counter, kdf_hash, KMS_LEN);
-	tmp_res[KMS_LEN] = '\0';
-	write_db("Kms", tmp_res);
-	counter += KMS_LEN;
-	memcpy(tmp_res+counter, kdf_hash, KMP_LEN);
-	tmp_res[KMP_LEN] = '\0';
-	write_db("Kmp", tmp_res);
-	counter += KMP_LEN;
-	memcpy(tmp_res+counter, kdf_hash, KZ_LEN);
-	tmp_res[KZ_LEN] = '\0';
-	write_db("Kz", tmp_res);
-	counter += KZ_LEN;
+    /* Extract values */
+    // TODO: add MSK, EMSK, AMSK, MethodId
 
-	print_db();
+	// Kms
+    char Kms[KMS_LEN+1];
+	memcpy(Kms, kdf_hash+224, KMS_LEN);
+	Kms[KMS_LEN] = '\0';
+	write_db("Kms", Kms);
+	// Kmp
+    char Kmp[KMP_LEN+1];
+	memcpy(Kmp, kdf_hash+256, KMP_LEN);
+	Kmp[KMP_LEN] = '\0';
+	write_db("Kmp", Kmp);
+	// Kz
+    char Kz[KZ_LEN+1];
+	memcpy(Kz, kdf_hash+288, KZ_LEN);
+	Kz[KZ_LEN] = '\0';
+	write_db("Kz", Kz);
 
 	/*----------------------- SHA256 MACs Generation ---------------------- */
 	// char macs[600];
 	/*
 		TODO: Creating MACs
-		- Recreate JSON 
+		- Recreate JSON
 		- Compact JSON
 		- Check HMAC OpenSSL process
 		- Emulate process
@@ -297,8 +306,6 @@ PROCESS_THREAD(sha256_hoob, ev, data) {
 
 
 	/*----------------------- SHA256 MACp Generation ---------------------- */
-
-
 
   PROCESS_END();
 }

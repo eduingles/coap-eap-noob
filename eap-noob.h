@@ -56,7 +56,7 @@
 
 /* MAX values for the fields */
 #define MAX_NAI_LEN         44
-#define MAX_PEERID_LEN      23 // With '\0'
+#define MAX_PEERID_LEN      23
 
 uint8_t eapKeyAvailable;
 

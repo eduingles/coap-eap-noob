@@ -174,6 +174,8 @@ void generate_nonce(size_t size, unsigned char *dst)
     for (i = 0; i < size-1; i++)
         nonce[i] = base64_table[random_rand() % 64];
     nonce[i] = '\0';
+
+    printf("DEBUG: generated nonce %s\n", nonce);
     // Base64 encode the nonce
     size_t len_b64_nonce = 0;
     base64_encode((const unsigned char*)nonce, size, &len_b64_nonce, dst);
@@ -205,10 +207,10 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
         error_code[error],",\"ErrorInfo\":\"",error_info[error],"\"}"
     );
 
-    #if NOOB_DEBUG
-        DEBUG_MSG_NOOB(error_info[error]);
-        ERROR_MSG_NOOB("Sending error code", error_code[error]);
-    #endif
+#if NOOB_DEBUG
+    DEBUG_MSG_NOOB(error_info[error]);
+    ERROR_MSG_NOOB("Sending error code", error_code[error]);
+#endif
 
     *eapRespLen = strlen(tmpResponseType0);
     memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1); //  + 1 => \0
@@ -234,9 +236,9 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
     memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: Sending response %s\n", tmpResponseType1);
-    #endif
+#if NOOB_DEBUG
+    printf("EAP-NOOB: Sending response %s\n", tmpResponseType1);
+#endif
 }
 
 /**
@@ -292,9 +294,9 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     // Update NAI
     sprintf(nai, "%s+s1@%s", PeerId, RealM);
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: Sending response %s\n", tmpResponseType2);
-    #endif
+#if NOOB_DEBUG
+    printf("EAP-NOOB: Sending response %s\n", tmpResponseType2);
+#endif
 }
 
 /**
@@ -313,9 +315,9 @@ void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
     memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1); //  + 1 => \0
     eapKeyAvailable = FALSE;
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: Sending response %s\n", tmpResponseType3);
-    #endif
+#if NOOB_DEBUG
+    printf("EAP-NOOB: Sending response %s\n", tmpResponseType3);
+#endif
 }
 
 /**
@@ -340,9 +342,9 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
     // Update NAI
     sprintf(nai, "%s+s4@%s", PeerId, RealM);
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: Sending response %s\n", tmpResponseType4);
-    #endif
+#if NOOB_DEBUG
+    printf("EAP-NOOB: Sending response %s\n", tmpResponseType4);
+#endif
 }
 
 /**
@@ -395,9 +397,17 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
             write_db(tmp[0], tmp[1]);
         }
     }
-    write_db("Verp", "1");
-    write_db("Cryptosuitep", "1");
-    write_db("Dirp", "1"); //TODO: Use variable 'dirp'
+    // Convert values to store them in the database
+    char Verp[2];
+    char Cryptosuitep[2];
+    char Dirp[2];
+    sprintf(Verp, "%d", VERS);
+    sprintf(Cryptosuitep, "%d", CSUIT);
+    sprintf(Dirp, "%d", dirp);
+
+    write_db("Verp", Verp);
+    write_db("Cryptosuitep", Cryptosuitep);
+    write_db("Dirp", Dirp);
     write_db("PeerInfo", PEER_INFO);
 
     // Build response
@@ -573,15 +583,10 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
     jsonparse_setup(&req_obj, (char *)eapReqData, size);
     int msgtype;
     msgtype = json_integer_value(&req_obj, "Type");
-    if (msgtype < 0) {
-        #if NOOB_DEBUG
-            DEBUG_MSG_NOOB("Invalid request type");
-        #endif
-    }
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: Received request %s\n", eapReqData);
-    #endif
+#if NOOB_DEBUG
+    printf("EAP-NOOB: Received request %s\n", eapReqData);
+#endif
 
     switch (msgtype) {
         case EAP_NOOB_TYPE_1: // Initial Exchange

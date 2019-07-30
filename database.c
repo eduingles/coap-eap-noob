@@ -68,7 +68,9 @@ void print_db(void)
         char dst[size];
         cfs_read(db, dst, size);
         cfs_close(db);
-        printf("Database after parsing request \n%s\n", dst);
+        printf("--------------------DATABASE--------------------\n");
+        printf("%s", dst);
+        printf("------------------------------------------------\n");
     } else {
         DEBUG_MSG_DB("Could not open database");
     }
