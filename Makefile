@@ -4,7 +4,7 @@ UIP_CONF_IPV6=1
 MODULES += os/lib/json # For Contiki-NG to include JSON library
 
 PROJECT_SOURCEFILES += eap-noob.c eap-peer.c
-PROJECT_SOURCEFILES += ecc_pubkey.c ecc_shared_secret.c sha256_calc.c
+PROJECT_SOURCEFILES += ecc_pubkey.c ecc_shared_secret.c sha256_calc.c sha256_mac.c
 PROJECT_SOURCEFILES += eax.c aes.c database.c base64.c
 
 # Configure PANID based on user: 1 Eduardo

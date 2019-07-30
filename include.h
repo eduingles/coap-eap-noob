@@ -35,13 +35,15 @@
 
 #include "lib/random.h"
 
+#if EDU_DEBUG
+    //Stack guard
+    // #include "sys/stack-check.h"
+#endif
+
 // ECDH implementation
 #include "dev/ecc-driver.h" // ec_point_t for Client/Server Public Key
 
-#define DEBUG DEBUG_PRINT
-#include "net/ipv6/uip-debug.h" //TODO: Establish if-else to enable only with debugging option
-
-#define MAX_PAYLOAD_LEN 512 //TODO: Migate MACROS to their corresponding headers
+#define MAX_PAYLOAD_LEN 512 //TODO: Migrate MACROS to their corresponding headers
 
 //Data types
 #define TRUE 1
@@ -81,10 +83,6 @@
 
 #define MSK_LENGTH  16 // 16 uint8_ts due to AES key length
 
-//#define USER "usera"
-//#define USER "alpha.t.eu.org"
-// #define USER "noob@eap-noob.net"
-
 // Network to/from Host uint8_t order functions
 #define HTONS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))
 #define NTOHS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))
@@ -113,11 +111,5 @@ unsigned char np_nonce[44]; // Nonce Peer
 // static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 ec_point_t client_pk; // Client Public Key (Local) - Generator Point
 ec_point_t server_pk; // Server Public Key (HostAPD) - Generator Point
-
-#if EDU_DEBUG
-    //Stack guard
-    // #include "sys/stack-check.h"
-#endif
-
 
 #endif

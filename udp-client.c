@@ -45,7 +45,9 @@
 
 #include "include.h"
 
-// #include "uthash.h"
+#define DEBUG DEBUG_PRINT
+#include "net/ipv6/uip-debug.h" //TODO: Establish if-else to enable only with debugging option
+
 #include "eax.h" //do_omac()
 
 // ECDH implementation
@@ -54,19 +56,15 @@
 
 // SHA256 calculations
 #include "sha256_calc.h"
+#include "sha256_mac.h"
 
 // CoAP Library (Contiki - Erbium)
 #include "os/net/app-layer/coap/coap.h"
 #include "os/net/app-layer/coap/coap.c"
 static struct uip_udp_conn *client_conn;
 static uint32_t currentPort;
-#define COAP_MAX_MSG_LEN_BUF 300
-
-#define DEBUG DEBUG_PRINT
-// #include "net/ipv6/uip-debug.h" // print_local_addresses() y PRINT6ADDR()
 
 #define START_INTERVAL      5 * CLOCK_SECOND
-#define SEND_INTERVAL	    5 * CLOCK_SECOND
 
 #include "eap-peer.h"
 
@@ -75,8 +73,8 @@ PROCESS(boostrapping_service_process, "CoAP-EAP Bootstrapping Service");
 AUTOSTART_PROCESSES(&boostrapping_service_process);
 /*---------------------------------------------------------------------------*/
 /* Saving locally UDP messages sent or received */
-uint8_t 	sent	 [400]; //TODO: Fit value
-uint8_t 	received [400]; //TODO: Fit value
+uint8_t 	sent	 [270]; //TODO: Fit value
+uint8_t 	received [270]; //TODO: Fit value
 uint16_t 	sent_len;
 uint16_t 	received_len;
 char 		URI[8] = {'/','b','o','o','t', 0, 0, 0}; // CoAP
@@ -103,6 +101,9 @@ tcpip_handler(void)
 {
 
 	if(uip_newdata()) {
+#if EDU_DEBUG
+			printf("\n-------------------------------------------------------\n\t\tEDUARDO: uip_datalen(): %d\n\n",uip_datalen());
+#endif
 		// Check for retransmission - TODO: Check if it is working
 		if(memcmp(uip_appdata, received ,uip_datalen()) == 0)
 		{
@@ -260,6 +261,9 @@ tcpip_handler(void)
 			size_t coap_len = coap_serialize_message(response, udp_payload); //TODO: Buffer with or without \0?
 			uip_udp_packet_send(client_conn, udp_payload, coap_len);
 			memcpy(sent, udp_payload, coap_len);
+#if EDU_DEBUG
+			printf("\n-------------------------------------------------------\n\t\tEDUARDO: sent_len: %d\n\n",coap_len);
+#endif
 			sent_len = coap_len;
 		}
 	}
@@ -328,9 +332,10 @@ print_local_addresses(void)
 		if(uip_ds6_if.addr_list[i].isused &&
 				(state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
 			PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-			printf("\n");
+			printf(" - ");
 		}
 	}
+	printf("\n");
 }
 /*---------------------------------------------------------------------------*/
 #if UIP_CONF_ROUTER
@@ -415,6 +420,10 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				printf("UDP CLIENT: Generated shared secret\n");
 				// Start SHA256 calculations
 				process_start(&sha256_calc, NULL);
+			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "hoob_noobid_kdf_generated") == 0) {
+				printf("UDP CLIENT: Generated Hoob, NoobId and KDF\n");
+				// Start SHA256 MACs and MACp
+				process_start(&sha256_mac, NULL);
 			} else {
 				printf("UDP CLIENT: Received another kind of event\n");
 				// timeout_handler();
