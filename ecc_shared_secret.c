@@ -32,6 +32,9 @@
 
 #include "ecc_shared_secret.h"
 
+// SHA256 calculations
+#include "sha256_calc.h"
+
 PROCESS(ecc_derive_secret, "ECDH Shared Secret Derivation");
 PROCESS_THREAD(ecc_derive_secret, ev, data) {
 
@@ -79,18 +82,22 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
 	/* ECDH: Send notification to main thread. Shared secret is completed */
    	process_post(&boostrapping_service_process,
                 PROCESS_EVENT_CONTINUE, "sharedkey_generated");
+   	// process_post(&sha256_calc, PROCESS_EVENT_CONTINUE, "sharedkey_generated");
 
-  	// puts("-----------------------------------------");
-  	// puts("        Derived Shared Secret");
-  	// puts("-----------------------------------------");
+#if EDU_DEBUG
+  	puts("-----------------------------------------");
+  	puts("        Derived Shared Secret");
+  	puts("-----------------------------------------");
+#endif
     #if NOOB_DEBUG
         printf("EAP-NOOB: Shared secret:");
         for(int i = 7; i >= 0 ; i--)
             printf("%lX", shared_secret[i]);
         printf("\n");
     #endif
-  	// puts("\n-----------------------------------------\n");
-
+#if EDU_DEBUG
+  	puts("\n-----------------------------------------\n");
+#endif
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

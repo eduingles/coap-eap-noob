@@ -52,9 +52,10 @@ PROCESS(sha256_calc, "SHA256 CALCULATIONS");
 PROCESS_THREAD(sha256_calc, ev, data) {
 
 	PROCESS_BEGIN();
-	/*------------------- SHA256 HOOB Generation ------------------ */
-//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
+	// PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0);
+
+	/*------------------- SHA256 HOOB Generation ------------------ */
 	/* SHA256: states */
 	static const char *const str_res[] = {
 	    "success",
@@ -127,7 +128,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #endif
 
 	crypto_init();
-//   printf("EDU: 1.1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 	sha256_init(&state);
 	len = strlen(hash_str);
@@ -260,14 +260,11 @@ PROCESS_THREAD(sha256_calc, ev, data) {
         }
 
     }
-//   printf("EDU: -3 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 	crypto_disable();
-//   printf("EDU: -2 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 	kdf_hash[320] = '\0'; // End string properly
 	// write_db("Kdf", kdf_hash);
-//   printf("EDU: -1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 #if EDU_DEBUG
 	printf("EDU: SHA256: KDF Hash (hex): ");
@@ -285,141 +282,164 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
 // 	size_t counter = 0;
-// 	char tmp_res[100];
+// 	size_t len_tmp_b64 = 0;
+// 	unsigned char tmp_res[65];
+// 	unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
 // 	memcpy(tmp_res, kdf_hash, MSK_LEN);
 // 	tmp_res[MSK_LEN] = '\0';
-//   printf("EDU: 2 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	write_db("Msk", tmp_res);
-//   printf("EDU: 3 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Msk", (char *)tmp_res_b64);
 // 	counter += MSK_LEN;
 // 	memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
-//   printf("EDU: 4 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 4 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	tmp_res[EMSK_LEN] = '\0';
-// 	write_db("Emsk", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Emsk", (char *)tmp_res_b64);
 // 	counter += EMSK_LEN;
-//   printf("EDU: 5 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 5 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
-//   printf("EDU: 6 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 6 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	tmp_res[AMSK_LEN] = '\0';
-// 	write_db("Amsk", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Amsk", (char *)tmp_res_b64);
 // 	counter += AMSK_LEN;
-//   printf("EDU: 7 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 7 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
-//   printf("EDU: 8 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 8 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	tmp_res[METHOD_ID_LEN] = '\0';
-// 	write_db("MethodId", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("MethodId", (char *)tmp_res_b64);
 // 	counter += METHOD_ID_LEN;
-//   printf("EDU: 9 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 9 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
-//   printf("EDU: 10 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 10 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	tmp_res[KMS_LEN] = '\0';
-// 	write_db("Kms", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Kms", (char *)tmp_res_b64);
 // 	counter += KMS_LEN;
-//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
-//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+// //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 // 	tmp_res[KMP_LEN] = '\0';
-// 	write_db("Kmp", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Kmp", (char *)tmp_res_b64);
 // 	counter += KMP_LEN;
 // 	memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
 // 	tmp_res[KZ_LEN] = '\0';
-// 	write_db("Kz", tmp_res);
+//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+// 	// write_db("Kz", (char *)tmp_res_b64);
 // 	counter += KZ_LEN;
 
-// 	print_db();
+	// print_db();
+
+
+	// Kms
+    // static char Kms[KMS_LEN+1];
+	// memcpy(Kms, kdf_hash+224, KMS_LEN);
+	// Kms[KMS_LEN] = '\0';
+
+	// Kmp
+    // char Kmp[KMP_LEN+1];
+	// memcpy(Kmp, kdf_hash+256, KMP_LEN);
+	// Kmp[KMP_LEN] = '\0';
+
+	// // Kz
+    // char Kz[KZ_LEN+1];
+	// memcpy(Kz, kdf_hash+288, KZ_LEN);
+	// Kz[KZ_LEN] = '\0';
 
 	/*----------------------- SHA256 MAC Generation -----------------------*/
-    #define MAC_VALUES  15
+//     #define MAC_VALUES  15
 
-    static const char *MAC_keys[] = {
-        "Vers", "Verp", "PeerId", "Cryptosuites", "Dirs", "ServerInfo",
-        "Cryptosuitep", "Dirp", "Realm", "PeerInfo", "PKs", "Ns", "PKp", "Np",
-        "Noob"
-    };
+//     static const char *MAC_keys[] = {
+//         "Vers", "Verp", "PeerId", "Cryptosuites", "Dirs", "ServerInfo",
+//         "Cryptosuitep", "Dirp", "Realm", "PeerInfo", "PKs", "Ns", "PKp", "Np",
+//         "Noob"
+//     };
 
-    // Temporary array for reading the database
-    char tmp_val[64];
+//     // Temporary array for reading the database
+//     char tmp_val[64];
 
-    // Re-build PKp because it doesn't fit in the database
-    char pk_x_b64[44];
-    char pk_y_b64[44];
-    read_db("Xp", pk_x_b64);
-    read_db("Yp", pk_y_b64);
-    char PKp[86];
-    sprintf(PKp, "%s%s%s%s%s",
-        "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64,
-        "\", \"y\":\"", pk_y_b64, "\"}"
-    );
+//     // Re-build PKp because it doesn't fit in the database
+//     char pk_x_b64[44];
+//     char pk_y_b64[44];
+//     read_db("Xp", pk_x_b64);
+//     read_db("Yp", pk_y_b64);
+//     char PKp[86];
+//     sprintf(PKp, "%s%s%s%s%s",
+//         "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64,
+//         "\", \"y\":\"", pk_y_b64, "\"}"
+//     );
 
-    /*----------------------- SHA256 MACs Generation -----------------------*/
-    // Build input for MACs
-    char MACs_input[500];
-    sprintf(MACs_input, "%s,\"%s\"", MACs_input, Kms);
-    sprintf(MACs_input, "%s,\"%d\"", MACs_input, 2);
-    for (int i = 0; i < MAC_VALUES; i++) {
-        if (!strcmp(MAC_keys[i], "PKp")) {
-            sprintf(MACs_input, "%s,\"%s\"", MACs_input, PKp);
-        } else {
-            read_db((char *)MAC_keys[i], tmp_val);
-            sprintf(MACs_input, "%s,\"%s\"", MACs_input, tmp_val);
-        }
-    }
+//     /*----------------------- SHA256 MACs Generation -----------------------*/
+//     // Build input for MACs
+//     char MACs_input[500];
+//     sprintf(MACs_input, "%s,\"%s\"", MACs_input, Kms);
+//     sprintf(MACs_input, "%s,\"%d\"", MACs_input, 2);
+//     for (int i = 0; i < MAC_VALUES; i++) {
+//         if (!strcmp(MAC_keys[i], "PKp")) {
+//             sprintf(MACs_input, "%s,\"%s\"", MACs_input, PKp);
+//         } else {
+//             read_db((char *)MAC_keys[i], tmp_val);
+//             sprintf(MACs_input, "%s,\"%s\"", MACs_input, tmp_val);
+//         }
+//     }
 
-    // Calculate MACs
-   	crypto_init();
-	sha256_init(&state);
-	len = strlen(MACs_input);
-	ret = sha256_process(&state, MACs_input, len);
-	/* SHA256: Get result in param 'sha256' */
-	ret = sha256_done(&state, sha256);
-	crypto_disable();
+//     // Calculate MACs
+//    	crypto_init();
+// 	sha256_init(&state);
+// 	len = strlen(MACs_input);
+// 	ret = sha256_process(&state, MACs_input, len);
+// 	/* SHA256: Get result in param 'sha256' */
+// 	ret = sha256_done(&state, sha256);
+// 	crypto_disable();
 
-    // Store MACs as Base64url
-    char MACs[44];
-    size_t len_b64_macs = 0;
-    base64_encode(sha256, 32, &len_b64_macs, (unsigned char*) MACs);
-    MACs[43] = '\0'; // Get rid of padding character ('=') at the end
+//     // Store MACs as Base64url
+//     char MACs[44];
+//     size_t len_b64_macs = 0;
+//     base64_encode(sha256, 32, &len_b64_macs, (unsigned char*) MACs);
+//     MACs[43] = '\0'; // Get rid of padding character ('=') at the end
 
-	// write_db("MACs", MACs);
+// 	// write_db("MACs", MACs);
 
-#if NOOB_DEBUG
-    printf("EAP-NOOB: MACs generated: %s\n", MACs);
-#endif
+// #if NOOB_DEBUG
+//     printf("EAP-NOOB: MACs generated: %s\n", MACs);
+// #endif
 
-	/*----------------------- SHA256 MACp Generation ---------------------- */
-    // Build input for MACp
-    char MACp_input[500];
-    sprintf(MACp_input, "%s,\"%s\"", MACp_input, Kmp);
-    sprintf(MACp_input, "%s,\"%d\"", MACp_input, 1);
-    for (int i = 0; i < MAC_VALUES; i++) {
-        if (!strcmp(MAC_keys[i], "PKp")) {
-            sprintf(MACp_input, "%s,\"%s\"", MACp_input, PKp);
-        } else {
-            read_db((char *)MAC_keys[i], tmp_val);
-            sprintf(MACp_input, "%s,\"%s\"", MACp_input, tmp_val);
-        }
-    }
+// 	/*----------------------- SHA256 MACp Generation ---------------------- */
+//     // Build input for MACp
+//     char MACp_input[500];
+//     sprintf(MACp_input, "%s,\"%s\"", MACp_input, Kmp);
+//     sprintf(MACp_input, "%s,\"%d\"", MACp_input, 1);
+//     for (int i = 0; i < MAC_VALUES; i++) {
+//         if (!strcmp(MAC_keys[i], "PKp")) {
+//             sprintf(MACp_input, "%s,\"%s\"", MACp_input, PKp);
+//         } else {
+//             read_db((char *)MAC_keys[i], tmp_val);
+//             sprintf(MACp_input, "%s,\"%s\"", MACp_input, tmp_val);
+//         }
+//     }
 
-    // Calculate MACp
-    crypto_init();
-    sha256_init(&state);
-    len = strlen(MACp_input);
-    ret = sha256_process(&state, MACp_input, len);
-    /* SHA256: Get result in param 'sha256' */
-    ret = sha256_done(&state, sha256);
-    crypto_disable();
+//     // Calculate MACp
+//     crypto_init();
+//     sha256_init(&state);
+//     len = strlen(MACp_input);
+//     ret = sha256_process(&state, MACp_input, len);
+//     /* SHA256: Get result in param 'sha256' */
+//     ret = sha256_done(&state, sha256);
+//     crypto_disable();
 
-    // Store MACp as Base64url
-    char MACp[44];
-    size_t len_b64_macp = 0;
-    base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
-    MACp[43] = '\0'; // Get rid of padding character ('=') at the end
+//     // Store MACp as Base64url
+//     char MACp[44];
+//     size_t len_b64_macp = 0;
+//     base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
+//     MACp[43] = '\0'; // Get rid of padding character ('=') at the end
 
     // write_db("MACp", MACp);
 
-#if NOOB_DEBUG
-    printf("EAP-NOOB: MACp generated: %s\n", MACp);
-#endif
+// #if NOOB_DEBUG
+//     printf("EAP-NOOB: MACp generated: %s\n", MACp);
+// #endif
 
   PROCESS_END();
 }
