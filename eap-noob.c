@@ -201,7 +201,7 @@ void generate_noob(void)
 void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
 {
     // Build error message
-    char tmpResponseType0[200];
+    char tmpResponseType0[120];
     sprintf(tmpResponseType0, "%s%s%s%d%s%s%s",
         "{\"Type\":0,\"PeerId\":\"",PeerId,"\",\"ErrorCode\":",
         error_code[error],",\"ErrorInfo\":\"",error_info[error],"\"}"
@@ -225,7 +225,7 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
 **/
 void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 {
-    char tmpResponseType1[200];
+    char tmpResponseType1[160];
     sprintf(tmpResponseType1, "%s%d%s%s%s%d%s%d%s%s%s",
         "{\"Type\":1,\"Verp\":",VERS,",\"PeerId\":\"",PeerId,
         "\",\"Cryptosuitep\":",CSUIT,",\"Dirp\":",dirp,",\"PeerInfo\":",
@@ -360,7 +360,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type, dirp, dirs;
-    char tmp[2][100];
+    char tmp[2][80];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
             jsonparse_copy_next(&js_req, tmp[0], size);
@@ -427,48 +427,49 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp[2][130];
+    char tmp_key[20];
+    char tmp_val[130];
 
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_copy_next(&js_req, tmp_key, size);
             jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1])) {
+            jsonparse_copy_next(&js_req, tmp_val, size);
+            if (!strcmp(tmp_key, "PeerId")) {
+                if (strcmp(PeerId, tmp_val)) {
                     // Error: Unexpected peer identifier
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
-            } else if (!strcmp(tmp[0], "PKs")) {
-                write_db(tmp[0], tmp[1]);
+            } else if (!strcmp(tmp_key, "PKs")) {
+                write_db(tmp_key, tmp_val);
                 struct jsonparse_state pks;
-                jsonparse_setup(&pks, tmp[1], strlen(tmp[1]));
+                jsonparse_setup(&pks, tmp_val, strlen(tmp_val));
                 while((type = jsonparse_next(&pks)) != 0) {
                     if(type == JSON_TYPE_PAIR_NAME) {
-                        jsonparse_copy_next(&pks, tmp[0], size);
+                        jsonparse_copy_next(&pks, tmp_key, size);
                         jsonparse_next(&pks);
-                        jsonparse_copy_next(&pks, tmp[1], size);
-                        if (!strcmp(tmp[0], "x")) {
-                            write_db("Xs", tmp[1]);
+                        jsonparse_copy_next(&pks, tmp_val, size);
+                        if (!strcmp(tmp_key, "x")) {
+                            write_db("Xs", tmp_val);
                             size_t len_x = 0;
                             unsigned char x[33];
-                            sprintf(tmp[1], "%s""=", tmp[1]);
-                            base64_decode((unsigned char *)tmp[1], strlen(tmp[1]), &len_x, x);
+                            sprintf(tmp_val, "%s""=", tmp_val);
+                            base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_x, x);
                             memcpy(server_pk.x,x, 32);
-                        } else if (!strcmp(tmp[0], "y")) {
-                            write_db("Ys", tmp[1]);
+                        } else if (!strcmp(tmp_key, "y")) {
+                            write_db("Ys", tmp_val);
                             size_t len_y = 0;
                             unsigned char y[33];
-                            sprintf(tmp[1], "%s""=", tmp[1]);
-                            base64_decode((unsigned char *)tmp[1], strlen(tmp[1]), &len_y, y);
+                            sprintf(tmp_val, "%s""=", tmp_val);
+                            base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_y, y);
                             memcpy(server_pk.y,y, 32);
                         }
                     }
                 }
-            } else if (!strcmp(tmp[0], "Ns")) {
-                write_db(tmp[0], tmp[1]);
-            } else if (!strcmp(tmp[0], "SleepTime")) {
+            } else if (!strcmp(tmp_key, "Ns")) {
+                write_db(tmp_key, tmp_val);
+            } else if (!strcmp(tmp_key, "SleepTime")) {
                 // TODO: set SleepTime
             }
         }
@@ -494,19 +495,20 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRe
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp[2][100];
+    char tmp_key[20];
+    char tmp_val[50];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_copy_next(&js_req, tmp_key, size);
             jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1])) {
+            jsonparse_copy_next(&js_req, tmp_val, size);
+            if (!strcmp(tmp_key, "PeerId")) {
+                if (strcmp(PeerId, tmp_val)) {
                     // Error: Unexpected peer identifier
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
-            } else if (!strcmp(tmp[0], "SleepTime")) {
+            } else if (!strcmp(tmp_key, "SleepTime")) {
                 // TODO: update SleepTime
             }
         }
@@ -528,31 +530,33 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp[2][100];
+    
+    char tmp_key[20];
+    char tmp_val[50];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_copy_next(&js_req, tmp_key, size);
             jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                if (strcmp(PeerId, tmp[1])) {
+            jsonparse_copy_next(&js_req, tmp_val, size);
+            if (!strcmp(tmp_key, "PeerId")) {
+                if (strcmp(PeerId, tmp_val)) {
                     // Error: Unexpected peer identifier
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
-            } else if (!strcmp(tmp[0], "NoobId")) {
+            } else if (!strcmp(tmp_key, "NoobId")) {
                 char NoobId[23];
             	read_db("NoobId", NoobId);
-                if (strcmp(NoobId, tmp[1])) {
+                if (strcmp(NoobId, tmp_val)) {
                     // Error: Unrecognized OOB message identifier
                     eap_noob_err_msg(eapRespData, E2003, eapRespLen);
                     return;
                 }
-            } else if (!strcmp(tmp[0], "MACs")) {
+            } else if (!strcmp(tmp_key, "MACs")) {
                 char MACs[44];
                 // TODO: calculate MACs
                 // read_db("MACs", MACs);
-                if (strcmp(MACs, tmp[1])) {
+                if (strcmp(MACs, tmp_val)) {
                     // Error: HMAC verification failure
                     eap_noob_err_msg(eapRespData, E4001, eapRespLen);
                     return;

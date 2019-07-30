@@ -88,7 +88,7 @@ PROCESS_THREAD(sha256_mac, ev, data) {
 
     /*----------------------- SHA256 MACs Generation -----------------------*/
 	// Kms
-    char Kms[KMS_LEN+1];
+    static char Kms[KMS_LEN+1];
 	read_db("Kms", Kms);
 	// memcpy(Kms, kdf_hash+224, KMS_LEN);
 	// Kms[KMS_LEN] = '\0';
