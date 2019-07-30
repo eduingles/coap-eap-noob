@@ -267,7 +267,27 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #endif
 
     /* Extract values */
-    // TODO: add MSK, EMSK, AMSK, MethodId
+
+    // // MSK
+    // char MSK[MSK_LEN+1];
+	// memcpy(MSK, kdf_hash, MSK_LEN);
+	// MSK[MSK_LEN] = '\0';
+	// write_db("MSK", MSK);
+    // // EMSK
+    // char EMSK[EMSK_LEN+1];
+	// memcpy(EMSK, kdf_hash+64, EMSK_LEN);
+	// EMSK[EMSK_LEN] = '\0';
+	// write_db("EMSK", EMSK);
+    // // AMSK
+    // char AMSK[AMSK_LEN+1];
+	// memcpy(AMSK, kdf_hash+128, AMSK_LEN);
+	// AMSK[AMSK_LEN] = '\0';
+	// write_db("AMSK", AMSK);
+    // // MethodId
+    // char MethodId[METHOD_ID_LEN+1];
+	// memcpy(MethodId, kdf_hash+192, METHOD_ID_LEN);
+	// MethodId[METHOD_ID_LEN] = '\0';
+	// write_db("MethodId", MethodId);
 
 	// Kms
     char Kms[KMS_LEN+1];
@@ -286,7 +306,9 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	write_db("Kz", Kz);
 
 	/*----------------------- SHA256 MACs Generation ---------------------- */
-	// char macs[600];
+    char MACs[44];
+	char MACs_input[600];
+
 	/*
 		TODO: Creating MACs
 		- Recreate JSON
@@ -294,6 +316,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		- Check HMAC OpenSSL process
 		- Emulate process
 	 */
+
    	// crypto_init();
 	// sha256_init(&state);
 	// len = strlen(macs);
@@ -302,10 +325,13 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	// ret = sha256_done(&state, sha256);
 	// crypto_disable();
 
-	// write_db("MACs", macs);
-
+	write_db("MACs", MACs);
 
 	/*----------------------- SHA256 MACp Generation ---------------------- */
+    char MACp[44];
+	char MACp_input[600];
+
+    write_db("MACp", MACp);
 
   PROCESS_END();
 }
