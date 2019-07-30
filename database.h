@@ -40,10 +40,13 @@
 
 /* Name of the database file */
 #define DB_NAME "peer_db.txt"
+#define DB_NAME_KDF "peer_db_kdf"
 
 /* Public functions */
 int write_db(char*,char*);
+int write_db_kdf(unsigned char*);
 int read_db(char*,char*);
+int read_db_kdf(unsigned char*);
 void print_db(void);
 
 #endif
