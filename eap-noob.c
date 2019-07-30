@@ -360,28 +360,29 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type, dirp, dirs;
-    char tmp[2][80];
+    char tmp_key[15];
+    char tmp_val[80];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
-            jsonparse_copy_next(&js_req, tmp[0], size);
+            jsonparse_copy_next(&js_req, tmp_key, size);
             jsonparse_next(&js_req);
-            jsonparse_copy_next(&js_req, tmp[1], size);
-            if (!strcmp(tmp[0], "PeerId")) {
-                strcpy(PeerId, tmp[1]);
-            } else if(!strcmp(tmp[0], "Vers")) {
-                if (value_in_array(VERS, tmp[1]) == -1) {
+            jsonparse_copy_next(&js_req, tmp_val, size);
+            if (!strcmp(tmp_key, "PeerId")) {
+                strcpy(PeerId, tmp_val);
+            } else if(!strcmp(tmp_key, "Vers")) {
+                if (value_in_array(VERS, tmp_val) == -1) {
                     // Error: No mutually supported protocol version
                     eap_noob_err_msg(eapRespData, E3001, eapRespLen);
                     return;
                 }
-            } else if(!strcmp(tmp[0], "Cryptosuites")) {
-                if (value_in_array(CSUIT, tmp[1]) == -1) {
+            } else if(!strcmp(tmp_key, "Cryptosuites")) {
+                if (value_in_array(CSUIT, tmp_val) == -1) {
                     // Error: No mutually supported cryptosuite
                     eap_noob_err_msg(eapRespData, E3002, eapRespLen);
                     return;
                 }
-            } else if(!strcmp(tmp[0], "Dirs")) {
-                dirs = tmp[1][0] - '0';
+            } else if(!strcmp(tmp_key, "Dirs")) {
+                dirs = tmp_val[0] - '0';
                 if (dirs == OOBDIR)
                     dirp = dirs;
                 else if (dirs == 3)
@@ -394,7 +395,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
                     return;
                 }
             }
-            write_db(tmp[0], tmp[1]);
+            write_db(tmp_key, tmp_val);
         }
     }
     // Convert values to store them in the database

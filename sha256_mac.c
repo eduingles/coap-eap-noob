@@ -69,6 +69,7 @@ PROCESS_THREAD(sha256_mac, ev, data) {
 
     // Temporary array for reading the database
     char tmp_val[130];
+    static char MAC_input[600];
 
     // Re-build PKp because it doesn't fit in the database
     char pk_x_b64[45];
@@ -94,17 +95,25 @@ PROCESS_THREAD(sha256_mac, ev, data) {
 	// Kms[KMS_LEN] = '\0';
 
     // Build input for MACs
-    static char MACs_input[580];
-	memcpy(MACs_input, "\"", 1);
-	memcpy(MACs_input+1, Kms, KMS_LEN);
-	memcpy(MACs_input+33, "\",\"2\"\0", 6);
+    // static char MACs_input[580];
+	/* FIXME: (delete me after reading) I guess this line is a copy-paste. I keep it as a comment in case it is useful, but it doesn't make any sense to me.
 
+		MACp_input is declared but without input, so you can put random info without knowing. Also, MAC string should start with a comma.
+	 */
+    // sprintf(MACs_input, "%s,\"%s\"", MACs_input, Kms);
+	memcpy(MAC_input, "\"", 1);
+	memcpy(MAC_input+1, Kms, KMS_LEN);
+	memcpy(MAC_input+33, "\",\"2\"\0", 6);
+
+	/*
+	TODO: As there are arrays of bytes, it should be copied with memcpy instead of sprintf. There may be unexpected behaviors. (Same in MACp)
+	 */ 
     for (int i = 0; i < MAC_VALUES; i++) {
         if (!strcmp(MAC_keys[i], "PKp")) {
-            sprintf(MACs_input, "%s,\"%s%s%s%s%s\"", MACs_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
+            sprintf(MAC_input, "%s,\"%s%s%s%s%s\"", MAC_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
         } else {
             read_db((char *)MAC_keys[i], tmp_val);
-            sprintf(MACs_input, "%s,\"%s\"", MACs_input, tmp_val);
+            sprintf(MAC_input, "%s,\"%s\"", MAC_input, tmp_val);
         }
     }
 
@@ -112,69 +121,71 @@ PROCESS_THREAD(sha256_mac, ev, data) {
 	static sha256_state_t state;
 	static uint8_t sha256[32]; /* SHA256: Hash result */
 	size_t len;
-
     // Calculate MACs
    	crypto_init();
 	sha256_init(&state);
-	len = strlen(MACs_input);
-	sha256_process(&state, MACs_input, len);
+	len = strlen(MAC_input);
+	sha256_process(&state, MAC_input, len);
 	/* SHA256: Get result in param 'sha256' */
 	sha256_done(&state, sha256);
-	crypto_disable();
-
     // Store MACs as Base64url
     char MACs[45];
     size_t len_b64_macs = 0;
     base64_encode(sha256, 32, &len_b64_macs, (unsigned char*) MACs);
     MACs[43] = '\0'; // Get rid of padding character ('=') at the end
-
 	// write_db("MACs", MACs);
-
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated: %s\n", MACs);
 #endif
 
 	/*----------------------- SHA256 MACp Generation ---------------------- */
-// 	// Kmp
-//     char Kmp[KMP_LEN+1];
-// 	read_db("Kmp", Kmp);
-// 	// memcpy(Kmp, kdf_hash+256, KMP_LEN);
-// 	// Kmp[KMP_LEN] = '\0';
+	memset(MAC_input,'\0',600);
+	// Kmp
+    char Kmp[KMP_LEN+1];
+	read_db("Kmp", Kmp);
+	// memcpy(Kmp, kdf_hash+256, KMP_LEN);
+	// Kmp[KMP_LEN] = '\0';
 
-//     // Build input for MACp
-//     char MACp_input[600];
-//     sprintf(MACp_input, "%s,\"%s\"", MACp_input, Kmp);
-//     sprintf(MACp_input, "%s,\"%d\"", MACp_input, 1);
-//     for (int i = 0; i < MAC_VALUES; i++) {
-//         if (!strcmp(MAC_keys[i], "PKp")) {
-//             sprintf(MACs_input, "%s,\"%s%s%s%s%s\"", MACs_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
-//             // sprintf(MACp_input, "%s,\"%s\"", MACp_input, PKp);
-//         } else {
-//             read_db((char *)MAC_keys[i], tmp_val);
-//             sprintf(MACp_input, "%s,\"%s\"", MACp_input, tmp_val);
-//         }
-//     }
+    // Build input for MACp
+    // static char MACp_input[600];
+	/* FIXME: (delete me after reading) I guess this line is a copy-paste. I keep it as a comment in case it is useful, but it doesn't make any sense to me.
 
-//     // Calculate MACp
-//     crypto_init();
-//     sha256_init(&state);
-//     len = strlen(MACp_input);
-//     sha256_process(&state, MACp_input, len);
-//     /* SHA256: Get result in param 'sha256' */
-//     sha256_done(&state, sha256);
-//     crypto_disable();
+		MACp_input is declared but without input, so you can put random info without knowing. Also, MAC string should start with a comma.
+	 */
+    // sprintf(MACp_input, "%s,\"%s\"", MACp_input, Kmp);
+  	memcpy(MAC_input, "\"", 1);
+	memcpy(MAC_input+1, Kmp, KMP_LEN);
+	memcpy(MAC_input+33, "\",\"1\"\0", 6);
 
-//     // Store MACp as Base64url
-//     char MACp[44];
-//     size_t len_b64_macp = 0;
-//     base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
-//     MACp[43] = '\0'; // Get rid of padding character ('=') at the end
+    for (int i = 0; i < MAC_VALUES; i++) {
+        if (!strcmp(MAC_keys[i], "PKp")) {
+            sprintf(MAC_input, "%s,\"%s%s%s%s%s\"", MAC_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
+            // sprintf(MACp_input, "%s,\"%s\"", MACp_input, PKp);
+        } else {
+            read_db((char *)MAC_keys[i], tmp_val);
+            sprintf(MAC_input, "%s,\"%s\"", MAC_input, tmp_val);
+        }
+    }
 
-//     // write_db("MACp", MACp);
+    // Calculate MACp
+    sha256_init(&state);
+    len = strlen(MAC_input);
+    sha256_process(&state, MAC_input, len);
+    /* SHA256: Get result in param 'sha256' */
+    sha256_done(&state, sha256);
+    crypto_disable();
 
-// #if NOOB_DEBUG
-//     printf("EAP-NOOB: MACp generated: %s\n", MACp);
-// #endif
+    // Store MACp as Base64url
+    char MACp[45];
+    size_t len_b64_macp = 0;
+    base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
+    MACp[43] = '\0'; // Get rid of padding character ('=') at the end
+
+    // write_db("MACp", MACp);
+
+#if NOOB_DEBUG
+    printf("EAP-NOOB: MACp generated: %s\n", MACp);
+#endif
 
   PROCESS_END();
 }
