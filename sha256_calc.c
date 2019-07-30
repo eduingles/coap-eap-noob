@@ -264,7 +264,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	crypto_disable();
 
 	kdf_hash[320] = '\0'; // End string properly
-	// write_db("Kdf", kdf_hash);
+	write_db_kdf(kdf_hash);
 
 #if EDU_DEBUG
 	printf("EDU: SHA256: KDF Hash (hex): ");
@@ -276,59 +276,61 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #if NOOB_DEBUG
 	   printf("EAP-NOOB: KDF generated\n");
 #endif
-
+	/* SHA256: Send notification to main thread. Hoob, NoobId and KDF are completed */
+   	process_post(&boostrapping_service_process,
+                PROCESS_EVENT_CONTINUE, "hoob_noobid_kdf_generated");
 
     /* Extract values */
 //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
 
-// 	size_t counter = 0;
-// 	size_t len_tmp_b64 = 0;
-// 	unsigned char tmp_res[65];
-// 	unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
-// 	memcpy(tmp_res, kdf_hash, MSK_LEN);
-// 	tmp_res[MSK_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Msk", (char *)tmp_res_b64);
-// 	counter += MSK_LEN;
-// 	memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
-// //   printf("EDU: 4 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	tmp_res[EMSK_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Emsk", (char *)tmp_res_b64);
-// 	counter += EMSK_LEN;
-// //   printf("EDU: 5 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
-// //   printf("EDU: 6 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	tmp_res[AMSK_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Amsk", (char *)tmp_res_b64);
-// 	counter += AMSK_LEN;
-// //   printf("EDU: 7 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
-// //   printf("EDU: 8 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	tmp_res[METHOD_ID_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("MethodId", (char *)tmp_res_b64);
-// 	counter += METHOD_ID_LEN;
-// //   printf("EDU: 9 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
-// //   printf("EDU: 10 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	tmp_res[KMS_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Kms", (char *)tmp_res_b64);
-// 	counter += KMS_LEN;
-// //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
-// //   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
-// 	tmp_res[KMP_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Kmp", (char *)tmp_res_b64);
-// 	counter += KMP_LEN;
-// 	memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
-// 	tmp_res[KZ_LEN] = '\0';
-//     base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-// 	// write_db("Kz", (char *)tmp_res_b64);
-// 	counter += KZ_LEN;
+	size_t counter = 0;
+	size_t len_tmp_b64 = 0;
+	unsigned char tmp_res[65];
+	unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
+	memcpy(tmp_res, kdf_hash, MSK_LEN);
+	tmp_res[MSK_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Msk", (char *)tmp_res_b64);
+	counter += MSK_LEN;
+	memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
+//   printf("EDU: 4 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	tmp_res[EMSK_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Emsk", (char *)tmp_res_b64);
+	counter += EMSK_LEN;
+//   printf("EDU: 5 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
+//   printf("EDU: 6 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	tmp_res[AMSK_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Amsk", (char *)tmp_res_b64);
+	counter += AMSK_LEN;
+//   printf("EDU: 7 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
+//   printf("EDU: 8 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	tmp_res[METHOD_ID_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("MethodId", (char *)tmp_res_b64);
+	counter += METHOD_ID_LEN;
+//   printf("EDU: 9 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
+//   printf("EDU: 10 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	tmp_res[KMS_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Kms", (char *)tmp_res_b64);
+	counter += KMS_LEN;
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
+//   printf("EDU: 1 stack usage: %u permitted: %u\n", stack_check_get_usage(), stack_check_get_reserved_size());
+	tmp_res[KMP_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Kmp", (char *)tmp_res_b64);
+	counter += KMP_LEN;
+	memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
+	tmp_res[KZ_LEN] = '\0';
+    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
+	write_db("Kz", (char *)tmp_res_b64);
+	counter += KZ_LEN;
 
 	// print_db();
 

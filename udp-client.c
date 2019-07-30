@@ -101,9 +101,6 @@ tcpip_handler(void)
 {
 
 	if(uip_newdata()) {
-#if EDU_DEBUG
-			printf("\n-------------------------------------------------------\n\t\tEDUARDO: uip_datalen(): %d\n\n",uip_datalen());
-#endif
 		// Check for retransmission - TODO: Check if it is working
 		if(memcmp(uip_appdata, received ,uip_datalen()) == 0)
 		{
@@ -261,9 +258,6 @@ tcpip_handler(void)
 			size_t coap_len = coap_serialize_message(response, udp_payload); //TODO: Buffer with or without \0?
 			uip_udp_packet_send(client_conn, udp_payload, coap_len);
 			memcpy(sent, udp_payload, coap_len);
-#if EDU_DEBUG
-			printf("\n-------------------------------------------------------\n\t\tEDUARDO: sent_len: %d\n\n",coap_len);
-#endif
 			sent_len = coap_len;
 		}
 	}

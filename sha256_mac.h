@@ -30,8 +30,8 @@
  *  See CONTRIBUTORS for more information.
  */
 
-#ifndef SHA256_CALC_H
-#define SHA256_CALC_H
+#ifndef SHA256_MAC_H
+#define SHA256_MAC_H
 
 #include "include.h"
 #include "base64.h"
@@ -40,6 +40,6 @@
 // SHA256 Implementation
 #include "dev/sha256.h"
 
-PROCESS_NAME(sha256_calc);
+PROCESS_NAME(sha256_mac);
 
 #endif
