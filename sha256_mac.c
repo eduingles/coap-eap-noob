@@ -40,130 +40,144 @@
 #define KMP_LEN                 32
 #define MAC_LEN                 32
 #define MAX_X25519_LEN          48
-#define P256_LEN		        32
+#define P256_LEN		            32
 #define HASH_LEN                16
-#define METHOD_ID_LEN		    32
+#define METHOD_ID_LEN		        32
 
 #define PKP1 "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\""
-#define PKP2 "\", \"y\":\""
+#define PKP2 "\",\"y\":\""
 #define PKP3 "\"}"
 
+#define MAC_VALUES  15
+
 PROCESS(sha256_mac, "SHA256 MACs and MACp");
-PROCESS_THREAD(sha256_mac, ev, data) {
+PROCESS_THREAD(sha256_mac, ev, data)
+{
+    PROCESS_BEGIN();
 
-	PROCESS_BEGIN();
-
-	// Kz
-    // char Kz[KZ_LEN+1];
-	// memcpy(Kz, kdf_hash+288, KZ_LEN);
-	// Kz[KZ_LEN] = '\0';
-
-	/*----------------------- SHA256 MAC Generation -----------------------*/
-    #define MAC_VALUES  15
-
+    // Keys for MAC input
     static const char *MAC_keys[] = {
-       "Vers", "Verp", "PeerId", "Cryptosuites", "Dirs", "ServerInfo",
+        "Vers", "Verp", "PeerId", "Cryptosuites", "Dirs", "ServerInfo",
         "Cryptosuitep", "Dirp", "Realm", "PeerInfo", "PKs", "Ns", "PKp", "Np",
         "Noob"
     };
 
     // Temporary array for reading the database
     char tmp_val[130];
+    // MAC input
     static char MAC_input[600];
 
     // Re-build PKp because it doesn't fit in the database
     char pk_x_b64[45];
     char pk_y_b64[45];
-	pk_x_b64[44] = '\0';
-	pk_y_b64[44] = '\0';
+    pk_x_b64[44] = '\0';
+    pk_y_b64[44] = '\0';
     read_db("Xp", pk_x_b64);
     read_db("Yp", pk_y_b64);
-	/*
-	FIXME: (delete me after reading) You may want to change this line again. It's up to you, but remember checking the length
-	*/
-    // char PKp[130];
-    // sprintf(PKp, "%s%s%s%s%s",
-    //     "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"", pk_x_b64,
-    //     "\", \"y\":\"", pk_y_b64, "\"}"
-    // );
 
-    /*----------------------- SHA256 MACs Generation -----------------------*/
-	// Kms
-    static char Kms[KMS_LEN+1];
-	read_db("Kms", Kms);
-	// memcpy(Kms, kdf_hash+224, KMS_LEN);
-	// Kms[KMS_LEN] = '\0';
+    /*------------------------ SHA256 MACs Generation ------------------------*/
+    // Kms
+    read_db("Kms", tmp_val);
+
+    size_t len_kms = 0;
+    unsigned char Kms[KMS_LEN+1];
+    base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_kms, Kms);
 
     // Build input for MACs
-    // static char MACs_input[580];
-	/* FIXME: (delete me after reading) I guess this line is a copy-paste. I keep it as a comment in case it is useful, but it doesn't make any sense to me.
+    size_t counter = 0;
 
-		MACp_input is declared but without input, so you can put random info without knowing. Also, MAC string should start with a comma.
-	 */
-    // sprintf(MACs_input, "%s,\"%s\"", MACs_input, Kms);
-	memcpy(MAC_input, "\"", 1);
-	memcpy(MAC_input+1, Kms, KMS_LEN);
-	memcpy(MAC_input+33, "\",\"2\"\0", 6);
+    memcpy(MAC_input, Kms, KMS_LEN);
+    counter += KMS_LEN;
 
-	/*
-	TODO: As there are arrays of bytes, it should be copied with memcpy instead of sprintf. There may be unexpected behaviors. (Same in MACp)
-	 */ 
+    memcpy(MAC_input+counter, ",2", 2);
+    counter += 2;
+
     for (int i = 0; i < MAC_VALUES; i++) {
         if (!strcmp(MAC_keys[i], "PKp")) {
-            sprintf(MAC_input, "%s,\"%s%s%s%s%s\"", MAC_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
+            memcpy(MAC_input+counter, ",", 1);
+            counter += 1;
+            memcpy(MAC_input+counter, PKP1, strlen(PKP1));
+            counter += strlen(PKP1);
+            memcpy(MAC_input+counter, pk_x_b64, strlen(pk_x_b64));
+            counter += strlen(pk_x_b64);
+            memcpy(MAC_input+counter, PKP2, strlen(PKP2));
+            counter += strlen(PKP2);
+            memcpy(MAC_input+counter, pk_y_b64, strlen(pk_y_b64));
+            counter += strlen(pk_y_b64);
+            memcpy(MAC_input+counter, PKP3, strlen(PKP3));
+            counter += strlen(PKP3);
         } else {
             read_db((char *)MAC_keys[i], tmp_val);
-            sprintf(MAC_input, "%s,\"%s\"", MAC_input, tmp_val);
+            memcpy(MAC_input+strlen(MAC_input), ",", 1);
+            counter += 1;
+            memcpy(MAC_input+strlen(MAC_input), tmp_val, strlen(tmp_val));
+            counter += strlen(tmp_val);
         }
     }
 
-	/* SHA256 Variables */
-	static sha256_state_t state;
-	static uint8_t sha256[32]; /* SHA256: Hash result */
-	size_t len;
+    /* SHA256 Variables */
+    static sha256_state_t state;
+    static uint8_t sha256[32]; /* SHA256: Hash result */
+    size_t len;
     // Calculate MACs
    	crypto_init();
-	sha256_init(&state);
-	len = strlen(MAC_input);
-	sha256_process(&state, MAC_input, len);
-	/* SHA256: Get result in param 'sha256' */
-	sha256_done(&state, sha256);
+    sha256_init(&state);
+    len = strlen(MAC_input);
+    sha256_process(&state, MAC_input, len);
+    /* SHA256: Get result in param 'sha256' */
+    sha256_done(&state, sha256);
+
     // Store MACs as Base64url
     char MACs[45];
     size_t len_b64_macs = 0;
     base64_encode(sha256, 32, &len_b64_macs, (unsigned char*) MACs);
     MACs[43] = '\0'; // Get rid of padding character ('=') at the end
-	// write_db("MACs", MACs);
+    write_db("MACs", MACs);
+
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated: %s\n", MACs);
 #endif
 
-	/*----------------------- SHA256 MACp Generation ---------------------- */
-	memset(MAC_input,'\0',600);
-	// Kmp
-    char Kmp[KMP_LEN+1];
-	read_db("Kmp", Kmp);
-	// memcpy(Kmp, kdf_hash+256, KMP_LEN);
-	// Kmp[KMP_LEN] = '\0';
+    // Clear input array
+    memset(MAC_input,'\0',600);
 
-    // Build input for MACp
-    // static char MACp_input[600];
-	/* FIXME: (delete me after reading) I guess this line is a copy-paste. I keep it as a comment in case it is useful, but it doesn't make any sense to me.
+    /*------------------------ SHA256 MACp Generation ------------------------*/
+    // Kmp
+    read_db("Kmp", tmp_val);
 
-		MACp_input is declared but without input, so you can put random info without knowing. Also, MAC string should start with a comma.
-	 */
-    // sprintf(MACp_input, "%s,\"%s\"", MACp_input, Kmp);
-  	memcpy(MAC_input, "\"", 1);
-	memcpy(MAC_input+1, Kmp, KMP_LEN);
-	memcpy(MAC_input+33, "\",\"1\"\0", 6);
+    size_t len_kmp = 0;
+    unsigned char Kmp[KMP_LEN+1];
+    base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_kmp, Kmp);
+
+    // Build input for MACs
+    counter = 0;
+
+    memcpy(MAC_input, Kmp, KMP_LEN);
+    counter += KMP_LEN;
+
+    memcpy(MAC_input+counter, ",2", 2);
+    counter += 2;
 
     for (int i = 0; i < MAC_VALUES; i++) {
         if (!strcmp(MAC_keys[i], "PKp")) {
-            sprintf(MAC_input, "%s,\"%s%s%s%s%s\"", MAC_input, PKP1,pk_x_b64,PKP2,pk_y_b64,PKP3);
-            // sprintf(MACp_input, "%s,\"%s\"", MACp_input, PKp);
+            memcpy(MAC_input+counter, ",", 1);
+            counter += 1;
+            memcpy(MAC_input+counter, PKP1, strlen(PKP1));
+            counter += strlen(PKP1);
+            memcpy(MAC_input+counter, pk_x_b64, strlen(pk_x_b64));
+            counter += strlen(pk_x_b64);
+            memcpy(MAC_input+counter, PKP2, strlen(PKP2));
+            counter += strlen(PKP2);
+            memcpy(MAC_input+counter, pk_y_b64, strlen(pk_y_b64));
+            counter += strlen(pk_y_b64);
+            memcpy(MAC_input+counter, PKP3, strlen(PKP3));
+            counter += strlen(PKP3);
         } else {
             read_db((char *)MAC_keys[i], tmp_val);
-            sprintf(MAC_input, "%s,\"%s\"", MAC_input, tmp_val);
+            memcpy(MAC_input+strlen(MAC_input), ",", 1);
+            counter += 1;
+            memcpy(MAC_input+strlen(MAC_input), tmp_val, strlen(tmp_val));
+            counter += strlen(tmp_val);
         }
     }
 
@@ -180,13 +194,12 @@ PROCESS_THREAD(sha256_mac, ev, data) {
     size_t len_b64_macp = 0;
     base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
     MACp[43] = '\0'; // Get rid of padding character ('=') at the end
-
-    // write_db("MACp", MACp);
+    write_db("MACp", MACp);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACp generated: %s\n", MACp);
 #endif
+    /*------------------------------------------------------------------------*/
 
-  PROCESS_END();
+    PROCESS_END();
 }
-/*---------------------------------------------------------------------------*/

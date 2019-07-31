@@ -35,7 +35,7 @@
 
 #include "include.h"
 #include "base64.h"
-#include "database.h" // Database
+#include "database.h"
 
 // SHA256 Implementation
 #include "dev/sha256.h"

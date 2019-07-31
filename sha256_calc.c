@@ -44,9 +44,9 @@
 #define KMP_LEN                 32
 #define MAC_LEN                 32
 #define MAX_X25519_LEN          48
-#define P256_LEN		        32
+#define P256_LEN		            32
 #define HASH_LEN                16
-#define METHOD_ID_LEN		    32
+#define METHOD_ID_LEN		        32
 
 PROCESS(sha256_calc, "SHA256 CALCULATIONS");
 PROCESS_THREAD(sha256_calc, ev, data) {
@@ -210,7 +210,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     static uint8_t kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
                            = 4 + 32 + 8 + 32 + 32 + 16 + 1
                            = 125 */
-						   
+
     /* Decode nonces */
 	char nonce[45]; // 45 to include '=' padding
 	size_t len_tmp = 0;
@@ -285,46 +285,59 @@ PROCESS_THREAD(sha256_calc, ev, data) {
                 PROCESS_EVENT_CONTINUE, "hoob_noobid_kdf_generated");
 
     /* Extract values */
+    size_t counter = 0;
+    size_t len_tmp_b64 = 0;
+    unsigned char tmp_res[65];
+    unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
 
-	size_t counter = 0;
-	size_t len_tmp_b64 = 0;
-	unsigned char tmp_res[65];
-	unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
-	memcpy(tmp_res, kdf_hash, MSK_LEN);
-	tmp_res[MSK_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Msk", (char *)tmp_res_b64);
-	counter += MSK_LEN;
-	memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
-	tmp_res[EMSK_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Emsk", (char *)tmp_res_b64);
-	counter += EMSK_LEN;
-	memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
-	tmp_res[AMSK_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Amsk", (char *)tmp_res_b64);
-	counter += AMSK_LEN;
-	memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
-	tmp_res[METHOD_ID_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("MethodId", (char *)tmp_res_b64);
-	counter += METHOD_ID_LEN;
-	memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
-	tmp_res[KMS_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Kms", (char *)tmp_res_b64);
-	counter += KMS_LEN;
-	memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
-	tmp_res[KMP_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Kmp", (char *)tmp_res_b64);
-	counter += KMP_LEN;
-	memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
-	tmp_res[KZ_LEN] = '\0';
-    base64_encode(tmp_res, 16, &len_tmp_b64, tmp_res_b64);
-	write_db("Kz", (char *)tmp_res_b64);
-	counter += KZ_LEN;
+    memcpy(tmp_res, kdf_hash, MSK_LEN);
+    tmp_res[MSK_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, MSK_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Msk", (char *)tmp_res_b64);
+    counter += MSK_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
+    tmp_res[EMSK_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, EMSK_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Emsk", (char *)tmp_res_b64);
+    counter += EMSK_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
+    tmp_res[AMSK_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, AMSK_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Amsk", (char *)tmp_res_b64);
+    counter += AMSK_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
+    tmp_res[METHOD_ID_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, METHOD_ID_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("MethodId", (char *)tmp_res_b64);
+    counter += METHOD_ID_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
+    tmp_res[KMS_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, KMS_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Kms", (char *)tmp_res_b64);
+    counter += KMS_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
+    tmp_res[KMP_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, KMP_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Kmp", (char *)tmp_res_b64);
+    counter += KMP_LEN;
+
+    memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
+    tmp_res[KZ_LEN] = '\0';
+    memset(tmp_res_b64, '\0', 90);
+    base64_encode(tmp_res, KZ_LEN, &len_tmp_b64, tmp_res_b64);
+    write_db("Kz", (char *)tmp_res_b64);
+    counter += KZ_LEN;
 
   PROCESS_END();
 }

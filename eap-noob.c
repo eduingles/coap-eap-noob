@@ -175,7 +175,6 @@ void generate_nonce(size_t size, unsigned char *dst)
         nonce[i] = base64_table[random_rand() % 64];
     nonce[i] = '\0';
 
-    printf("DEBUG: generated nonce %s\n", nonce);
     // Base64 encode the nonce
     size_t len_b64_nonce = 0;
     base64_encode((const unsigned char*)nonce, size, &len_b64_nonce, dst);
@@ -531,7 +530,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    
+
     char tmp_key[20];
     char tmp_val[50];
     while((type = jsonparse_next(&js_req)) != 0) {

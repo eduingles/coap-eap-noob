@@ -39,7 +39,7 @@
 #define DEBUG_MSG_DB(X) printf("EAP-NOOB: %s\n", X)
 
 /* Name of the database file */
-#define DB_NAME "peer_db.txt"
+#define DB_NAME     "peer_db.txt"
 #define DB_NAME_KDF "peer_db_kdf"
 
 /* Public functions */
