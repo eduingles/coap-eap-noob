@@ -141,7 +141,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     base64_encode(sha256, 16, &len_b64_hoob, hoob);
 	hoob[22] = '\0'; // Remove '=' padding
 
-	crypto_disable();
+	// crypto_disable();
 
 	/* SHA256: Show URL */
 	char peer_id[23];
@@ -164,13 +164,13 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	sprintf(noobid_str, "NoobId%s",noob);
 
     /* Generate NoobId */
-   	crypto_init();
+   	// crypto_init();
 	sha256_init(&state);
 	len = strlen(noobid_str);
 	sha256_process(&state, noobid_str, len);
 	/* SHA256: Get result in param 'sha256' */
 	sha256_done(&state, sha256);
-	crypto_disable();
+	// crypto_disable();
 	unsigned char NoobId[23];
     len_b64_hoob = 0;
     base64_encode(sha256, 16, &len_b64_hoob, NoobId);
@@ -202,7 +202,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     /* Decode nonces */
 	size_t len_tmp = 0;
 
-   	crypto_init();
+   	// crypto_init();
 	static size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	static size_t kdf_hash_len = 0;
@@ -236,37 +236,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		sprintf(nonce, "%s""==", nonce); // Recover '=' to decode
 		base64_decode((unsigned char *)nonce, 24, &len_tmp, noob2);
 
-		// printf("EDU: sha256_calc: ctr (%x) ", i);
-        // for(int i = 0; i < 4; i++)
-        //     printf("%02x", ctr[i]);
-		// printf("\n");
-		// // sha256_process(&state, ctr, sizeof(ctr));		
-		// printf("EDU: sha256_calc: Shared secret ");
-        // for(int i = 0; i < 32 ; i++)
-        //     printf("%02x", z[i]);
-		// printf("\n");
-		// // sha256_process(&state, z, 32); // Z: ECDHE shared secret
-		// printf("EDU: sha256_calc: ALGORITHM_ID ");
-        // for(int i = 0; i < strlen(ALGORITHM_ID) ; i++)
-        //     printf("%02x", ALGORITHM_ID[i]);
-		// printf("\n");
-		// // sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // AlgorithmId: "EAP-NOOB"
-		// printf("EDU: sha256_calc: np_decoded ");
-        // for(int i = 0; i < 32 ; i++)
-        //     printf("%02x", np_decoded[i]);
-		// printf("\n");
-		// // sha256_process(&state, np_decoded, sizeof(np_decoded)); // PartyUInfo: Np
-		// printf("EDU: sha256_calc: ns_decoded ");
-        // for(int i = 0; i < 32 ; i++)
-        //     printf("%02x", ns_decoded[i]);
-		// printf("\n");
-		// // sha256_process(&state, ns_decoded, sizeof(ns_decoded)); // PartyVInfo: Ns
-		// printf("EDU: sha256_calc: noob2 ");
-        // for(int i = 0; i < 16 ; i++)
-        //     printf("%02x", noob2[i]);
-		// printf("\n");
-		// sha256_process(&state, noob2, 16); // SuppPrivInfo: Noob
-
 		static uint8_t kdf_hash_tmp[125];
 		memcpy(kdf_hash_tmp, ctr, 4);
 		memcpy(kdf_hash_tmp+4, z, 32); // Z: ECDHE shared secret
@@ -275,18 +244,12 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		memcpy(kdf_hash_tmp+76, ns_decoded, 32); // PartyVInfo: Ns
 		memcpy(kdf_hash_tmp+108, noob2, 16); // SuppPrivInfo: Noob
 		kdf_hash_tmp[124] = '\0';
-		
-		sha256_process(&state, kdf_hash_tmp, 124);
 
+		sha256_process(&state, kdf_hash_tmp, 124);
 
         if (outlen >= mdlen) {
 			/* SHA256: Get result in param 'sha256' */
 			sha256_done(&state, sha256);
-			// printf("EDU: sha256_calc: kdf_hash_len %d\n", kdf_hash_len);
-			// printf("EDU: sha256_calc: sha256 tmp ");
-			// for(int i = 0; i < 32 ; i++)
-			// 	printf("%02x", sha256[i]);
-			// printf("\n");
 			memcpy(kdf_hash+kdf_hash_len, sha256, sizeof(sha256));
             outlen -= mdlen;
             if (outlen == 0)
@@ -303,8 +266,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	crypto_disable();
 
-	kdf_hash[320] = '\0'; // End string properly
-	write_db_kdf(kdf_hash);
+	// kdf_hash[320] = '\0'; // End string properly
+	// write_db(kdf_hash);
 
 #if EDU_DEBUG
 	printf("EDU: SHA256: KDF Hash (hex): ");
@@ -328,55 +291,58 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     size_t counter = 0;
     size_t len_tmp_b64 = 0;
     unsigned char tmp_res[65];
-    unsigned char tmp_res_b64[90]; // 64 Bytes in b64 = 88 Bytes
+    unsigned char tmp_res_b64[89]; // 64 Bytes in b64 = 88 Bytes
 
     memcpy(tmp_res, kdf_hash, MSK_LEN);
     tmp_res[MSK_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, MSK_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("Msk", (char *)tmp_res_b64);
+    write_db_name("msk_db.txt", "Msk", (char *)tmp_res_b64);
     counter += MSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
     tmp_res[EMSK_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, EMSK_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("Emsk", (char *)tmp_res_b64);
+    // write_db_name("msk_db.txt", "Emsk", (char *)tmp_res_b64);
     counter += EMSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
     tmp_res[AMSK_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, AMSK_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("Amsk", (char *)tmp_res_b64);
+    // write_db_name("msk_db", "Amsk", (char *)tmp_res_b64);
     counter += AMSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
     tmp_res[METHOD_ID_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, METHOD_ID_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("MethodId", (char *)tmp_res_b64);
+    // write_db_name("kmsdb.txt", "MethodId", (char *)tmp_res_b64);
     counter += METHOD_ID_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
     tmp_res[KMS_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    // memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KMS_LEN, &len_tmp_b64, tmp_res_b64);
+	// tmp_res_b64[43] = '\0';
     write_db("Kms", (char *)tmp_res_b64);
+    // write_db_name("kmsdb.txt", "Kms", (char *)tmp_res_b64);
     counter += KMS_LEN;
 
+	printf("--- eeey ---\n");
     memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
     tmp_res[KMP_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KMP_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("Kmp", (char *)tmp_res_b64);
+    // write_db_name("kmsdb.txt", "Kmp", (char *)tmp_res_b64);
     counter += KMP_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
     tmp_res[KZ_LEN] = '\0';
-    memset(tmp_res_b64, '\0', 90);
+    memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KZ_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db("Kz", (char *)tmp_res_b64);
+    // write_db_name("k_db", "Kz", (char *)tmp_res_b64);
     counter += KZ_LEN;
 
   PROCESS_END();

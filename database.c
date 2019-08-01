@@ -1,4 +1,8 @@
 #include "database.h"
+#if EDU_DEBUG
+    //Stack guard
+    // #include "sys/stack-check.h"
+#endif
 
 /**
  * write_db : Write data to database
@@ -76,17 +80,19 @@ int read_db(char *key, char *val)
         // Read the entire database
         size_t size = cfs_seek(db, 0, CFS_SEEK_END);
         cfs_seek(db, 0, CFS_SEEK_SET);
-        /*
-            FIXME: Error creating memory, 
-         */
+        /* FIXME: Error allocating memory */
         char dst[size];
         cfs_read(db, dst, size);
         cfs_close(db);
         // Find value in database
     	char *current_line = strtok(dst, "\n");
+        /* FIXME: Error reading file */
     	while(current_line != NULL) {
             char *current_key = strtok(NULL, ";");
             char *current_val = strtok(NULL, "\n");
+#if EDU_DEBUG
+            // printf("EDU:  current_key %s current_val %s\n", current_key, current_val);
+#endif
             if (!strcmp(current_key, key)) {
                 memcpy(val, current_val, strlen(current_val) + 1);
                 return 1;
@@ -113,22 +119,21 @@ int read_db_name(char *db_name, char *key, char *val)
         // Read the entire database
         size_t size = cfs_seek(db, 0, CFS_SEEK_END);
         cfs_seek(db, 0, CFS_SEEK_SET);
-        /*
-            FIXME: Error creating memory, 
-         */
+        /* FIXME: Error allocating memory */
         char dst[size];
         cfs_read(db, dst, size);
         cfs_close(db);
         // Find value in database
     	char *current_line = strtok(dst, "\n");
-    	while(current_line != NULL) {
+        /* FIXME: Error reading file */
+        do {
             char *current_key = strtok(NULL, ";");
             char *current_val = strtok(NULL, "\n");
             if (!strcmp(current_key, key)) {
                 memcpy(val, current_val, strlen(current_val) + 1);
                 return 1;
             }
-    	}
+        } while(current_line != NULL);
         return -1;
     } else {
         DEBUG_MSG_DB("Could not open database");

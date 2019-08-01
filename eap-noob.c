@@ -554,8 +554,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
                 }
             } else if (!strcmp(tmp_key, "MACs")) {
                 char MACs[44];
-                // TODO: calculate MACs
-                // read_db("MACs", MACs);
+                read_db("MACs", MACs);
                 if (strcmp(MACs, tmp_val)) {
                     // Error: HMAC verification failure
                     eap_noob_err_msg(eapRespData, E4001, eapRespLen);

@@ -34,6 +34,7 @@
 #define INCLUDE_H
 
 #include "lib/random.h"
+#include <stdint.h> //uint32_t
 
 #if EDU_DEBUG
     //Stack guard
@@ -98,17 +99,18 @@
                   ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
 //Global variables
-uint8_t msk_key [MSK_LENGTH];
+// uint8_t msk_key [MSK_LENGTH];
 
 //ECDH Implementation
 PROCESS_NAME(boostrapping_service_process);
 uint32_t private_secret[8]; //
 uint32_t shared_secret[8]; // Shared Secret derived during ECDH
 
-//SHA256 Implementation
-unsigned char np_nonce[44]; // Nonce Peer
-
-ec_point_t client_pk; // Client Public Key (Local) - Generator Point
-ec_point_t server_pk; // Server Public Key (HostAPD) - Generator Point
+typedef struct {
+  uint32_t       x[12];     /**< Pointer to value of the x co-ordinate. */
+  uint32_t       y[12];     /**< Pointer to value of the y co-ordinate. */
+} public_key;
+public_key client_pk; // Client Public Key (Local) - Generator Point
+public_key server_pk; // Server Public Key (HostAPD) - Generator Point
 
 #endif

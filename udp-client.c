@@ -137,7 +137,7 @@ tcpip_handler(void)
 				memcpy(ptr, &(nonce_s),sizeof(uint32_t));
 
 				// EAP Restart
-				memset(&msk_key,0, MSK_LENGTH);
+				// memset(&msk_key,0, MSK_LENGTH);
 				eapRestart=TRUE;
 				eap_peer_sm_step(NULL);
 
@@ -148,7 +148,7 @@ tcpip_handler(void)
 
 			else{
 				if(eapKeyAvailable){
-					do_omac(msk_key, sequence, 26, auth_key);
+					// do_omac(msk_key, sequence, 26, auth_key);
 					authKeyAvailable = TRUE;
 
 					// Verify the AUTH Option
@@ -287,7 +287,7 @@ timeout_handler(void)
 	etimer_restart(&et);
 	state = 0;
 
-	memset(&msk_key,0, MSK_LENGTH);
+	// memset(&msk_key,0, MSK_LENGTH);
 	eapRestart=TRUE;
 	eap_peer_sm_step(NULL);
 
