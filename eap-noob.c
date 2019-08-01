@@ -188,7 +188,7 @@ void generate_noob(void)
     unsigned char noob[25];
     generate_nonce(16, noob);
     noob[22] = '\0'; // Get rid of padding character ('=') at the end
-    write_db("Noob", (char *)noob);
+    write_db(PEER_DB, "Noob", (char *)noob);
 }
 
 /**
@@ -259,7 +259,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
-    write_db("Xp", (char *)pk_x_b64);
+    write_db(PEER_DB, "Xp", (char *)pk_x_b64);
 
     unsigned char pk_str2[32];
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
@@ -272,12 +272,12 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
-    write_db("Yp", (char *)pk_y_b64);
+    write_db(PEER_DB, "Yp", (char *)pk_y_b64);
 
     // Generate nonce
     unsigned char Np_b64[44];
     generate_nonce(32, Np_b64);
-    write_db("Np", (char *)Np_b64);
+    write_db(PEER_DB, "Np", (char *)Np_b64);
 
     char tmpResponseType2[250];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
@@ -329,7 +329,7 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
     char tmpResponseType4[140];
     char MACp[44];
     // TODO: calculate MACp
-    // read_db("MACp", MACp);
+    // read_db(MAC_DB, "MACp", MACp);
     sprintf(tmpResponseType4, "%s%s%s%s%s",
         "{\"Type\":4,\"PeerId\":\"",PeerId,"\",\"MACp\":\"",MACp,"\"}"
     );
@@ -394,7 +394,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
                     return;
                 }
             }
-            write_db(tmp_key, tmp_val);
+            write_db(PEER_DB, tmp_key, tmp_val);
         }
     }
     // Convert values to store them in the database
@@ -405,10 +405,10 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
     sprintf(Cryptosuitep, "%d", CSUIT);
     sprintf(Dirp, "%d", dirp);
 
-    write_db("Verp", Verp);
-    write_db("Cryptosuitep", Cryptosuitep);
-    write_db("Dirp", Dirp);
-    write_db("PeerInfo", PEER_INFO);
+    write_db(PEER_DB, "Verp", Verp);
+    write_db(PEER_DB, "Cryptosuitep", Cryptosuitep);
+    write_db(PEER_DB, "Dirp", Dirp);
+    write_db(PEER_DB, "PeerInfo", PEER_INFO);
 
     // Build response
     eap_noob_rsp_type_one(eapRespData, dirp, eapRespLen);
@@ -442,7 +442,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                     return;
                 }
             } else if (!strcmp(tmp_key, "PKs")) {
-                write_db(tmp_key, tmp_val);
+                write_db(PEER_DB, tmp_key, tmp_val);
                 struct jsonparse_state pks;
                 jsonparse_setup(&pks, tmp_val, strlen(tmp_val));
                 while((type = jsonparse_next(&pks)) != 0) {
@@ -451,14 +451,14 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         jsonparse_next(&pks);
                         jsonparse_copy_next(&pks, tmp_val, size);
                         if (!strcmp(tmp_key, "x")) {
-                            write_db("Xs", tmp_val);
+                            write_db(PEER_DB, "Xs", tmp_val);
                             size_t len_x = 0;
                             unsigned char x[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
                             base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_x, x);
                             memcpy(server_pk.x,x, 32);
                         } else if (!strcmp(tmp_key, "y")) {
-                            write_db("Ys", tmp_val);
+                            write_db(PEER_DB, "Ys", tmp_val);
                             size_t len_y = 0;
                             unsigned char y[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
@@ -468,7 +468,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                     }
                 }
             } else if (!strcmp(tmp_key, "Ns")) {
-                write_db(tmp_key, tmp_val);
+                write_db(PEER_DB, tmp_key, tmp_val);
             } else if (!strcmp(tmp_key, "SleepTime")) {
                 // TODO: set SleepTime
             }
@@ -546,7 +546,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
                 }
             } else if (!strcmp(tmp_key, "NoobId")) {
                 char NoobId[23];
-            	read_db("NoobId", NoobId);
+            	read_db(PEER_DB, "NoobId", NoobId);
                 if (strcmp(NoobId, tmp_val)) {
                     // Error: Unrecognized OOB message identifier
                     eap_noob_err_msg(eapRespData, E2003, eapRespLen);
@@ -554,7 +554,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
                 }
             } else if (!strcmp(tmp_key, "MACs")) {
                 char MACs[44];
-                read_db("MACs", MACs);
+                read_db(MAC_DB, "MACs", MACs);
                 if (strcmp(MACs, tmp_val)) {
                     // Error: HMAC verification failure
                     eap_noob_err_msg(eapRespData, E4001, eapRespLen);

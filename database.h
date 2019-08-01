@@ -38,17 +38,15 @@
 /* Print debug information */
 #define DEBUG_MSG_DB(X) printf("EAP-NOOB: %s\n", X)
 
-/* Name of the database file */
-#define DB_NAME     "peer_db.txt"
-#define DB_NAME_KDF "peer_db_kdf"
+/* Name of the database files */
+#define PEER_DB     "peer_db.txt"
+#define KDF_DB      "kdf_db.txt"
+#define KEY_DB      "key_db.txt"
+#define MAC_DB      "mac_db.txt"
 
 /* Public functions */
-int write_db(char*,char*);
-int write_db_name(char*,char*,char*);
-int write_db_kdf(unsigned char*);
-int read_db(char*,char*);
-int read_db_name(char*,char*,char*);
-int read_db_kdf(unsigned char*);
-void print_db(void);
+int write_db(char*,char*,char*);
+int read_db(char*,char*,char*);
+void print_db(char*);
 
 #endif

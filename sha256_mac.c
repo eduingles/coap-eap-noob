@@ -71,7 +71,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
     /*------------------------ SHA256 MACs Generation ------------------------*/
     // Temporary array for reading the database
     char tmp_val[127];
-    read_db("Kms", tmp_val);
+    read_db(KEY_DB, "Kms", tmp_val);
     // read_db_name("kmsdb.txt", "Kms", tmp_val);
     tmp_val[43] = '\0';
     size_t len_kms = 0;
@@ -100,25 +100,25 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += strlen(PKP1);
             // Re-build PKp because it doesn't fit in the database
             char pk_b64[45];
-            read_db("Xp", pk_b64);
+            read_db(PEER_DB, "Xp", pk_b64);
             pk_b64[43] = '\0';
             memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
             counter += strlen(pk_b64);
             memcpy(MAC_input+counter, PKP2, strlen(PKP2));
             counter += strlen(PKP2);
-            read_db("Yp", pk_b64);
+            read_db(PEER_DB, "Yp", pk_b64);
             pk_b64[43] = '\0';
             memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
             counter += strlen(pk_b64);
             memcpy(MAC_input+counter, PKP3, strlen(PKP3));
             counter += strlen(PKP3);
-        } else if (!strcmp(MAC_keys[i], "PeerId") || 
-            !strcmp(MAC_keys[i], "Realm") || 
-            !strcmp(MAC_keys[i], "Ns") || 
-            !strcmp(MAC_keys[i], "Np") || 
+        } else if (!strcmp(MAC_keys[i], "PeerId") ||
+            !strcmp(MAC_keys[i], "Realm") ||
+            !strcmp(MAC_keys[i], "Ns") ||
+            !strcmp(MAC_keys[i], "Np") ||
             !strcmp(MAC_keys[i], "Noob") ){
 
-            read_db((char *)MAC_keys[i], tmp_val);
+            read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
             memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
@@ -126,7 +126,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
             memcpy(MAC_input+counter, "\"", 1);
             counter += 1;
         } else {
-            read_db((char *)MAC_keys[i], tmp_val);
+            read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
             memcpy(MAC_input+counter, ",", 1);
             counter += 1;
             memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
@@ -147,7 +147,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_process(&state, MAC_input, counter);
     sha256_done(&state, sha256);
 
-    read_db("Kms", tmp_val);
+    read_db(KEY_DB, "Kms", tmp_val);
     // read_db_name("kmsdb.txt", "Kms", tmp_val);
     memset(MAC_input, 0x00, 64);
     sprintf(tmp_val,"%s""=", tmp_val);
@@ -169,7 +169,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db("MACs", MAC_input);
+    write_db(MAC_DB, "MACs", MAC_input);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated b64: %s\n", MAC_input);
