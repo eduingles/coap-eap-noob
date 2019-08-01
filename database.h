@@ -44,8 +44,10 @@
 
 /* Public functions */
 int write_db(char*,char*);
+int write_db_name(char*,char*,char*);
 int write_db_kdf(unsigned char*);
 int read_db(char*,char*);
+int read_db_name(char*,char*,char*);
 int read_db_kdf(unsigned char*);
 void print_db(void);
 

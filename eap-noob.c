@@ -185,7 +185,7 @@ void generate_nonce(size_t size, unsigned char *dst)
  **/
 void generate_noob(void)
 {
-    unsigned char noob[23];
+    unsigned char noob[25];
     generate_nonce(16, noob);
     noob[22] = '\0'; // Get rid of padding character ('=') at the end
     write_db("Noob", (char *)noob);
@@ -427,7 +427,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp_key[20];
+    char tmp_key[15];
     char tmp_val[130];
 
     while((type = jsonparse_next(&js_req)) != 0) {
@@ -495,7 +495,7 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRe
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
-    char tmp_key[20];
+    char tmp_key[15];
     char tmp_val[50];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {
@@ -531,7 +531,7 @@ void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRes
     jsonparse_setup(&js_req, eapReqData, size);
     int type;
 
-    char tmp_key[20];
+    char tmp_key[15];
     char tmp_val[50];
     while((type = jsonparse_next(&js_req)) != 0) {
         if(type == JSON_TYPE_PAIR_NAME) {

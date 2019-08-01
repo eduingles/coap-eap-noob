@@ -56,14 +56,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	// PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0);
 
 	/*------------------- SHA256 HOOB Generation ------------------ */
-	/* SHA256: states */
-	static const char *const str_res[] = {
-	    "success",
-	    "invalid param",
-	    "NULL error",
-	    "resource in use",
-	    "DMA bus error"
-	};
 
 	/* SHA256: Array of key names to extract values from DB
 
@@ -95,7 +87,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	/* SHA256 Variables */
 	static sha256_state_t state;
 	static uint8_t sha256[32]; /* SHA256: Hash result */
-	static uint8_t ret; // Integer code representing operation state (match with str_res)
+
 	size_t len;
 	char hash_str[600] = "[1"; // TODO: get actual Dir from Peer
 	char tmp[65]; /* Fixme: ATTENTION!! Value based on 'ServerInfo' length (63).
@@ -131,21 +123,17 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	sha256_init(&state);
 	len = strlen(hash_str);
-	ret = sha256_process(&state, hash_str, len);
+	sha256_process(&state, hash_str, len);
 
 	/* SHA256: Get result in param 'sha256' */
-	ret = sha256_done(&state, sha256);
+	sha256_done(&state, sha256);
 
 #if EDU_DEBUG
-	printf("Hoob calculation process: %s\n", str_res[ret]);
-
+	printf("Hoob calculation process.\n");
 	printf("Hash value (hex): ");
 	for (int i = 0;i <32;i++)
 		printf("%02x", sha256[i]);
 	printf("\n");
-#else
-    (void) ret;
-    (void) str_res;
 #endif
 
     size_t len_b64_hoob = 0;
@@ -157,7 +145,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	/* SHA256: Show URL */
 	char peer_id[23];
-	static char noob[23];
+	char noob[23];
 	read_db("PeerId", peer_id);
 	read_db("Noob", noob);
 
@@ -179,9 +167,9 @@ PROCESS_THREAD(sha256_calc, ev, data) {
    	crypto_init();
 	sha256_init(&state);
 	len = strlen(noobid_str);
-	ret = sha256_process(&state, noobid_str, len);
+	sha256_process(&state, noobid_str, len);
 	/* SHA256: Get result in param 'sha256' */
-	ret = sha256_done(&state, sha256);
+	sha256_done(&state, sha256);
 	crypto_disable();
 	unsigned char NoobId[23];
     len_b64_hoob = 0;
@@ -206,47 +194,99 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	*/
 
     /* Generate KDF */
-    static unsigned char ctr[4] = {0};
+    unsigned char ctr[4] = {0};
     static uint8_t kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
                            = 4 + 32 + 8 + 32 + 32 + 16 + 1
                            = 125 */
 
     /* Decode nonces */
-	char nonce[45]; // 45 to include '=' padding
 	size_t len_tmp = 0;
-
-	static unsigned char np_decoded[33];
-	static unsigned char ns_decoded[33];
-    // Decode Np
-	read_db("Np", nonce);
-	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
-	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, np_decoded);
-    // Decode Ns
-	read_db("Ns", nonce);
-	sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
-	base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, ns_decoded);
 
    	crypto_init();
 	static size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	static size_t kdf_hash_len = 0;
-    for (int i = 1;; i++) {
-        // EVP_DigestInit_ex(mctx, md, NULL);
+	for (int i=1;;i++) {
 		sha256_init(&state);
-        ctr[3] = i & 0xFF;
-        ctr[2] = (i >> 8) & 0xFF;
-        ctr[1] = (i >> 16) & 0xFF;
-        ctr[0] = (i >> 24) & 0xFF;
-		sha256_process(&state, ctr, sizeof(ctr));
-		sha256_process(&state, shared_secret, sizeof(shared_secret)); // Z: ECDHE shared secret
-		sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // AlgorithmId: "EAP-NOOB"
-		sha256_process(&state, np_decoded, sizeof(np_decoded)); // PartyUInfo: Np
-		sha256_process(&state, ns_decoded, sizeof(ns_decoded)); // PartyVInfo: Ns
-		sha256_process(&state, noob, sizeof(noob)); // SuppPrivInfo: Noob
+        ctr[3] = i & 255;
+        ctr[2] = (i >> 8) & 255;
+        ctr[1] = (i >> 16) & 255;
+        ctr[0] = (i >> 24) & 255;
+		char z[32];
+		for(int j = 0; j < 8; j++) {
+			z[j*4+0] = shared_secret[7-j] >> 24;
+			z[j*4+1] = shared_secret[7-j] >> 16;
+			z[j*4+2] = shared_secret[7-j] >> 8;
+			z[j*4+3] = shared_secret[7-j];
+		}
+		char nonce[45]; // 45 to include '=' padding
+		unsigned char np_decoded[33];
+		unsigned char ns_decoded[33];
+		unsigned char noob2[17];
+		// Decode Np
+		read_db("Np", nonce);
+		sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
+		base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, np_decoded);
+		// Decode Ns
+		read_db("Ns", nonce);
+		sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
+		base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, ns_decoded);
+		// Decode Noob
+		read_db("Noob", nonce);
+		sprintf(nonce, "%s""==", nonce); // Recover '=' to decode
+		base64_decode((unsigned char *)nonce, 24, &len_tmp, noob2);
+
+		// printf("EDU: sha256_calc: ctr (%x) ", i);
+        // for(int i = 0; i < 4; i++)
+        //     printf("%02x", ctr[i]);
+		// printf("\n");
+		// // sha256_process(&state, ctr, sizeof(ctr));		
+		// printf("EDU: sha256_calc: Shared secret ");
+        // for(int i = 0; i < 32 ; i++)
+        //     printf("%02x", z[i]);
+		// printf("\n");
+		// // sha256_process(&state, z, 32); // Z: ECDHE shared secret
+		// printf("EDU: sha256_calc: ALGORITHM_ID ");
+        // for(int i = 0; i < strlen(ALGORITHM_ID) ; i++)
+        //     printf("%02x", ALGORITHM_ID[i]);
+		// printf("\n");
+		// // sha256_process(&state, ALGORITHM_ID, ALGORITHM_ID_LEN); // AlgorithmId: "EAP-NOOB"
+		// printf("EDU: sha256_calc: np_decoded ");
+        // for(int i = 0; i < 32 ; i++)
+        //     printf("%02x", np_decoded[i]);
+		// printf("\n");
+		// // sha256_process(&state, np_decoded, sizeof(np_decoded)); // PartyUInfo: Np
+		// printf("EDU: sha256_calc: ns_decoded ");
+        // for(int i = 0; i < 32 ; i++)
+        //     printf("%02x", ns_decoded[i]);
+		// printf("\n");
+		// // sha256_process(&state, ns_decoded, sizeof(ns_decoded)); // PartyVInfo: Ns
+		// printf("EDU: sha256_calc: noob2 ");
+        // for(int i = 0; i < 16 ; i++)
+        //     printf("%02x", noob2[i]);
+		// printf("\n");
+		// sha256_process(&state, noob2, 16); // SuppPrivInfo: Noob
+
+		static uint8_t kdf_hash_tmp[125];
+		memcpy(kdf_hash_tmp, ctr, 4);
+		memcpy(kdf_hash_tmp+4, z, 32); // Z: ECDHE shared secret
+		memcpy(kdf_hash_tmp+36, ALGORITHM_ID, ALGORITHM_ID_LEN); // AlgorithmId: "EAP-NOOB"
+		memcpy(kdf_hash_tmp+44, np_decoded, 32); // PartyUInfo: Np
+		memcpy(kdf_hash_tmp+76, ns_decoded, 32); // PartyVInfo: Ns
+		memcpy(kdf_hash_tmp+108, noob2, 16); // SuppPrivInfo: Noob
+		kdf_hash_tmp[124] = '\0';
+		
+		sha256_process(&state, kdf_hash_tmp, 124);
+
 
         if (outlen >= mdlen) {
 			/* SHA256: Get result in param 'sha256' */
-			ret = sha256_done(&state, sha256);
+			sha256_done(&state, sha256);
+			// printf("EDU: sha256_calc: kdf_hash_len %d\n", kdf_hash_len);
+			// printf("EDU: sha256_calc: sha256 tmp ");
+			// for(int i = 0; i < 32 ; i++)
+			// 	printf("%02x", sha256[i]);
+			// printf("\n");
 			memcpy(kdf_hash+kdf_hash_len, sha256, sizeof(sha256));
             outlen -= mdlen;
             if (outlen == 0)
@@ -254,7 +294,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
             kdf_hash_len += mdlen;
         } else {
 			/* SHA256: Get result in param 'sha256' */
-			ret = sha256_done(&state, sha256);
+			sha256_done(&state, sha256);
 			memcpy(kdf_hash+kdf_hash_len, sha256, outlen);
             break;
         }

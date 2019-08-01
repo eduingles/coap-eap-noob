@@ -32,8 +32,6 @@
 
 #include "ecc_pubkey.h"
 
-static char msg[] = "pubkey_generated";
-
 static void
 ecc_set_random(uint32_t *secret)
 {
@@ -73,7 +71,7 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
 
   	pka_disable();
    	process_post(&boostrapping_service_process,
-                PROCESS_EVENT_CONTINUE, msg);
+                PROCESS_EVENT_CONTINUE, "pubkey_generated");
 
     #if NOOB_DEBUG
         printf("EAP-NOOB: PK.X: ");

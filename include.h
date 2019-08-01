@@ -108,7 +108,6 @@ uint32_t shared_secret[8]; // Shared Secret derived during ECDH
 //SHA256 Implementation
 unsigned char np_nonce[44]; // Nonce Peer
 
-// static uint32_t private_secret2[PRIVATE_SECRET_LEN];
 ec_point_t client_pk; // Client Public Key (Local) - Generator Point
 ec_point_t server_pk; // Server Public Key (HostAPD) - Generator Point
 
