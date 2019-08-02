@@ -16,6 +16,18 @@ $ git submodule add https://github.com/eduingles/coap-eap-basic.git coap-eap-bas
 
 Now you should be able to use normal git actions like push, pull, commit, etc.
 
+## Increase RAM Memory in Zolertia Firefly
+Path: [contiki-ng folder]/arch/cpu/cc2538/startup-gcc.c
+
+Change 
+```cpp
+static uint64_t stack[256] __attribute__ ((section(".stack")));
+```
+For 
+```cpp
+static uint64_t stack[512] __attribute__ ((section(".stack")));
+```
+
 ## Debug flags
 - EAP-NOOB: DEBUG_NOOB
 - EDU: MAKE_CONF_EDU
