@@ -41,6 +41,13 @@
     // #include "sys/stack-check.h"
 #endif
 
+/** 
+ * General buffer to store persistent data
+ * Please. Por favor. Olkaa hyvä.
+ * FIXME: Fix it.
+ */
+// uint8_t stored_data[610];
+
 // ECDH implementation
 #include "dev/ecc-driver.h" // ec_point_t for Client/Server Public Key
 

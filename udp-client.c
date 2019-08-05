@@ -404,6 +404,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 		PROCESS_YIELD();
 #if EDU_DEBUG
 		printf("EDU: while(1) 2\n");
+		// printf("STACK: %" PRId32 " permitted: %" PRId32 "\n", stack_check_get_usage(), stack_check_get_reserved_size());
 #endif
 		if(NETSTACK_ROUTING.node_is_reachable()) {
 			if(etimer_expired(&et) ) {

@@ -330,6 +330,7 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
     char MACp[44];
     // TODO: calculate MACp
     // read_db(MAC_DB, "MACp", MACp);
+    read_db(MAC_DB, "MACp", MACp);
     sprintf(tmpResponseType4, "%s%s%s%s%s",
         "{\"Type\":4,\"PeerId\":\"",PeerId,"\",\"MACp\":\"",MACp,"\"}"
     );
