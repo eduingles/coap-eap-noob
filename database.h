@@ -34,6 +34,7 @@
 #define DATABASE_H
 
 #include "cfs/cfs.h"
+#include <stdlib.h>
 
 /* Print debug information */
 #define DEBUG_MSG_DB(X) printf("EAP-NOOB: %s\n", X)
@@ -44,8 +45,10 @@
 #define KEY_DB      "key_db.txt"
 #define MAC_DB      "mac_db.txt"
 
+#define CHUNK_SIZE  20
+
 /* Public functions */
-int write_db(char*,char*,char*);
+int write_db(char*,char*,size_t,char*);
 int read_db(char*,char*,char*);
 void print_db(char*);
 

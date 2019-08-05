@@ -169,7 +169,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(MAC_DB, "MACs", MAC_input);
+    write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated b64: %s\n", MAC_input);
@@ -179,66 +179,8 @@ PROCESS_THREAD(sha256_mac, ev, data)
     // memset(MAC_input,'\0',576);
 
     /*------------------------ SHA256 MACp Generation ------------------------*/
-    // Kmp
-//     read_db("Kmp", tmp_val);
-
-//     size_t len_kmp = 0;
-//     unsigned char Kmp[KMP_LEN+1];
-//     base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_kmp, Kmp);
-
-//     // Build input for MACs
-//     counter = 0;
-
-//     memcpy(MAC_input, Kmp, KMP_LEN);
-//     counter += KMP_LEN;
-
-//     memcpy(MAC_input+counter, ",2", 2);
-//     counter += 2;
-
-//     for (int i = 0; i < MAC_VALUES; i++) {
-//         if (!strcmp(MAC_keys[i], "PKp")) {
-//             memcpy(MAC_input+counter, ",", 1);
-//             counter += 1;
-//             memcpy(MAC_input+counter, PKP1, strlen(PKP1));
-//             counter += strlen(PKP1);
-//             memcpy(MAC_input+counter, pk_x_b64, strlen(pk_x_b64));
-//             counter += strlen(pk_x_b64);
-//             memcpy(MAC_input+counter, PKP2, strlen(PKP2));
-//             counter += strlen(PKP2);
-//             memcpy(MAC_input+counter, pk_y_b64, strlen(pk_y_b64));
-//             counter += strlen(pk_y_b64);
-//             memcpy(MAC_input+counter, PKP3, strlen(PKP3));
-//             counter += strlen(PKP3);
-//         } else {
-//             read_db((char *)MAC_keys[i], tmp_val);
-//             memcpy(MAC_input+strlen(MAC_input), ",", 1);
-//             counter += 1;
-//             memcpy(MAC_input+strlen(MAC_input), tmp_val, strlen(tmp_val));
-//             counter += strlen(tmp_val);
-//         }
-//     }
-
-//     // Calculate MACp
-//     sha256_init(&state);
-//     len = strlen(MAC_input);
-
-//     sha256_process(&state, MAC_input, len);
-//     /* SHA256: Get result in param 'sha256' */
-//     sha256_done(&state, sha256);
-
-    crypto_disable();
-
-//     // Store MACp as Base64url
-//     char MACp[45];
-//     size_t len_b64_macp = 0;
-//     base64_encode(sha256, 32, &len_b64_macp, (unsigned char*) MACp);
-//     MACp[43] = '\0'; // Get rid of padding character ('=') at the end
-//     write_db("MACp", MACp);
-
-// #if NOOB_DEBUG
-//     printf("EAP-NOOB: MACp generated: %s\n", MACp);
-// #endif
     /*------------------------------------------------------------------------*/
 
+    crypto_disable();
     PROCESS_END();
 }
