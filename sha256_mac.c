@@ -72,7 +72,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     // Temporary array for reading the database
     char tmp_val[127];
     read_db(KEY_DB, "Kms", tmp_val);
-    // read_db_name("kmsdb.txt", "Kms", tmp_val);
     tmp_val[43] = '\0';
     size_t len_kms = 0;
     memset(MAC_input, 0x00, 64);
@@ -172,14 +171,10 @@ PROCESS_THREAD(sha256_mac, ev, data)
     write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
 
 #if NOOB_DEBUG
-    printf("EAP-NOOB: MACs generated b64: %s\n", MAC_input);
+    printf("EAP-NOOB: MACs generated (b64): %s\n", MAC_input);
 #endif
 
-    // Clear input array
-    // memset(MAC_input,'\0',610);
-
     /*------------------------ SHA256 MACp Generation ------------------------*/
-    // Temporary array for reading the database
     read_db(KEY_DB, "Kmp", tmp_val);
     tmp_val[43] = '\0';
     size_t len_kmp = 0;
@@ -189,11 +184,11 @@ PROCESS_THREAD(sha256_mac, ev, data)
     MAC_input[32] = 0x00;
 #if EDU_DEBUG
     printf("EDU: sha256_mac: KMP (hex) ");
-    for(uint8_t i = 0; i < 32 ; i++) printf("%02x", MAC_input[i]);
+    for(uint8_t i = 0; i < 32; i++) printf("%02x", MAC_input[i]);
     printf("\n");
 #endif
     /* ipad */
-    for (uint8_t i=0; i < 64; ++i) MAC_input[i] ^= 0x36;
+    for (uint8_t i = 0; i < 64; ++i) MAC_input[i] ^= 0x36;
 
     // Build input for MACp
     counter = 64;
@@ -220,12 +215,13 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += strlen(pk_b64);
             memcpy(MAC_input+counter, PKP3, strlen(PKP3));
             counter += strlen(PKP3);
-        } else if (!strcmp(MAC_keys[i], "PeerId") ||
+        } else if (
+            !strcmp(MAC_keys[i], "PeerId") ||
             !strcmp(MAC_keys[i], "Realm") ||
             !strcmp(MAC_keys[i], "Ns") ||
             !strcmp(MAC_keys[i], "Np") ||
-            !strcmp(MAC_keys[i], "Noob") ){
-
+            !strcmp(MAC_keys[i], "Noob")
+        ) {
             read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
@@ -256,7 +252,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sprintf(tmp_val,"%s""=", tmp_val);
     base64_decode((unsigned char *)tmp_val, 44, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[32] = 0x00;
-    for (uint8_t i=0; i < 64; ++i) MAC_input[i] ^= 0x5c;
+    for (uint8_t i = 0; i < 64; ++i) MAC_input[i] ^= 0x5c;
     memcpy(MAC_input+64, sha256, 32);
 
     sha256_init(&state);
@@ -273,12 +269,11 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(MAC_DB, "MACp", MAC_input);
+    write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
 
 #if NOOB_DEBUG
-    printf("EAP-NOOB: MACp generated b64: %s\n", MAC_input);
+    printf("EAP-NOOB: MACp generated (b64): %s\n", MAC_input);
 #endif
-
 
     /*------------------------------------------------------------------------*/
 
