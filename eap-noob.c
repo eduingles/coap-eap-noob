@@ -167,7 +167,7 @@ static int value_in_array(uint8_t val, char *arr)
  * @size : size of the nonce
  * @dst : destination array
  **/
-void generate_nonce(size_t size, unsigned char *dst)
+void generate_nonce(size_t size, char *dst)
 {
     char nonce[size];
     int i;
@@ -177,7 +177,7 @@ void generate_nonce(size_t size, unsigned char *dst)
 
     // Base64 encode the nonce
     size_t len_b64_nonce = 0;
-    base64_encode((const unsigned char*)nonce, size, &len_b64_nonce, dst);
+    base64_encode((const unsigned char*)nonce, size, &len_b64_nonce, (unsigned char *)dst);
 }
 
 /**
@@ -185,10 +185,10 @@ void generate_nonce(size_t size, unsigned char *dst)
  **/
 void generate_noob(void)
 {
-    unsigned char noob[25];
+    char noob[23];
     generate_nonce(16, noob);
     noob[22] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(PEER_DB, "Noob", (char *)noob);
+    write_db(PEER_DB, "Noob", strlen(noob), (char *)noob);
 }
 
 /**
@@ -259,7 +259,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
-    write_db(PEER_DB, "Xp", (char *)pk_x_b64);
+    write_db(PEER_DB, "Xp", strlen((char *)pk_x_b64), (char *)pk_x_b64);
 
     unsigned char pk_str2[32];
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
@@ -272,12 +272,12 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
-    write_db(PEER_DB, "Yp", (char *)pk_y_b64);
+    write_db(PEER_DB, "Yp", strlen((char *)pk_y_b64), (char *)pk_y_b64);
 
     // Generate nonce
-    unsigned char Np_b64[44];
+    char Np_b64[44];
     generate_nonce(32, Np_b64);
-    write_db(PEER_DB, "Np", (char *)Np_b64);
+    write_db(PEER_DB, "Np", strlen((char *)Np_b64), (char *)Np_b64);
 
     char tmpResponseType2[250];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
@@ -395,7 +395,7 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
                     return;
                 }
             }
-            write_db(PEER_DB, tmp_key, tmp_val);
+            write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
         }
     }
     // Convert values to store them in the database
@@ -406,10 +406,10 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
     sprintf(Cryptosuitep, "%d", CSUIT);
     sprintf(Dirp, "%d", dirp);
 
-    write_db(PEER_DB, "Verp", Verp);
-    write_db(PEER_DB, "Cryptosuitep", Cryptosuitep);
-    write_db(PEER_DB, "Dirp", Dirp);
-    write_db(PEER_DB, "PeerInfo", PEER_INFO);
+    write_db(PEER_DB, "Verp", strlen(Verp), Verp);
+    write_db(PEER_DB, "Cryptosuitep", strlen(Cryptosuitep), Cryptosuitep);
+    write_db(PEER_DB, "Dirp", strlen(Dirp), Dirp);
+    write_db(PEER_DB, "PeerInfo", strlen(PEER_INFO), PEER_INFO);
 
     // Build response
     eap_noob_rsp_type_one(eapRespData, dirp, eapRespLen);
@@ -443,7 +443,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                     return;
                 }
             } else if (!strcmp(tmp_key, "PKs")) {
-                write_db(PEER_DB, tmp_key, tmp_val);
+                write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
                 struct jsonparse_state pks;
                 jsonparse_setup(&pks, tmp_val, strlen(tmp_val));
                 while((type = jsonparse_next(&pks)) != 0) {
@@ -452,14 +452,14 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         jsonparse_next(&pks);
                         jsonparse_copy_next(&pks, tmp_val, size);
                         if (!strcmp(tmp_key, "x")) {
-                            write_db(PEER_DB, "Xs", tmp_val);
+                            write_db(PEER_DB, "Xs", strlen(tmp_val), tmp_val);
                             size_t len_x = 0;
                             unsigned char x[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
                             base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_x, x);
                             memcpy(server_pk.x,x, 32);
                         } else if (!strcmp(tmp_key, "y")) {
-                            write_db(PEER_DB, "Ys", tmp_val);
+                            write_db(PEER_DB, "Ys", strlen(tmp_val), tmp_val);
                             size_t len_y = 0;
                             unsigned char y[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
@@ -469,7 +469,7 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                     }
                 }
             } else if (!strcmp(tmp_key, "Ns")) {
-                write_db(PEER_DB, tmp_key, tmp_val);
+                write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
             } else if (!strcmp(tmp_key, "SleepTime")) {
                 // TODO: set SleepTime
             }

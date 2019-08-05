@@ -169,7 +169,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(MAC_DB, "MACs", MAC_input);
+    write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: MACs generated b64: %s\n", MAC_input);
@@ -282,5 +282,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     /*------------------------------------------------------------------------*/
 
+    crypto_disable();
     PROCESS_END();
 }
