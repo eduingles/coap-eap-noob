@@ -65,3 +65,13 @@ static uint64_t stack[512] __attribute__ ((section(".stack")));
         ```bash
         make TARGET=zoul BOARD=firefly connect-router
         ```
+
+## Executing the controller
+    https://github.com/eduingles/coap-eap-controller
+
+## Reconnect Exchange 
+There are two ways of starting the Reconnect Exhange:
+
+    - Wait until timeout expires
+    - Press right button in Client mote
+
