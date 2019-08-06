@@ -53,10 +53,22 @@
 
 #define MAC_VALUES  15
 
-PROCESS(sha256_mac, "SHA256 MACs and MACp");
+PROCESS(sha256_mac, "SHA256 MACs, MACp, MACs2 and MACp2");
 PROCESS_THREAD(sha256_mac, ev, data)
 {
     PROCESS_BEGIN();
+    /*
+        Process expects a string indicating the MACs/p step:
+
+            data == "mac1" --> Generating MACs and MACp for Completion Exchange.
+            data == "mac2" --> Generating MACs2 and MACp2 for Reconnect Exchange.
+
+            Otherwise   --> Exit. //TODO: Improve error handling.
+     */
+    if (data == NULL && (!strcmp(data, "mac1") || !strcmp(data, "mac2") ) ){
+        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
+        goto _error;
+    }
 
     // Keys for MAC input
     static const char *MAC_keys[] = {
@@ -168,10 +180,21 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
+    if (!strcmp(data, "mac1")) {
+        write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
+    } else if (!strcmp(data, "mac2")) {
+        write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
+    } else {
+        printf("SHA256 MACs ERROR: It seems that 'data' content has been erased.\n");
+        goto _error;
+    }
 
 #if NOOB_DEBUG
-    printf("EAP-NOOB: MACs generated (b64): %s\n", MAC_input);
+    if (!strcmp(data, "mac1")) {
+        printf("EAP-NOOB: MACs generated (b64): %s\n", MAC_input);
+    } else if (!strcmp(data, "mac2")) {
+        printf("EAP-NOOB: MACs2 generated (b64): %s\n", MAC_input);
+    }
 #endif
 
     /*------------------------ SHA256 MACp Generation ------------------------*/
@@ -258,7 +281,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_init(&state);
     sha256_process(&state, MAC_input, 96);
     sha256_done(&state, sha256);
-    crypto_disable();
 
 #if EDU_DEBUG
     printf("EDU: sha256_mac: sha256 MACp ");
@@ -269,14 +291,30 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
+    if (!strcmp(data, "mac1")) {
+        write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
+    } else if (!strcmp(data, "mac2")) {
+        write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
+    } else {
+        printf("SHA256 MACp ERROR: It seems that 'data' content has been erased.\n");
+        goto _error;
+    }
 
 #if NOOB_DEBUG
-    printf("EAP-NOOB: MACp generated (b64): %s\n", MAC_input);
+    if (!strcmp(data, "mac1")) {
+        printf("EAP-NOOB: MACp generated (b64): %s\n", MAC_input);
+    } else if (!strcmp(data, "mac2")) {
+        printf("EAP-NOOB: MACp2 generated (b64): %s\n", MAC_input);
+    }
 #endif
+
+    if (!strcmp(data, "mac2")) {
+       	process_post(&boostrapping_service_process, PROCESS_EVENT_CONTINUE, "MACs2_MACp2_generated");
+    }
 
     /*------------------------------------------------------------------------*/
 
+_error:
     crypto_disable();
     PROCESS_END();
 }

@@ -113,6 +113,9 @@ PROCESS_NAME(boostrapping_service_process);
 uint32_t private_secret[8]; //
 uint32_t shared_secret[8]; // Shared Secret derived during ECDH
 
+//SHA256 Implementation
+uint8_t is_mac2_in_progress;
+
 typedef struct {
   uint32_t       x[12];     /**< Pointer to value of the x co-ordinate. */
   uint32_t       y[12];     /**< Pointer to value of the y co-ordinate. */

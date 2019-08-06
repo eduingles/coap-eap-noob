@@ -343,7 +343,7 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
     eapKeyAvailable = TRUE;
 
     // Update NAI
-    sprintf(nai, "%s+s4@%s", PeerId, RealM);
+    sprintf(nai, "%s+s3@%s", PeerId, RealM);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: Sending response %s\n", tmpResponseType4);
@@ -717,6 +717,13 @@ void eap_noob_req_type_six(char *eapReqData, const size_t size, uint8_t *eapResp
             write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
         }
     }
+    /* //EDU:
+        The SM should stop here until we get the Np2, MACs and MACp.
+
+     */
+    is_mac2_in_progress = TRUE;
+    process_start(&sha256_mac, "mac2");
+    
     // Build response
     eap_noob_rsp_type_six(eapRespData, eapRespLen);
 }
@@ -792,9 +799,13 @@ void eap_noob_process(const uint8_t *eapReqData, size_t eapReqLen, uint8_t *meth
             break;
         case EAP_NOOB_TYPE_2: // Initial Exchange
             eap_noob_req_type_two((char*)eapReqData, size, eapRespData, eapRespLen);
+            *(methodState) = MAY_CONT;
+            *(decision) = COND_SUCC;
             break;
         case EAP_NOOB_TYPE_3: // Waiting Exchange
             eap_noob_req_type_three((char*)eapReqData, size, eapRespData, eapRespLen);
+            *(methodState) = MAY_CONT;
+            *(decision) = COND_SUCC;
             break;
         case EAP_NOOB_TYPE_4: // Completion Exchange
             eap_noob_req_type_four((char*)eapReqData, size, eapRespData, eapRespLen);

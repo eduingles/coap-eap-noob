@@ -35,7 +35,10 @@ static void buildIdentity(const uint8_t id){
 	memcpy(eapRespData + 5, nai, strlen(nai)+1);
 }
 
-//EAP peer state machine step function
+/**
+ * eap_peer_sm_step : EAP peer state machine step function
+ * @msg : EAP request data
+**/
 void eap_peer_sm_step(const uint8_t* msg){
 
 	//INITIALIZE STATE
@@ -70,6 +73,7 @@ void eap_peer_sm_step(const uint8_t* msg){
 		//parseEapReq(msg);
 #if EDU_DEBUG
 		printf("EDU: %s EAP-Code: %02x\n", __func__, ((struct eap_msg *)msg)->code);
+		printf("EDU: %s methodState: %d - decision: %d\n", __func__, methodState, decision);
 #endif
 		//if ((type_received == RxSUCCESS) && (reqIdPeer == lastId) && (decision!=FAIL)){
 		if ( ( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && (reqIdPeer == lastId) && (decision!=FAIL)){

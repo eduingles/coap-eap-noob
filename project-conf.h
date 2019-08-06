@@ -32,6 +32,7 @@
     #define NOOB_DEBUG 0
 #endif
 
+// #define LOG_CONF_LEVEL_COAP                        LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_DBG
 // #define LOG_CONF_LEVEL_6LOWPAN                     LOG_LEVEL_DBG

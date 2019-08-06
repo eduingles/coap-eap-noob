@@ -41,6 +41,9 @@
 /* ECDH implementation */
 #include "ecc_shared_secret.h"
 
+/* SHA256 implementation */
+#include "sha256_mac.h"
+
 /* Configuration file */
 #include "eap-noob-conf.h"
 
