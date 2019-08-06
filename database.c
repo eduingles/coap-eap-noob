@@ -50,26 +50,25 @@ int read_db(char *db_name, char *key, char *val)
         char tmp[CHUNK_SIZE];
         while (1) {
             // Read next chunk
-            cfs_read(db, tmp, CHUNK_SIZE);
-            if (tmp <= 0)
+            if (cfs_read(db, tmp, CHUNK_SIZE) <= 0)
                 break;
             // Find value in database
-            char *current_key = strtok(tmp, ";\n"); // Current key
-            char *val_size = strtok(NULL, ";\n");   // Length of the value
-            size_t size = atoi(val_size);
+            char *current_key = strtok(tmp, ";\n");  // Current key
+            char *current_len = strtok(NULL, ";\n"); // Length of the value
+            size_t len = atoi(current_len);
             if (!strcmp(current_key, key)) {
                 // key + ';' + value length + ';'
-                pos += strlen(current_key) + 1 + strlen(val_size) + 1;
-                char current_val[size+1];
+                pos += strlen(current_key)+1+strlen(current_len)+1;
+                char current_val[len+1];
                 cfs_seek(db, pos, CFS_SEEK_SET);
-                cfs_read(db, current_val, size);
-                current_val[size] = '\0';
+                cfs_read(db, current_val, len);
+                current_val[len] = '\0';
                 memcpy(val, current_val, strlen(current_val) + 1);
                 cfs_close(db);
                 return 1;
             } else {
                 // key +  ';' + value length + ';' + value + '\n'
-                pos += strlen(current_key) + 1 + strlen(val_size) + 1 + size + 1;
+                pos += strlen(current_key)+1+strlen(current_len)+1+len+1;
                 cfs_seek(db, pos, CFS_SEEK_SET);
             }
         }
@@ -93,8 +92,9 @@ void print_db(char *db_name)
     if ((db = cfs_open(db_name, CFS_READ)) >= 0) {
         size_t size = cfs_seek(db, 0, CFS_SEEK_END);
         cfs_seek(db, 0, CFS_SEEK_SET);
-        char dst[size];
+        char dst[size+1];
         cfs_read(db, dst, size);
+        dst[size] = '\0';
         cfs_close(db);
         printf("--------------------DATABASE--------------------\n");
         printf("%s", dst);
