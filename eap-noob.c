@@ -673,13 +673,31 @@ void eap_noob_req_type_five(char *eapReqData, const size_t size, uint8_t *eapRes
                     return;
                 }
             } else if(!strcmp(tmp_key, "Vers")) {
-                // TODO: upgrade version if necessary
+                char Vers[strlen(tmp_val)]; // TODO size
+                read_db(PEER_DB, "Vers", Vers);
+                if(strcmp(tmp_val, Vers)) {
+                    // TODO: Update Vers in database
+                    // TODO: Upgrade Verp in database
+                }
             } else if(!strcmp(tmp_key, "Cryptosuites")) {
-                // TODO: upgrade cryptosuite if necessary
+                char Cryptosuites[strlen(tmp_val)]; // TODO size
+                read_db(PEER_DB, "Cryptosuites", Cryptosuites);
+                if(strcmp(tmp_val, Cryptosuites)) {
+                    // TODO: Update Cryptosuites in database
+                    // TODO: Upgrade Cryptosuitep in database
+                }
             } else if(!strcmp(tmp_key, "Realm")) {
-                // TODO: update Realm if necessary
+                char Realm[strlen(tmp_val)]; // TODO size
+                read_db(PEER_DB, "Realm", Realm);
+                if(strcmp(tmp_val, Realm)) {
+                    // TODO: Update Realm in database
+                }
             } else if(!strcmp(tmp_key, "ServerInfo")) {
-                // TODO: update ServerInfo if necessary
+                char ServerInfo[strlen(tmp_val)]; // TODO size
+                read_db(PEER_DB, "ServerInfo", ServerInfo);
+                if(strcmp(tmp_val, ServerInfo)) {
+                    // TODO: Update ServerInfo in database
+                }
             }
         }
     }
