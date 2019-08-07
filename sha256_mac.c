@@ -65,7 +65,8 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
         Otherwise   --> Exit. //TODO: Improve error handling.
      */
-    if (data == NULL || (strcmp(data, "kdf_mac1") && strcmp(data, "kdf_mac2") ) ){        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
+    if (data == NULL || (strcmp(data, "kdf_mac1") && strcmp(data, "kdf_mac2") ) ){        
+        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
         goto _error;
     }
 

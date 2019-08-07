@@ -154,7 +154,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		read_db(PEER_DB, "Noob", noob);
 
 		/* TODO: Get url from 'ServerInfo' */
-		printf("EAP-NOOB: OOB:\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
+		printf("EAP-NOOB: OOB:\n\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
 			peer_id, noob, hoob
 		);
 
@@ -213,18 +213,12 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	size_t kdf_hash_len = 0;
-	printf("static size_t outlen = KDF_LEN; kdf_hash_len; %d - %d - %d \n", outlen, KDF_LEN, kdf_hash_len);
 	for (int i=1;;i++) {
 		sha256_init(&state);
         ctr[3] = i & 255;
         ctr[2] = (i >> 8) & 255;
         ctr[1] = (i >> 16) & 255;
         ctr[0] = (i >> 24) & 255;
-#if EDU_DEBUG
-	printf("SHA256 CALC: ctr \n");
-	for (int x=0;x<4;x++) printf("%02x ", ctr[x]);
-	printf("\n");
-#endif
 		unsigned char z[32];
 		if (!strcmp(data, "kdf_mac2")) {
 			read_db(KEY_DB, "Kz", nonce);
@@ -238,11 +232,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 				z[j*4+3] = shared_secret[7-j];
 			}
 		}
-#if EDU_DEBUG
-	printf("SHA256 CALC: Kz / Shared Secret \n");
-	for (int x=0;x<32;x++) printf("%02x ", z[x]);
-	printf("\n");
-#endif
 		unsigned char np_decoded[33];
 		unsigned char ns_decoded[33];
 		unsigned char noob2[17]; // Only kdf_mac1
@@ -275,14 +264,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		if (!strcmp(data, "kdf_mac1")) {
 			memcpy(kdf_hash_tmp+108, noob2, 16); // SuppPrivInfo: Noob
 		}
-#if EDU_DEBUG
-	printf("SHA256 CALC: NP Decoded \n");
-	for (int x=0;x<32;x++) printf("%02x ", np_decoded[x]);
-	printf("\n");
-	printf("SHA256 CALC: NS Decoded \n");
-	for (int x=0;x<32;x++) printf("%02x ", ns_decoded[x]);
-	printf("\n");
-#endif
 
 		if (!strcmp(data, "kdf_mac1")) {
 			kdf_hash_tmp[124] = '\0';
@@ -292,18 +273,9 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			sha256_process(&state, kdf_hash_tmp, 108);
 		}
 
-#if EDU_DEBUG
-	printf("SHA256 CALC: outlen >= mdlen? %d - %d \n", outlen, mdlen);
-#endif
         if (outlen >= mdlen) {
 			/* SHA256: Get result in param 'sha256' */
 			sha256_done(&state, sha256);
-#if EDU_DEBUG
-	printf("SHA256 CALC: sha256 partial \n");
-	for (int x=0;x<32;x++) printf("%02x ", sha256[x]);
-	printf("\n");
-#endif
-
 			memcpy(kdf_hash+kdf_hash_len, sha256, sizeof(sha256));
             outlen -= mdlen;
             if (outlen == 0)
@@ -312,12 +284,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
         } else {
 			/* SHA256: Get result in param 'sha256' */
 			sha256_done(&state, sha256);
-
-#if EDU_DEBUG
-	printf("SHA256 CALC: sha256 partial B \n");
-	for (int x=0;x<32;x++) printf("%02x ", sha256[x]);
-	printf("\n");
-#endif
 			memcpy(kdf_hash+kdf_hash_len, sha256, outlen);
             break;
         }
@@ -404,12 +370,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	// tmp_res_b64[43] = '\0';
 	if (!strcmp(data, "kdf_mac1")) {
 	    write_db(KEY_DB, "Kms", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
-		#if EDU_DEBUG
-			printf("SHA256 CALC 1 - Kms: ");
-			for (int i = 0;i <32;i++)
-				printf("%02x", tmp_res[i]);
-			printf("\n");
-		#endif
 	} else if (!strcmp(data, "kdf_mac2")) {
 	    write_db(KEY_DB, "Kms2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
 	}
@@ -432,12 +392,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     base64_encode(tmp_res, KZ_LEN, &len_tmp_b64, tmp_res_b64);
 	if (!strcmp(data, "kdf_mac1")) {
 	    write_db(KEY_DB, "Kz", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
-		#if EDU_DEBUG
-			printf("SHA256 CALC 1 - Kz: ");
-			for (int i = 0;i <32;i++)
-				printf("%02x", tmp_res[i]);
-			printf("\n");
-		#endif
 	} else if (!strcmp(data, "kdf_mac2")) {
 	    write_db(KEY_DB, "Kz2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
 	}
