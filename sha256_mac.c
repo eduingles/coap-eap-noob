@@ -78,6 +78,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     // MAC input
     static char MAC_input[610];
+    // memset(MAC_input, 0x00, 610);
 
     /*------------------------ SHA256 MACs Generation ------------------------*/
     // Temporary array for reading the database

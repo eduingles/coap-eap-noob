@@ -203,15 +203,17 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     static uint8_t kdf_hash[321]; /* ctr + Z + Np + Ns + Noob + '\0'
                            = 4 + 32 + 8 + 32 + 32 + 16 + 1
                            = 125 */
+	memset(kdf_hash, '\0', 321);
 
     /* Decode nonces */
 	size_t len_tmp = 0;
 	char nonce[45]; // 45 to include '=' padding
 
    	crypto_init();
-	static size_t outlen = KDF_LEN;
+	size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
-	static size_t kdf_hash_len = 0;
+	size_t kdf_hash_len = 0;
+	printf("static size_t outlen = KDF_LEN; kdf_hash_len; %d - %d - %d \n", outlen, KDF_LEN, kdf_hash_len);
 	for (int i=1;;i++) {
 		sha256_init(&state);
         ctr[3] = i & 255;
@@ -292,8 +294,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 #if EDU_DEBUG
 	printf("SHA256 CALC: outlen >= mdlen? %d - %d \n", outlen, mdlen);
-	for (int x=0;x<32;x++) printf("%02x ", sha256[x]);
-	printf("\n");
 #endif
         if (outlen >= mdlen) {
 			/* SHA256: Get result in param 'sha256' */
@@ -314,7 +314,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			sha256_done(&state, sha256);
 
 #if EDU_DEBUG
-	printf("SHA256 CALC: sha256 partial \n");
+	printf("SHA256 CALC: sha256 partial B \n");
 	for (int x=0;x<32;x++) printf("%02x ", sha256[x]);
 	printf("\n");
 #endif
