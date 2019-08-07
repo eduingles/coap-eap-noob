@@ -44,6 +44,9 @@
 /* SHA256 implementation */
 #include "sha256_calc.h"
 
+/* OOB LED implementation */
+#include "oob_led.h"
+
 /* Configuration file */
 #include "eap-noob-conf.h"
 

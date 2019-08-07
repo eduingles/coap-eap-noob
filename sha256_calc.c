@@ -144,7 +144,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		unsigned char hoob[23];
 		base64_encode(sha256, 16, &len_b64_hoob, hoob);
 		hoob[22] = '\0'; // Remove '=' padding
-
+		write_db(PEER_DB, "Hoob", strlen((char *)hoob), (char *)hoob);
 		// crypto_disable();
 
 		/* SHA256: Show URL */
@@ -309,11 +309,12 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 #if NOOB_DEBUG
 	   printf("EAP-NOOB: KDF generated\n");
 #endif
-	/* SHA256: Send notification to main thread. Hoob, NoobId and KDF are completed */
-   	process_post(&boostrapping_service_process,
-                PROCESS_EVENT_CONTINUE, "hoob_noobid_kdf_generated");
 
-    /* Extract values */
+	if (!strcmp(data, "kdf_mac1")) {
+		process_post(&boostrapping_service_process, PROCESS_EVENT_CONTINUE, "hoob_noobid_kdf_generated");
+	}
+
+	/* Extract values */
     size_t counter = 0;
     size_t len_tmp_b64 = 0;
     unsigned char tmp_res[65];

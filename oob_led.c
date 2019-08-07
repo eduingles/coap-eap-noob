@@ -37,12 +37,12 @@
  * @str : String to be converted
  * Returns : The input String as binary
 **/
-char *string_to_binary(char *str)
+static char *string_to_binary(char *str)
 {
     if (str == NULL)
         return 0;
     size_t len = strlen(str);
-    char *binary = malloc(len*8 + 1);
+    char *binary = malloc(len*8 + 1); // The use of malloc is not recommended
     binary[0] = '\0';
     size_t i = 0;
 
@@ -60,40 +60,56 @@ char *string_to_binary(char *str)
     return binary;
 }
 
-/*----------------------------------------------------------------------*/
+static struct etimer et_oob;
+
 PROCESS(led_oob_process, "OOB ENCODING");
-AUTOSTART_PROCESSES(&led_oob_process); // TODO: delete when using for Noob
-/*----------------------------------------------------------------------*/
-static struct etimer et;
 PROCESS_THREAD(led_oob_process, ev, data) {
+
     PROCESS_BEGIN();
     /* String prefix of characters, e.g. +26 or +9 to indicate string
      * length of 3 character sets. (+26 equals 26*3 character string length
      * without prefix)
      */
-    char *msg = "+33https://example.com/123456789/123456789/123456789/123456789/123456789/123456789/123456789/123456789";
-    char *msg_bin = string_to_binary(msg);
-
-    static char str[960]; // (120 * 8) or OOB message * 8
-    memcpy(str, msg_bin, 960);
-    if (strlen(msg) % 3 != 0) {
-        printf("EAP-NOOB: OOB string is of incorrect size\n");
-    }
-
-    static int i = 0;
-    static int j = 0;
-    static int l = 0;
-    static int loop = 0;
-    static int payload_len = 24;  // 3 * 8
-    static int repeat = 14;
-
-    etimer_set(&et, (1 / CLOCK_SECOND));
-
     while(1) {
-        /* Any printf or other similar tasks during blinking process may disrupt
-         * blinking resulting in some frames not being sent properly.
-         */
-        while (1) {
+        /* Generating URL */
+        // char peer_id[23];
+        // char hoob[23];
+        // char noob[23];
+        // read_db(PEER_DB, "PeerId", peer_id);
+        // read_db(PEER_DB, "Noob", noob);
+        // read_db(PEER_DB, "Hoob", hoob);
+        // char url_params[75]; //22+22+22+9
+        // sprintf(url_params, "P=%s&N=%s&H=%s", peer_id, noob, hoob);
+        // char msg [130];
+        // #if EDU_DEBUG
+        //     sprintf(msg, "+35https://localhost:8080/sendOOB?%s", url_params);
+        //     printf("OOB URL: %s\n",msg);
+        // #else
+        //     sprintf(msg, "+37https://193.234.219.186:8080/sendOOB?%s", url_params);
+        //     printf("OOB URL: %s\n",msg);
+        // #endif
+
+        char *msg = "+33https://example.com/123456789/123456789/123456789/123456789/123456789/123456789/123456789/123456789";
+        char *msg_bin = string_to_binary(msg);
+
+        static char str[960]; // (120 * 8) or OOB message * 8
+        memcpy(str, msg_bin, 960);
+        if (strlen(msg) % 3 != 0) {
+            printf("EAP-NOOB: OOB string is of incorrect size\n");
+        }
+
+        static int i = 0;
+        static int j = 0;
+        static int l = 0;
+        static int loop = 0;
+        static int payload_len = 24;  // 3 * 8
+        static int repeat = 14;
+
+        etimer_set(&et_oob, (1 / CLOCK_SECOND));
+        while(1) {
+            /* Any printf or other similar tasks during blinking process may disrupt
+            * blinking resulting in some frames not being sent properly.
+            */
             if (str[i] == '\0') {
                 printf("String index: %d\n", i);
                 i = 0; l = 0; j = 0;
@@ -104,22 +120,22 @@ PROCESS_THREAD(led_oob_process, ev, data) {
                 j++;
                 leds_off(LEDS_GREEN);
                 while (loop < 2) {
-                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                    etimer_reset(&et);
+                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                    etimer_reset(&et_oob);
                     loop++;
                 }
                 loop = 0;
                 leds_on(LEDS_GREEN);
                 while (loop < 5) {
-                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                    etimer_reset(&et);
+                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                    etimer_reset(&et_oob);
                     loop++;
                 }
                 loop = 0;
                 leds_off(LEDS_GREEN);
                 while (loop < 2) {
-                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                    etimer_reset(&et);
+                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                    etimer_reset(&et_oob);
                     loop++;
                 }
                 loop = 0;
@@ -127,35 +143,35 @@ PROCESS_THREAD(led_oob_process, ev, data) {
             /*---------------------------------------------------------------*/
             if (str[i] == '1') {
                 leds_on(LEDS_GREEN);
-                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                etimer_reset(&et);
+                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                etimer_reset(&et_oob);
                 loop = 0;
                 leds_off(LEDS_GREEN);
                 while (loop < 2){
-                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                    etimer_reset(&et);
+                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                    etimer_reset(&et_oob);
                     loop++;
                 }
                 loop = 0;
             } else {
                 leds_off(LEDS_GREEN);
                 while (loop < 2) {
-                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                    etimer_reset(&et);
+                    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                    etimer_reset(&et_oob);
                     loop++;
                 }
                 loop = 0;
                 leds_on(LEDS_GREEN);
-                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                etimer_reset(&et);
+                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et_oob));
+                etimer_reset(&et_oob);
             }
             i++;
 
             if (i % (payload_len) == 0) {
                 /* Repeats each three character sets / 24 bits for 'repeat'
-                 * times. Needed for reading the messages in the correct order.
-                 * Increase the repeat value if messages are not read in order.
-                 */
+                * times. Needed for reading the messages in the correct order.
+                * Increase the repeat value if messages are not read in order.
+                */
                 j = 0; // sets frame delimiter
 
                 if (l > repeat*34)
@@ -171,10 +187,10 @@ PROCESS_THREAD(led_oob_process, ev, data) {
                     }
                 }
                 l++;
-             }
-         }
+            }
+        }
     }
-    etimer_stop(&et);
+    etimer_stop(&et_oob);
     PROCESS_END();
 }
 /*----------------------------------------------------------------------*/

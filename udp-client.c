@@ -51,7 +51,7 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ipv6/uip-debug.h" //TODO: Establish if-else to enable only with debugging option
 
-#include "eax.h" //do_omac()
+// #include "eax.h" //do_omac()
 
 // ECDH implementation
 #include "ecc_pubkey.h"
@@ -60,6 +60,9 @@
 // SHA256 calculations
 #include "sha256_calc.h"
 #include "sha256_mac.h"
+
+// OOB LED implementation
+#include "oob_led.h"
 
 // CoAP Library (Contiki - Erbium)
 #include "os/net/app-layer/coap/coap.h"
@@ -245,7 +248,7 @@ tcpip_handler(void)
 						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Failure\n", __func__); //EDU: DEBUG
 					#endif
 					// etimer_restart(&et);
-					etimer_set(&et, 10 * CLOCK_SECOND);
+					etimer_set(&et, 20 * CLOCK_SECOND);
 					return 0;
 				} else if (eapSuccess == TRUE) {
 					#if EDU_DEBUG
@@ -256,7 +259,7 @@ tcpip_handler(void)
 						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Success\n", __func__); //EDU: DEBUG
 					#endif
 					// etimer_restart(&et);
-					etimer_set(&et, 10 * CLOCK_SECOND);
+					etimer_set(&et, 20 * CLOCK_SECOND);
 					return 0;
 				}
 			}
@@ -485,6 +488,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				process_start(&sha256_calc, "kdf_mac1");
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "hoob_noobid_kdf_generated") == 0) {
 				printf("UDP CLIENT: Generated Hoob, NoobId and KDF\n");
+				process_start(&led_oob_process, NULL);
 				// Start SHA256 MACs and MACp
 				process_start(&sha256_mac, "kdf_mac1");
 			} else if(ev == button_hal_press_event) {

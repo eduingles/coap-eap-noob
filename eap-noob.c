@@ -625,6 +625,8 @@ void eap_noob_req_type_three(char *eapReqData, const size_t size, uint8_t *eapRe
 **/
 void eap_noob_req_type_four(char *eapReqData, const size_t size, uint8_t *eapRespData, size_t *eapRespLen)
 {
+    // Stop OOB LED
+    process_exit(&led_oob_process);
     // Parse request
     struct jsonparse_state js_req;
     jsonparse_setup(&js_req, eapReqData, size);

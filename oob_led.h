@@ -33,13 +33,10 @@
 #ifndef OOB_LED_H
 #define OOB_LED_H
 
-#include "contiki.h"
-#include "sys/etimer.h"
+#include "include.h"
 #include "dev/leds.h"
+#include "database.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-
-char *string_to_binary(char *);
+PROCESS_NAME(led_oob_process);
 
 #endif
