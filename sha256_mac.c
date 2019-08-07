@@ -108,29 +108,45 @@ PROCESS_THREAD(sha256_mac, ev, data)
     counter += 2;
 
     for (uint8_t i = 0; i < MAC_VALUES; i++) {
-        if (!strcmp(MAC_keys[i], "PKp")) {
+        if (!strcmp(MAC_keys[i], "PKs") && !strcmp(data, "kdf_mac2")) {
+            memcpy(MAC_input+counter, ",\"\"", 3);
+            counter += 3;
+        } else if (!strcmp(MAC_keys[i], "PKp")) {
             memcpy(MAC_input+counter, ",", 1);
             counter += 1;
-            memcpy(MAC_input+counter, PKP1, strlen(PKP1));
-            counter += strlen(PKP1);
-            // Re-build PKp because it doesn't fit in the database
-            char pk_b64[45];
-            read_db(PEER_DB, "Xp", pk_b64);
-            pk_b64[43] = '\0';
-            memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
-            counter += strlen(pk_b64);
-            memcpy(MAC_input+counter, PKP2, strlen(PKP2));
-            counter += strlen(PKP2);
-            read_db(PEER_DB, "Yp", pk_b64);
-            pk_b64[43] = '\0';
-            memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
-            counter += strlen(pk_b64);
-            memcpy(MAC_input+counter, PKP3, strlen(PKP3));
-            counter += strlen(PKP3);
+            if (!strcmp(data, "kdf_mac1")) {
+                memcpy(MAC_input+counter, PKP1, strlen(PKP1));
+                counter += strlen(PKP1);
+                // Re-build PKp because it doesn't fit in the database
+                char pk_b64[45];
+                read_db(PEER_DB, "Xp", pk_b64);
+                pk_b64[43] = '\0';
+                memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
+                counter += strlen(pk_b64);
+                memcpy(MAC_input+counter, PKP2, strlen(PKP2));
+                counter += strlen(PKP2);
+                read_db(PEER_DB, "Yp", pk_b64);
+                pk_b64[43] = '\0';
+                memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
+                counter += strlen(pk_b64);
+                memcpy(MAC_input+counter, PKP3, strlen(PKP3));
+                counter += strlen(PKP3);
+            } else if (!strcmp(data, "kdf_mac2")) {
+                memcpy(MAC_input+counter, "\"\"", 2);
+                counter += 2;
+            }
+        } else if (!strcmp(MAC_keys[i], "Noob") ){
+            memcpy(MAC_input+counter, ",\"", 2);
+            counter += 2;
+            if (!strcmp(data, "kdf_mac1")) {
+                read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
+                memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
+                counter += strlen(tmp_val);
+            }
+            memcpy(MAC_input+counter, "\"", 1);
+            counter += 1;
         } else if (!strcmp(MAC_keys[i], "PeerId") ||
-            !strcmp(MAC_keys[i], "Realm") ||
-            !strcmp(MAC_keys[i], "Noob") ){
-
+            !strcmp(MAC_keys[i], "Realm") ){
             read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
@@ -161,7 +177,8 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += strlen(tmp_val);
         }
     }
-    memcpy(MAC_input+counter, "]\0", 1);
+    memcpy(MAC_input+counter, "]\0", 2);
+    // memset(MAC_input+counter,,);
     counter += 1;
 #if EDU_DEBUG
     printf("EDU: sha256_mac: MAC_input ---- (%d) %s\n", counter, MAC_input+64);
@@ -243,30 +260,45 @@ PROCESS_THREAD(sha256_mac, ev, data)
     counter += 2;
 
     for (uint8_t i = 0; i < MAC_VALUES; i++) {
-        if (!strcmp(MAC_keys[i], "PKp")) {
+        if (!strcmp(MAC_keys[i], "PKs") && !strcmp(data, "kdf_mac2")) {
+            memcpy(MAC_input+counter, ",\"\"", 3);
+            counter += 3;
+        } else if (!strcmp(MAC_keys[i], "PKp")) {
             memcpy(MAC_input+counter, ",", 1);
             counter += 1;
-            memcpy(MAC_input+counter, PKP1, strlen(PKP1));
-            counter += strlen(PKP1);
-            // Re-build PKp because it doesn't fit in the database
-            char pk_b64[45];
-            read_db(PEER_DB, "Xp", pk_b64);
-            pk_b64[43] = '\0';
-            memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
-            counter += strlen(pk_b64);
-            memcpy(MAC_input+counter, PKP2, strlen(PKP2));
-            counter += strlen(PKP2);
-            read_db(PEER_DB, "Yp", pk_b64);
-            pk_b64[43] = '\0';
-            memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
-            counter += strlen(pk_b64);
-            memcpy(MAC_input+counter, PKP3, strlen(PKP3));
-            counter += strlen(PKP3);
+            if (!strcmp(data, "kdf_mac1")) {
+                memcpy(MAC_input+counter, PKP1, strlen(PKP1));
+                counter += strlen(PKP1);
+                char pk_b64[45];
+                read_db(PEER_DB, "Xp", pk_b64);
+                pk_b64[43] = '\0';
+                memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
+                counter += strlen(pk_b64);
+                memcpy(MAC_input+counter, PKP2, strlen(PKP2));
+                counter += strlen(PKP2);
+                read_db(PEER_DB, "Yp", pk_b64);
+                pk_b64[43] = '\0';
+                memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
+                counter += strlen(pk_b64);
+                memcpy(MAC_input+counter, PKP3, strlen(PKP3));
+                counter += strlen(PKP3);
+            } else if (!strcmp(data, "kdf_mac2")) {
+                memcpy(MAC_input+counter, "\"\"", 2);
+                counter += 2;
+            }
+        } else if (!strcmp(MAC_keys[i], "Noob") ){
+            memcpy(MAC_input+counter, ",\"", 2);
+            counter += 2;
+            if (!strcmp(data, "kdf_mac1")) {
+                read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
+                memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
+                counter += strlen(tmp_val);
+            }
+            memcpy(MAC_input+counter, "\"", 1);
+            counter += 1;
         } else if (
             !strcmp(MAC_keys[i], "PeerId") ||
-            !strcmp(MAC_keys[i], "Realm") ||
-            !strcmp(MAC_keys[i], "Noob")
-        ) {
+            !strcmp(MAC_keys[i], "Realm") ) {
             read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
@@ -297,7 +329,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += strlen(tmp_val);
         }
     }
-    memcpy(MAC_input+counter, "]\0", 1);
+    memcpy(MAC_input+counter, "]\0", 2);
     counter += 1;
 #if EDU_DEBUG
     printf("EDU: sha256_mac: MACp MAC_input ---- (%d) %s\n", counter, MAC_input+64);
