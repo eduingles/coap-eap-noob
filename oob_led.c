@@ -53,7 +53,6 @@ PROCESS_THREAD(led_oob_process, ev, data)
 	memcpy(str, msg_bin, 960);
 	if (strlen(msg) % 3 != 0){
 		printf("String is not correct length.\n");
-		memcpy(str, " ");
 	}
 	static int i = 0;
 	static int j = 0;
@@ -67,30 +66,30 @@ PROCESS_THREAD(led_oob_process, ev, data)
 		// resulting in some frames not being sent properly.
 		while (1) {
 			//printf("value of i: %d\n", i);
-			/*if (str[i] == '\0') {
+			if (str[i] == '\0') {
 				printf("string index: %d\n", i);
 				i = 0;
 				l = 0;
 				j = 0;
 				break;
-			}*/
+			}
 			/*------------ frame delimiter / start of frame sequence ------------*/
 			if (j == 0){
 				j++;
 				leds_off(LEDS_GREEN);
-				while (loop < 4) {
+				while (loop < 2) {
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 					loop++;
 				}
 				loop = 0;
 				leds_on(LEDS_GREEN); 
-				while (loop < 10) {
+				while (loop < 5) {
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 					loop++;
 				}
 				loop = 0;
 				leds_off(LEDS_GREEN);
-				while (loop < 4) {
+				while (loop < 2) {
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 					loop++;
 				}
@@ -99,13 +98,10 @@ PROCESS_THREAD(led_oob_process, ev, data)
 			/*--------------------------------------------------------------------*/
 			if (str[i] == '1') {
 				leds_on(LEDS_GREEN);
-				while (loop < 2){
-					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
-					loop++;
-				}
+				PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 				loop = 0;
 				leds_off(LEDS_GREEN);
-				while (loop < 4){
+				while (loop < 2){
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 					loop++;
 				}
@@ -114,17 +110,13 @@ PROCESS_THREAD(led_oob_process, ev, data)
 			//if (str[i]== '0') {
 			else {
 				leds_off(LEDS_GREEN);
-				while (loop < 4){
-					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
-					loop++;
-				}
-				loop = 0;
-				leds_on(LEDS_GREEN);	
 				while (loop < 2){
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et);
 					loop++;
 				}
-				loop = 0;  
+				loop = 0;
+				leds_on(LEDS_GREEN);
+				PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et)); etimer_reset(&et); 
 			}
 			i++;
 
