@@ -271,22 +271,6 @@ tcpip_handler(void)
 		/* Set request token and message ID */
 		coap_set_token(response, request->token, request->token_len);
 
-		#if EDU_DEBUG
-			unsigned char *tmpPayload;
-			printf("EDU: %s print PayLoad again\n",__func__); //EDU: DEBUG
-			printf("      Request Hdr: '");
-			for (int i = 0; i < 2; i++)
-				printf("%02x ", request->buffer[i]);
-			printf("'\n");
-			printf("      Value: '");
-			tmpPayload = request->payload;
-			for (int i = 0; i < 5; i++)
-				printf("%02x", tmpPayload[i]);
-			for (int i = 5; i < request->payload_len; i++)
-				printf("%c", tmpPayload[i]);
-			printf("'\n");
-		#endif
-
 		if(request->code == COAP_POST){
 			if (!state){
 				#if EDU_DEBUG
@@ -325,7 +309,7 @@ tcpip_handler(void)
 
 			/* A 'response' message has been created. */
 			#if EDU_DEBUG
-				printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
+				// printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 			#endif
 			etimer_set(&et, 20 * CLOCK_SECOND);
 
@@ -341,7 +325,7 @@ tcpip_handler(void)
 	// }
 
 	#if EDU_DEBUG
-		printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
+		// printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
 	#endif
 	etimer_set(&et, 20 * CLOCK_SECOND);
 	return 0;

@@ -73,7 +73,6 @@ void eap_peer_sm_step(const uint8_t* msg){
 		//parseEapReq(msg);
 #if EDU_DEBUG
 		printf("EDU: %s EAP-Code: %02x\n", __func__, ((struct eap_msg *)msg)->code);
-		printf("EDU: %s methodState: %d - decision: %d\n", __func__, methodState, decision);
 #endif
 		//if ((type_received == RxSUCCESS) && (reqIdPeer == lastId) && (decision!=FAIL)){
 		if ( ( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && (reqIdPeer == lastId) && (decision!=FAIL)){
@@ -177,9 +176,6 @@ _METHOD:
 		size_t eapRespLen = 0; // EAP Payload Length
 
 		eap_noob_process(msg+5, NTOHS(reqLengthPeer) - 5, &methodState, &decision, eapPayload, &eapRespLen);
-        #if EDU_DEBUG
-                printf("EDU: NEW: %s: - %s\n", __func__, eapPayload);
-        #endif
 
 		((struct eap_msg *)eapRespData)->length = HTONS(sizeof(struct eap_msg)+ eapRespLen + 1);
 		memcpy(eapRespData + 5, eapPayload, eapRespLen+1);
