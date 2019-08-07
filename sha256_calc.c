@@ -53,7 +53,14 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	PROCESS_BEGIN();
 
-	// PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0);
+    if (data == NULL && (!strcmp(data, "kdf_mac1") || !strcmp(data, "kdf_mac2") ) ){
+        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
+        goto _error;
+    }
+
+	/*------------------- SHA256 Common variables ------------------ */
+	static sha256_state_t state;
+	static uint8_t sha256[32]; /* SHA256: Hash result */
 
 	/*------------------- SHA256 HOOB Generation ------------------ */
 
@@ -62,124 +69,122 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 	TODO: Update client and server with the values detailed in EAP-NOOB draft.
 		  Hoob calculation mistmach between code in NodeJS Server and test-vectors (example_messages.py).
 	*/
-	static const char *keys_db[] = {
-		"Vers",
-		"Verp",
-		"PeerId",
-		"Cryptosuites",
-		"Dirs",
-		"ServerInfo",
-		"Cryptosuitep",
-		"Dirp",
-		"Realm",
-		"PeerInfo",
-		// "PKs",
-		"Xs",
-		"Ys",
-		"Ns",
-		// "PKp",
-		"Xp",
-		"Yp",
-		"Np",
-		"Noob"
-	};
+    if (!strcmp(data, "kdf_mac1")) {
+		static const char *keys_db[] = {
+			"Vers",
+			"Verp",
+			"PeerId",
+			"Cryptosuites",
+			"Dirs",
+			"ServerInfo",
+			"Cryptosuitep",
+			"Dirp",
+			"Realm",
+			"PeerInfo",
+			// "PKs",
+			"Xs",
+			"Ys",
+			"Ns",
+			// "PKp",
+			"Xp",
+			"Yp",
+			"Np",
+			"Noob"
+		};
 
-	/* SHA256 Variables */
-	static sha256_state_t state;
-	static uint8_t sha256[32]; /* SHA256: Hash result */
+		size_t len;
+		char hash_str[600] = "[1"; // TODO: get actual Dir from Peer
+		char tmp[65]; /* Fixme: ATTENTION!! Value based on 'ServerInfo' length (63).
+						It should be larger for PKp or PKs. */
 
-	size_t len;
-	char hash_str[600] = "[1"; // TODO: get actual Dir from Peer
-	char tmp[65]; /* Fixme: ATTENTION!! Value based on 'ServerInfo' length (63).
-                     It should be larger for PKp or PKs. */
+		/* SHA256: Get values to hash from DB and set format */
+		for (int i = 0; i < sizeof(keys_db)/sizeof(keys_db[0]); i++) {
+			read_db(PEER_DB, (char *)keys_db[i], tmp);
+			if (!strcmp(keys_db[i], "PeerId") ||
+				!strcmp(keys_db[i], "Realm")  ||
+				!strcmp(keys_db[i], "Ns")     ||
+				!strcmp(keys_db[i], "Np")     ||
+				!strcmp(keys_db[i], "Noob")   ||
+				!strcmp(keys_db[i], "Xs")     ||
+				!strcmp(keys_db[i], "Ys")     ||
+				!strcmp(keys_db[i], "Xp")     ||
+				!strcmp(keys_db[i], "Yp")
+			)
+				sprintf(hash_str, "%s,\"%s\"", hash_str,tmp);
+			else
+				sprintf(hash_str, "%s,%s", hash_str,tmp);
 
-	/* SHA256: Get values to hash from DB and set format */
-	for (int i = 0; i < sizeof(keys_db)/sizeof(keys_db[0]); i++) {
-		read_db(PEER_DB, (char *)keys_db[i], tmp);
-		if (!strcmp(keys_db[i], "PeerId") ||
-            !strcmp(keys_db[i], "Realm")  ||
-            !strcmp(keys_db[i], "Ns")     ||
-            !strcmp(keys_db[i], "Np")     ||
-            !strcmp(keys_db[i], "Noob")   ||
-            !strcmp(keys_db[i], "Xs")     ||
-            !strcmp(keys_db[i], "Ys")     ||
-            !strcmp(keys_db[i], "Xp")     ||
-            !strcmp(keys_db[i], "Yp")
-        )
-            sprintf(hash_str, "%s,\"%s\"", hash_str,tmp);
-        else
-            sprintf(hash_str, "%s,%s", hash_str,tmp);
+			if (!strcmp(keys_db[i], "PeerInfo")) // Add Keying mode (0)
+				sprintf(hash_str, "%s,0", hash_str);
+		}
+		sprintf(hash_str, "%s]",hash_str);
 
-        if (!strcmp(keys_db[i], "PeerInfo")) // Add Keying mode (0)
-			sprintf(hash_str, "%s,0", hash_str);
+		#if EDU_DEBUG
+			printf("EDU: hash_str: %s\n", hash_str);
+		#endif
+
+		crypto_init();
+
+		sha256_init(&state);
+		len = strlen(hash_str);
+		sha256_process(&state, hash_str, len);
+
+		/* SHA256: Get result in param 'sha256' */
+		sha256_done(&state, sha256);
+
+		#if EDU_DEBUG
+			printf("Hoob calculation process.\n");
+			printf("Hash value (hex): ");
+			for (int i = 0;i <32;i++)
+				printf("%02x", sha256[i]);
+			printf("\n");
+		#endif
+
+		size_t len_b64_hoob = 0;
+		unsigned char hoob[23];
+		base64_encode(sha256, 16, &len_b64_hoob, hoob);
+		hoob[22] = '\0'; // Remove '=' padding
+
+		// crypto_disable();
+
+		/* SHA256: Show URL */
+		char peer_id[23];
+		char noob[23];
+		read_db(PEER_DB, "PeerId", peer_id);
+		read_db(PEER_DB, "Noob", noob);
+
+		/* TODO: Get url from 'ServerInfo' */
+		printf("EAP-NOOB: OOB:\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
+			peer_id, noob, hoob
+		);
+
+		printf("EAP-NOOB: OOB:\n\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n",
+			peer_id, noob, hoob
+		);
+
+		/*--------------------- SHA256 NoobId Generation -------------------- */
+
+		char noobid_str[29]; // "NoobId" + noob + '\0' = 6 + 22 + 1
+		sprintf(noobid_str, "NoobId%s",noob);
+
+		/* Generate NoobId */
+		// crypto_init();
+		sha256_init(&state);
+		len = strlen(noobid_str);
+		sha256_process(&state, noobid_str, len);
+		/* SHA256: Get result in param 'sha256' */
+		sha256_done(&state, sha256);
+		crypto_disable();
+		unsigned char NoobId[23];
+		len_b64_hoob = 0;
+		base64_encode(sha256, 16, &len_b64_hoob, NoobId);
+		NoobId[22] = '\0'; // Remove '=' padding
+		write_db(PEER_DB, "NoobId", strlen((char *)NoobId), (char *)NoobId);
+
+		#if NOOB_DEBUG
+			printf("EAP-NOOB: NoobId generated: %s\n", NoobId);
+		#endif
 	}
-	sprintf(hash_str, "%s]",hash_str);
-
-#if EDU_DEBUG
-	printf("EDU: hash_str: %s\n", hash_str);
-#endif
-
-	crypto_init();
-
-	sha256_init(&state);
-	len = strlen(hash_str);
-	sha256_process(&state, hash_str, len);
-
-	/* SHA256: Get result in param 'sha256' */
-	sha256_done(&state, sha256);
-
-#if EDU_DEBUG
-	printf("Hoob calculation process.\n");
-	printf("Hash value (hex): ");
-	for (int i = 0;i <32;i++)
-		printf("%02x", sha256[i]);
-	printf("\n");
-#endif
-
-    size_t len_b64_hoob = 0;
-	unsigned char hoob[23];
-    base64_encode(sha256, 16, &len_b64_hoob, hoob);
-	hoob[22] = '\0'; // Remove '=' padding
-
-	// crypto_disable();
-
-	/* SHA256: Show URL */
-	char peer_id[23];
-	char noob[23];
-	read_db(PEER_DB, "PeerId", peer_id);
-	read_db(PEER_DB, "Noob", noob);
-
-	/* TODO: Get url from 'ServerInfo' */
-	printf("EAP-NOOB: OOB:\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
-        peer_id, noob, hoob
-    );
-
-	printf("EAP-NOOB: OOB:\n\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n",
-        peer_id, noob, hoob
-    );
-
-	/*--------------------- SHA256 NoobId Generation -------------------- */
-
-	char noobid_str[29]; // "NoobId" + noob + '\0' = 6 + 22 + 1
-	sprintf(noobid_str, "NoobId%s",noob);
-
-    /* Generate NoobId */
-   	// crypto_init();
-	sha256_init(&state);
-	len = strlen(noobid_str);
-	sha256_process(&state, noobid_str, len);
-	/* SHA256: Get result in param 'sha256' */
-	sha256_done(&state, sha256);
-	// crypto_disable();
-	unsigned char NoobId[23];
-    len_b64_hoob = 0;
-    base64_encode(sha256, 16, &len_b64_hoob, NoobId);
-	NoobId[22] = '\0'; // Remove '=' padding
-	write_db(PEER_DB, "NoobId", strlen((char *)NoobId), (char *)NoobId);
-
-#if NOOB_DEBUG
-	printf("EAP-NOOB: NoobId generated: %s\n", NoobId);
-#endif
 
 	/*----------------------- SHA256 KDF Generation ---------------------- */
 	/* KDF Generation: Values used in EAP-NOOB Server (https://github.com/tuomaura/eap-noob)
@@ -202,7 +207,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     /* Decode nonces */
 	size_t len_tmp = 0;
 
-   	// crypto_init();
+   	crypto_init();
 	static size_t outlen = KDF_LEN;
     size_t mdlen = 32; // Message Digest size
 	static size_t kdf_hash_len = 0;
@@ -223,12 +228,19 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		unsigned char np_decoded[33];
 		unsigned char ns_decoded[33];
 		unsigned char noob2[17];
+		
+		char np_name[4] = "Np";
+		char ns_name[4] = "Ns";
+		if (!strcmp(data, "kdf_mac2")) {
+			sprintf(np_name, "%s2", np_name);
+			sprintf(ns_name, "%s2", ns_name);
+		}
 		// Decode Np
-		read_db(PEER_DB, "Np", nonce);
+		read_db(PEER_DB, np_name, nonce);
 		sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
 		base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, np_decoded);
 		// Decode Ns
-		read_db(PEER_DB, "Ns", nonce);
+		read_db(PEER_DB, ns_name, nonce);
 		sprintf(nonce, "%s""=", nonce); // Recover '=' to decode
 		base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, ns_decoded);
 		// Decode Noob
@@ -297,28 +309,44 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     tmp_res[MSK_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, MSK_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db(KEY_DB, "Msk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
-    counter += MSK_LEN;
+	if (!strcmp(data, "kdf_mac1")) {
+	    write_db(KEY_DB, "Msk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	} else if (!strcmp(data, "kdf_mac2")) {
+	    write_db(KEY_DB, "Msk2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	}
+	counter += MSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, EMSK_LEN);
     tmp_res[EMSK_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, EMSK_LEN, &len_tmp_b64, tmp_res_b64);
-    // write_db(KEY_DB, "Emsk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// if (!strcmp(data, "kdf_mac1")) {
+	//     write_db(KEY_DB, "Emsk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// } else if (!strcmp(data, "kdf_mac2")) {
+	//     write_db(KEY_DB, "Emsk2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// }
     counter += EMSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, AMSK_LEN);
     tmp_res[AMSK_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, AMSK_LEN, &len_tmp_b64, tmp_res_b64);
-    // write_db(KEY_DB, "Amsk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// if (!strcmp(data, "kdf_mac1")) {
+	//     write_db(KEY_DB, "Amsk", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// } else if (!strcmp(data, "kdf_mac2")) {
+	//     write_db(KEY_DB, "Ansk2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	// }
     counter += AMSK_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, METHOD_ID_LEN);
     tmp_res[METHOD_ID_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, METHOD_ID_LEN, &len_tmp_b64, tmp_res_b64);
-    // write_db(KEY_DB, "MethodId", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	if (!strcmp(data, "kdf_mac1")) {
+	    write_db(KEY_DB, "MethodId", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	} else if (!strcmp(data, "kdf_mac2")) {
+	    write_db(KEY_DB, "MethodId2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	}
     counter += METHOD_ID_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, KMS_LEN);
@@ -326,24 +354,42 @@ PROCESS_THREAD(sha256_calc, ev, data) {
     // memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KMS_LEN, &len_tmp_b64, tmp_res_b64);
 	// tmp_res_b64[43] = '\0';
-    write_db(KEY_DB, "Kms", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
-    // write_db(KEY_DB, "Kms", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	if (!strcmp(data, "kdf_mac1")) {
+	    write_db(KEY_DB, "Kms", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	} else if (!strcmp(data, "kdf_mac2")) {
+	    write_db(KEY_DB, "Kms2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	}
     counter += KMS_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, KMP_LEN);
     tmp_res[KMP_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KMP_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db(KEY_DB, "Kmp", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	if (!strcmp(data, "kdf_mac1")) {
+	    write_db(KEY_DB, "Kmp", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	} else if (!strcmp(data, "kdf_mac2")) {
+	    write_db(KEY_DB, "Kmp2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	}
     counter += KMP_LEN;
 
     memcpy(tmp_res, kdf_hash+counter, KZ_LEN);
     tmp_res[KZ_LEN] = '\0';
     memset(tmp_res_b64, 0x00, 90);
     base64_encode(tmp_res, KZ_LEN, &len_tmp_b64, tmp_res_b64);
-    write_db(KEY_DB, "Kz", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	if (!strcmp(data, "kdf_mac1")) {
+	    write_db(KEY_DB, "Kz", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	} else if (!strcmp(data, "kdf_mac2")) {
+	    write_db(KEY_DB, "Kz2", strlen((char *)tmp_res_b64), (char *)tmp_res_b64);
+	}
     counter += KZ_LEN;
 
-  PROCESS_END();
+    if (!strcmp(data, "kdf_mac2")) {
+       	process_post(&boostrapping_service_process, PROCESS_EVENT_CONTINUE, "KDF2_generated");
+    }
+
+	_error:
+	printf(" ");
+
+	PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

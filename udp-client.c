@@ -488,6 +488,8 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == tcpip_event) {
 				if (tcpip_handler()) {
 					if (is_mac2_in_progress){
+						PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "KDF2_generated") == 0);
+						process_start(&sha256_mac, "kdf_mac2");
 						PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "MACs2_MACp2_generated") == 0);
 						is_mac2_in_progress = FALSE;
 					}
@@ -496,11 +498,11 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0) {
 				printf("UDP CLIENT: Generated shared secret\n");
 				// Start SHA256 calculations (KDF)
-				process_start(&sha256_calc, NULL);
+				process_start(&sha256_calc, "kdf_mac1");
 			} else if(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "hoob_noobid_kdf_generated") == 0) {
 				printf("UDP CLIENT: Generated Hoob, NoobId and KDF\n");
 				// Start SHA256 MACs and MACp
-				process_start(&sha256_mac, "mac1");
+				process_start(&sha256_mac, "kdf_mac1");
 			} else if(ev == button_hal_press_event) {
 				printf("UDP CLIENT: Starting Reconnect Exchange\n");
 				timeout_handler();

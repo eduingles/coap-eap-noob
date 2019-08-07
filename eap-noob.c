@@ -361,10 +361,10 @@ void eap_noob_rsp_type_five(uint8_t *eapRespData, size_t *eapRespLen)
     read_db(PEER_DB, "Verp", Verp);
     char Cryptosuitep[4];
     read_db(PEER_DB, "Cryptosuitep", Cryptosuitep);
-    char tmpResponseType5[100];
-    sprintf(tmpResponseType5, "%s%s%s%s%s%s%s",
+    char tmpResponseType5[140];
+    sprintf(tmpResponseType5, "%s%s%s%s%s%s%s%s%s",
         "{\"Type\":5,\"Verp\":\"",Verp,"\",\"PeerId\":\"",PeerId,
-        "\"Cryptosuitep\":\"",Cryptosuitep,"\"}"
+        "\",\"Cryptosuitep\":",Cryptosuitep,",\"PeerInfo\":",PEER_INFO,"}"
     );
 
     *eapRespLen = strlen(tmpResponseType5);
@@ -386,13 +386,19 @@ void eap_noob_rsp_type_six(uint8_t *eapRespData, size_t *eapRespLen)
     // Generate nonce
     char Np2_b64[44];
     generate_nonce(32, Np2_b64);
-    write_db(PEER_DB, "Np", strlen((char *)Np2_b64), (char *)Np2_b64);
+    write_db(PEER_DB, "Np2", strlen((char *)Np2_b64), (char *)Np2_b64);
 
+    /* //EDU:
+        The SM should stop here until we get the MACs and MACp.
+     */
+    is_mac2_in_progress = TRUE;
+    process_start(&sha256_calc, "kdf_mac2");
+    
     // TODO: generate PKp2
 
     char tmpResponseType6[200];
     sprintf(tmpResponseType6, "%s%s%s%s%s",
-        "{\"Type\":6,\"PeerId\":\"",PeerId,"\"Np2\":\"",Np2_b64,"\"}"
+        "{\"Type\":6,\"PeerId\":\"",PeerId,"\",\"Np2\":\"",Np2_b64,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType6);
@@ -415,7 +421,7 @@ void eap_noob_rsp_type_seven(uint8_t *eapRespData, size_t *eapRespLen)
     read_db(MAC_DB, "MACp2", MACp2);
     char tmpResponseType7[120];
     sprintf(tmpResponseType7, "%s%s%s%s%s",
-        "{\"Type\":7,\"PeerId\":\"",PeerId,"\"MACp2\":\"",MACp2,"\"}"
+        "{\"Type\":7,\"PeerId\":\"",PeerId,"\",\"MACp2\":\"",MACp2,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType7);
@@ -673,31 +679,13 @@ void eap_noob_req_type_five(char *eapReqData, const size_t size, uint8_t *eapRes
                     return;
                 }
             } else if(!strcmp(tmp_key, "Vers")) {
-                char Vers[strlen(tmp_val)]; // TODO size
-                read_db(PEER_DB, "Vers", Vers);
-                if(strcmp(tmp_val, Vers)) {
-                    // TODO: Update Vers in database
-                    // TODO: Upgrade Verp in database
-                }
+                // TODO: upgrade version if necessary
             } else if(!strcmp(tmp_key, "Cryptosuites")) {
-                char Cryptosuites[strlen(tmp_val)]; // TODO size
-                read_db(PEER_DB, "Cryptosuites", Cryptosuites);
-                if(strcmp(tmp_val, Cryptosuites)) {
-                    // TODO: Update Cryptosuites in database
-                    // TODO: Upgrade Cryptosuitep in database
-                }
+                // TODO: upgrade cryptosuite if necessary
             } else if(!strcmp(tmp_key, "Realm")) {
-                char Realm[strlen(tmp_val)]; // TODO size
-                read_db(PEER_DB, "Realm", Realm);
-                if(strcmp(tmp_val, Realm)) {
-                    // TODO: Update Realm in database
-                }
+                // TODO: update Realm if necessary
             } else if(!strcmp(tmp_key, "ServerInfo")) {
-                char ServerInfo[strlen(tmp_val)]; // TODO size
-                read_db(PEER_DB, "ServerInfo", ServerInfo);
-                if(strcmp(tmp_val, ServerInfo)) {
-                    // TODO: Update ServerInfo in database
-                }
+                // TODO: update ServerInfo if necessary
             }
         }
     }
@@ -735,13 +723,6 @@ void eap_noob_req_type_six(char *eapReqData, const size_t size, uint8_t *eapResp
             write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
         }
     }
-    /* //EDU:
-        The SM should stop here until we get the Np2, MACs and MACp.
-
-     */
-    is_mac2_in_progress = TRUE;
-    process_start(&sha256_mac, "mac2");
-    
     // Build response
     eap_noob_rsp_type_six(eapRespData, eapRespLen);
 }

@@ -42,7 +42,7 @@
 #include "ecc_shared_secret.h"
 
 /* SHA256 implementation */
-#include "sha256_mac.h"
+#include "sha256_calc.h"
 
 /* Configuration file */
 #include "eap-noob-conf.h"

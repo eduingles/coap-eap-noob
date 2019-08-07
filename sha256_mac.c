@@ -60,13 +60,12 @@ PROCESS_THREAD(sha256_mac, ev, data)
     /*
         Process expects a string indicating the MACs/p step:
 
-            data == "mac1" --> Generating MACs and MACp for Completion Exchange.
-            data == "mac2" --> Generating MACs2 and MACp2 for Reconnect Exchange.
+        data == "kdf_mac1" --> Generating MACs and MACp for Completion Exchange.
+        data == "kdf_mac2" --> Generating MACs2 and MACp2 for Reconnect Exchange.
 
-            Otherwise   --> Exit. //TODO: Improve error handling.
+        Otherwise   --> Exit. //TODO: Improve error handling.
      */
-    if (data == NULL && (!strcmp(data, "mac1") || !strcmp(data, "mac2") ) ){
-        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
+    if (data == NULL || (strcmp(data, "kdf_mac1") && strcmp(data, "kdf_mac2") ) ){        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
         goto _error;
     }
 
@@ -83,7 +82,11 @@ PROCESS_THREAD(sha256_mac, ev, data)
     /*------------------------ SHA256 MACs Generation ------------------------*/
     // Temporary array for reading the database
     char tmp_val[127];
-    read_db(KEY_DB, "Kms", tmp_val);
+    if (!strcmp(data, "kdf_mac1")) {
+        read_db(KEY_DB, "Kms", tmp_val);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        read_db(KEY_DB, "Kms2", tmp_val);
+    }
     tmp_val[43] = '\0';
     size_t len_kms = 0;
     memset(MAC_input, 0x00, 64);
@@ -125,11 +128,24 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += strlen(PKP3);
         } else if (!strcmp(MAC_keys[i], "PeerId") ||
             !strcmp(MAC_keys[i], "Realm") ||
-            !strcmp(MAC_keys[i], "Ns") ||
-            !strcmp(MAC_keys[i], "Np") ||
             !strcmp(MAC_keys[i], "Noob") ){
 
             read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
+            memcpy(MAC_input+counter, ",\"", 2);
+            counter += 2;
+            memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
+            counter += strlen(tmp_val);
+            memcpy(MAC_input+counter, "\"", 1);
+            counter += 1;
+        } else if (!strcmp(MAC_keys[i], "Ns") ||
+            !strcmp(MAC_keys[i], "Np") ){
+            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0) 
+            if (!strcmp(data, "kdf_mac1")) {
+                sprintf(aux_key,"%s", MAC_keys[i]);
+            } else if (!strcmp(data, "kdf_mac2")) {
+                sprintf(aux_key,"%s2", MAC_keys[i]);
+            }
+            read_db(PEER_DB, aux_key, tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
             memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
@@ -158,8 +174,11 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_process(&state, MAC_input, counter);
     sha256_done(&state, sha256);
 
-    read_db(KEY_DB, "Kms", tmp_val);
-    // read_db_name("kmsdb.txt", "Kms", tmp_val);
+    if (!strcmp(data, "kdf_mac1")) {
+        read_db(KEY_DB, "Kms", tmp_val);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        read_db(KEY_DB, "Kms2", tmp_val);
+    }
     memset(MAC_input, 0x00, 64);
     sprintf(tmp_val,"%s""=", tmp_val);
     base64_decode((unsigned char *)tmp_val, 44, &len_kms, (unsigned char *)MAC_input);
@@ -180,25 +199,29 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    if (!strcmp(data, "mac1")) {
+    if (!strcmp(data, "kdf_mac1")) {
         write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
-    } else if (!strcmp(data, "mac2")) {
-        write_db(MAC_DB, "MACs", strlen(MAC_input), MAC_input);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        write_db(MAC_DB, "MACs2", strlen(MAC_input), MAC_input);
     } else {
         printf("SHA256 MACs ERROR: It seems that 'data' content has been erased.\n");
         goto _error;
     }
 
 #if NOOB_DEBUG
-    if (!strcmp(data, "mac1")) {
+    if (!strcmp(data, "kdf_mac1")) {
         printf("EAP-NOOB: MACs generated (b64): %s\n", MAC_input);
-    } else if (!strcmp(data, "mac2")) {
+    } else if (!strcmp(data, "kdf_mac2")) {
         printf("EAP-NOOB: MACs2 generated (b64): %s\n", MAC_input);
     }
 #endif
 
     /*------------------------ SHA256 MACp Generation ------------------------*/
-    read_db(KEY_DB, "Kmp", tmp_val);
+    if (!strcmp(data, "kdf_mac1")) {
+        read_db(KEY_DB, "Kmp", tmp_val);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        read_db(KEY_DB, "Kmp2", tmp_val);
+    }
     tmp_val[43] = '\0';
     size_t len_kmp = 0;
     memset(MAC_input, 0x00, 64);
@@ -241,11 +264,24 @@ PROCESS_THREAD(sha256_mac, ev, data)
         } else if (
             !strcmp(MAC_keys[i], "PeerId") ||
             !strcmp(MAC_keys[i], "Realm") ||
-            !strcmp(MAC_keys[i], "Ns") ||
-            !strcmp(MAC_keys[i], "Np") ||
             !strcmp(MAC_keys[i], "Noob")
         ) {
             read_db(PEER_DB, (char *)MAC_keys[i], tmp_val);
+            memcpy(MAC_input+counter, ",\"", 2);
+            counter += 2;
+            memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
+            counter += strlen(tmp_val);
+            memcpy(MAC_input+counter, "\"", 1);
+            counter += 1;
+        } else if (!strcmp(MAC_keys[i], "Ns") ||
+            !strcmp(MAC_keys[i], "Np") ){
+            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0) 
+            if (!strcmp(data, "kdf_mac1")) {
+                sprintf(aux_key,"%s", MAC_keys[i]);
+            } else if (!strcmp(data, "kdf_mac2")) {
+                sprintf(aux_key,"%s2", MAC_keys[i]);
+            }
+            read_db(PEER_DB, aux_key, tmp_val);
             memcpy(MAC_input+counter, ",\"", 2);
             counter += 2;
             memcpy(MAC_input+counter, tmp_val, strlen(tmp_val));
@@ -270,7 +306,11 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_process(&state, MAC_input, counter);
     sha256_done(&state, sha256);
 
-    read_db(KEY_DB, "Kmp", tmp_val);
+    if (!strcmp(data, "kdf_mac1")) {
+        read_db(KEY_DB, "Kmp", tmp_val);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        read_db(KEY_DB, "Kmp2", tmp_val);
+    }
     memset(MAC_input, 0x00, 64);
     sprintf(tmp_val,"%s""=", tmp_val);
     base64_decode((unsigned char *)tmp_val, 44, &len_kmp, (unsigned char *)MAC_input);
@@ -291,24 +331,24 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
     base64_encode(sha256, 32, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
-    if (!strcmp(data, "mac1")) {
+    if (!strcmp(data, "kdf_mac1")) {
         write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
-    } else if (!strcmp(data, "mac2")) {
-        write_db(MAC_DB, "MACp", strlen(MAC_input), MAC_input);
+    } else if (!strcmp(data, "kdf_mac2")) {
+        write_db(MAC_DB, "MACp2", strlen(MAC_input), MAC_input);
     } else {
         printf("SHA256 MACp ERROR: It seems that 'data' content has been erased.\n");
         goto _error;
     }
 
 #if NOOB_DEBUG
-    if (!strcmp(data, "mac1")) {
+    if (!strcmp(data, "kdf_mac1")) {
         printf("EAP-NOOB: MACp generated (b64): %s\n", MAC_input);
-    } else if (!strcmp(data, "mac2")) {
+    } else if (!strcmp(data, "kdf_mac2")) {
         printf("EAP-NOOB: MACp2 generated (b64): %s\n", MAC_input);
     }
 #endif
 
-    if (!strcmp(data, "mac2")) {
+    if (!strcmp(data, "kdf_mac2")) {
        	process_post(&boostrapping_service_process, PROCESS_EVENT_CONTINUE, "MACs2_MACp2_generated");
     }
 
