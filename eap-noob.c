@@ -34,7 +34,7 @@
 
 static char nai [MAX_NAI_LEN];
 static char PeerId [MAX_PEERID_LEN];
-static char RealM [] = "noob.example.com";
+static char Realm [] = "noob.example.com";
 
 /* EAP-NOOB error codes */
 const int error_code[] = {
@@ -206,14 +206,14 @@ void eap_noob_err_msg(uint8_t *eapRespData, uint8_t error, size_t *eapRespLen)
         error_code[error],",\"ErrorInfo\":\"",error_info[error],"\"}"
     );
 
+    *eapRespLen = strlen(tmpResponseType0);
+    memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1);
+    eapKeyAvailable = FALSE;
+
 #if NOOB_DEBUG
     DEBUG_MSG_NOOB(error_info[error]);
     ERROR_MSG_NOOB("Sending error code", error_code[error]);
 #endif
-
-    *eapRespLen = strlen(tmpResponseType0);
-    memcpy(eapRespData, tmpResponseType0, *eapRespLen + 1); //  + 1 => \0
-    eapKeyAvailable = FALSE;
 }
 
 /**
@@ -230,6 +230,8 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
     read_db(PEER_DB, "Cryptosuitep", Cryptosuitep);
     char Dirp[4];
     read_db(PEER_DB, "Dirp", Dirp);
+
+    // Build response
     char tmpResponseType1[160];
     sprintf(tmpResponseType1, "%s%s%s%s%s%s%s%s%s%s%s",
         "{\"Type\":1,\"Verp\":",Verp,",\"PeerId\":\"",PeerId,
@@ -238,7 +240,7 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
     );
 
     *eapRespLen = strlen(tmpResponseType1);
-    memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType1, *eapRespLen + 1);
     eapKeyAvailable = FALSE;
 
 #if NOOB_DEBUG
@@ -253,15 +255,15 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 **/
 void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
-    unsigned char pk_str1[32];
     int i;
+
+    unsigned char pk_str1[32];
     for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
         pk_str1[i*4+3] = client_pk.x[i] >> 24;
         pk_str1[i*4+2] = client_pk.x[i] >> 16;
         pk_str1[i*4+1] = client_pk.x[i] >> 8;
         pk_str1[i*4+0] = client_pk.x[i];
     }
-
     size_t len_b64_x = 0;
     unsigned char pk_x_b64[45];
     base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
@@ -274,7 +276,6 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
         pk_str2[i*4+1] = client_pk.y[i] >> 8;
         pk_str2[i*4+0] = client_pk.y[i];
     }
-
     size_t len_b64_y = 0;
     unsigned char pk_y_b64[44];
     base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
@@ -285,6 +286,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     generate_nonce(32, Np_b64);
     write_db(PEER_DB, "Np", strlen((char *)Np_b64), (char *)Np_b64);
 
+    // Build response
     char tmpResponseType2[250];
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
         "{\"Type\":2,\"PeerId\":\"",PeerId,
@@ -293,10 +295,10 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     );
 
     *eapRespLen = strlen(tmpResponseType2);
-    memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType2, *eapRespLen + 1);
 
     // Update NAI
-    sprintf(nai, "%s+s1@%s", PeerId, RealM);
+    sprintf(nai, "%s+s1@%s", PeerId, Realm);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: Sending response %s\n", tmpResponseType2);
@@ -310,13 +312,14 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 **/
 void eap_noob_rsp_type_three(uint8_t *eapRespData, size_t *eapRespLen)
 {
+    // Build response
     char tmpResponseType3[80];
     sprintf(tmpResponseType3, "%s%s%s",
         "{\"Type\":3,\"PeerId\":\"",PeerId,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType3);
-    memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType3, *eapRespLen + 1);
     eapKeyAvailable = FALSE;
 
 #if NOOB_DEBUG
@@ -333,17 +336,19 @@ void eap_noob_rsp_type_four(uint8_t *eapRespData, size_t *eapRespLen)
 {
     char MACp[44];
     read_db(MAC_DB, "MACp", MACp);
+
+    // Build response
     char tmpResponseType4[140];
     sprintf(tmpResponseType4, "%s%s%s%s%s",
         "{\"Type\":4,\"PeerId\":\"",PeerId,"\",\"MACp\":\"",MACp,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType4);
-    memcpy(eapRespData, tmpResponseType4, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType4, *eapRespLen + 1);
     eapKeyAvailable = TRUE;
 
     // Update NAI
-    sprintf(nai, "%s+s3@%s", PeerId, RealM);
+    sprintf(nai, "%s+s3@%s", PeerId, Realm);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: Sending response %s\n", tmpResponseType4);
@@ -361,6 +366,8 @@ void eap_noob_rsp_type_five(uint8_t *eapRespData, size_t *eapRespLen)
     read_db(PEER_DB, "Verp", Verp);
     char Cryptosuitep[4];
     read_db(PEER_DB, "Cryptosuitep", Cryptosuitep);
+
+    // Build response
     char tmpResponseType5[140];
     sprintf(tmpResponseType5, "%s%s%s%s%s%s%s%s%s",
         "{\"Type\":5,\"Verp\":\"",Verp,"\",\"PeerId\":\"",PeerId,
@@ -368,7 +375,7 @@ void eap_noob_rsp_type_five(uint8_t *eapRespData, size_t *eapRespLen)
     );
 
     *eapRespLen = strlen(tmpResponseType5);
-    memcpy(eapRespData, tmpResponseType5, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType5, *eapRespLen + 1);
     eapKeyAvailable = FALSE;
 
 #if NOOB_DEBUG
@@ -388,21 +395,20 @@ void eap_noob_rsp_type_six(uint8_t *eapRespData, size_t *eapRespLen)
     generate_nonce(32, Np2_b64);
     write_db(PEER_DB, "Np2", strlen((char *)Np2_b64), (char *)Np2_b64);
 
-    /* //EDU:
-        The SM should stop here until we get the MACs and MACp.
-     */
+    // EDU: The SM should stop here until we get the MACs and MACp.
     is_mac2_in_progress = TRUE;
     process_start(&sha256_calc, "kdf_mac2");
-    
+
     // TODO: generate PKp2
 
+    // Build response
     char tmpResponseType6[200];
     sprintf(tmpResponseType6, "%s%s%s%s%s",
         "{\"Type\":6,\"PeerId\":\"",PeerId,"\",\"Np2\":\"",Np2_b64,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType6);
-    memcpy(eapRespData, tmpResponseType6, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType6, *eapRespLen + 1);
     eapKeyAvailable = FALSE;
 
 #if NOOB_DEBUG
@@ -419,14 +425,19 @@ void eap_noob_rsp_type_seven(uint8_t *eapRespData, size_t *eapRespLen)
 {
     char MACp2[44];
     read_db(MAC_DB, "MACp2", MACp2);
+
+    // Build response
     char tmpResponseType7[120];
     sprintf(tmpResponseType7, "%s%s%s%s%s",
         "{\"Type\":7,\"PeerId\":\"",PeerId,"\",\"MACp2\":\"",MACp2,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType7);
-    memcpy(eapRespData, tmpResponseType7, *eapRespLen + 1); //  + 1 => \0
+    memcpy(eapRespData, tmpResponseType7, *eapRespLen + 1);
     eapKeyAvailable = FALSE;
+
+    // Update NAI
+    sprintf(nai, "%s+s4@%s", PeerId, Realm);
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: Sending response %s\n", tmpResponseType7);
@@ -484,17 +495,19 @@ void eap_noob_req_type_one(char *eapReqData, const size_t size, uint8_t *eapResp
             write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
         }
     }
-    // Convert values to store them in the database
+    // Convert values and store them in the database
     char Verp[2];
-    char Cryptosuitep[2];
-    char Dirp[2];
     sprintf(Verp, "%d", VERS);
-    sprintf(Cryptosuitep, "%d", CSUIT);
-    sprintf(Dirp, "%d", dirp);
-
     write_db(PEER_DB, "Verp", strlen(Verp), Verp);
+
+    char Cryptosuitep[2];
+    sprintf(Cryptosuitep, "%d", CSUIT);
     write_db(PEER_DB, "Cryptosuitep", strlen(Cryptosuitep), Cryptosuitep);
+
+    char Dirp[2];
+    sprintf(Dirp, "%d", dirp);
     write_db(PEER_DB, "Dirp", strlen(Dirp), Dirp);
+
     write_db(PEER_DB, "PeerInfo", strlen(PEER_INFO), PEER_INFO);
 
     // Build response
@@ -678,15 +691,34 @@ void eap_noob_req_type_five(char *eapReqData, const size_t size, uint8_t *eapRes
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
-            } else if(!strcmp(tmp_key, "Vers")) {
-                // TODO: upgrade version if necessary
-            } else if(!strcmp(tmp_key, "Cryptosuites")) {
-                // TODO: upgrade cryptosuite if necessary
-            } else if(!strcmp(tmp_key, "Realm")) {
-                // TODO: update Realm if necessary
-            } else if(!strcmp(tmp_key, "ServerInfo")) {
-                // TODO: update ServerInfo if necessary
             }
+            // else if(!strcmp(tmp_key, "Vers")) {
+            //     char Vers[strlen(tmp_val)]; // TODO size
+            //     read_db(PEER_DB, "Vers", Vers);
+            //     if(strcmp(tmp_val, Vers)) {
+            //         // TODO: Update Vers in database
+            //         // TODO: Upgrade Verp in database
+            //     }
+            // } else if(!strcmp(tmp_key, "Cryptosuites")) {
+            //     char Cryptosuites[strlen(tmp_val)]; // TODO size
+            //     read_db(PEER_DB, "Cryptosuites", Cryptosuites);
+            //     if(strcmp(tmp_val, Cryptosuites)) {
+            //         // TODO: Update Cryptosuites in database
+            //         // TODO: Upgrade Cryptosuitep in database
+            //     }
+            // } else if(!strcmp(tmp_key, "Realm")) {
+            //     char Realm[strlen(tmp_val)]; // TODO size
+            //     read_db(PEER_DB, "Realm", Realm);
+            //     if(strcmp(tmp_val, Realm)) {
+            //         // TODO: Update Realm in database
+            //     }
+            // } else if(!strcmp(tmp_key, "ServerInfo")) {
+            //     char ServerInfo[strlen(tmp_val)]; // TODO size
+            //      read_db(PEER_DB, "ServerInfo", ServerInfo);
+            //      if(strcmp(tmp_val, ServerInfo)) {
+            //          // TODO: Update ServerInfo in database
+            //      }
+            // }
         }
     }
     // Build response

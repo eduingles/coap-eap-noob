@@ -65,8 +65,8 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
         Otherwise   --> Exit. //TODO: Improve error handling.
      */
-    if (data == NULL || (strcmp(data, "kdf_mac1") && strcmp(data, "kdf_mac2") ) ){        
-        printf("SHA256 MAC ERROR: Not indicated mac step in data.\n");
+    if (data == NULL || (strcmp(data, "kdf_mac1") && strcmp(data, "kdf_mac2") ) ){
+        printf("EAP-NOOB: SHA256 MAC ERROR: Not indicated mac step in data.\n");
         goto _error;
     }
 
@@ -157,7 +157,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += 1;
         } else if (!strcmp(MAC_keys[i], "Ns") ||
             !strcmp(MAC_keys[i], "Np") ){
-            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0) 
+            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0)
             if (!strcmp(data, "kdf_mac1")) {
                 sprintf(aux_key,"%s", MAC_keys[i]);
             } else if (!strcmp(data, "kdf_mac2")) {
@@ -211,10 +211,10 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
 #if EDU_DEBUG
     printf("EDU: sha256_mac: sha256 MACs ");
-#endif
     for(uint8_t i = 0; i < 32 ; i++)
         printf("%02x", sha256[i]);
     printf("\n");
+#endif
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
@@ -249,7 +249,8 @@ PROCESS_THREAD(sha256_mac, ev, data)
     MAC_input[32] = 0x00;
 #if EDU_DEBUG
     printf("EDU: sha256_mac: KMP (hex) ");
-    for(uint8_t i = 0; i < 32; i++) printf("%02x", MAC_input[i]);
+    for(uint8_t i = 0; i < 32; i++)
+        printf("%02x", MAC_input[i]);
     printf("\n");
 #endif
     /* ipad */
@@ -309,7 +310,7 @@ PROCESS_THREAD(sha256_mac, ev, data)
             counter += 1;
         } else if (!strcmp(MAC_keys[i], "Ns") ||
             !strcmp(MAC_keys[i], "Np") ){
-            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0) 
+            char aux_key[5]; // Future PKp2 and PKs2 (PKs2\0)
             if (!strcmp(data, "kdf_mac1")) {
                 sprintf(aux_key,"%s", MAC_keys[i]);
             } else if (!strcmp(data, "kdf_mac2")) {
@@ -358,10 +359,10 @@ PROCESS_THREAD(sha256_mac, ev, data)
 
 #if EDU_DEBUG
     printf("EDU: sha256_mac: sha256 MACp ");
-#endif
     for(uint8_t i = 0; i < 32 ; i++)
         printf("%02x", sha256[i]);
     printf("\n");
+#endif
 
     base64_encode(sha256, 32, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end

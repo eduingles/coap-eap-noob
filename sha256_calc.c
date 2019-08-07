@@ -153,14 +153,14 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		read_db(PEER_DB, "PeerId", peer_id);
 		read_db(PEER_DB, "Noob", noob);
 
-		/* TODO: Get url from 'ServerInfo' */
-		printf("EAP-NOOB: OOB:\n\n https://193.234.219.186:8080/sendOOB?P=%s&N=%s&H=%s\n",
-			peer_id, noob, hoob
-		);
-
-		printf("EAP-NOOB: OOB:\n\n https://localhost:8080/sendOOB?P=%s&N=%s&H=%s\n\n",
-			peer_id, noob, hoob
-		);
+        printf("-----------------------OOB-----------------------\n");
+        printf("trs186:\n  %s:8080/sendOOB?P=%s&N=%s&H=%s\n\n",
+            "https://193.234.219.186", peer_id, noob, hoob
+        );
+        printf("localhost:\n  %s:8080/sendOOB?P=%s&N=%s&H=%s\n",
+            "https://localhost", peer_id, noob, hoob
+        );
+        printf("-------------------------------------------------\n");
 
 		/*--------------------- SHA256 NoobId Generation -------------------- */
 
@@ -269,7 +269,7 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			kdf_hash_tmp[124] = '\0';
 			sha256_process(&state, kdf_hash_tmp, 124);
 		} else if (!strcmp(data, "kdf_mac2")) {
-			kdf_hash_tmp[108] = '\0';	
+			kdf_hash_tmp[108] = '\0';
 			sha256_process(&state, kdf_hash_tmp, 108);
 		}
 
@@ -401,9 +401,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
        	process_post(&boostrapping_service_process, PROCESS_EVENT_CONTINUE, "KDF2_generated");
     }
 
-	_error:
-	printf(" ");
-
+_error:
+    (void) 0;
 	PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

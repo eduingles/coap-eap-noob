@@ -35,9 +35,7 @@
 
 #include "include.h"
 #include "base64.h"
-#include "database.h" // Database
-
-// SHA256 Implementation
+#include "database.h"
 #include "dev/sha256.h"
 
 PROCESS_NAME(sha256_calc);
