@@ -179,7 +179,7 @@ PROCESS_THREAD(led_oob_process, ev, data) {
                 if (l < repeat) {
                     i = 0;
                 } else {
-                    for (int c = 2; c < 34; c++) {
+                    for (int c = 2; c < 40; c++) { // c < 34 fails on longer OOB messages, ideally same as msg prefix + 1
                         if (l <= repeat*c) {
                             i = payload_len * (c-1);
                             break;
