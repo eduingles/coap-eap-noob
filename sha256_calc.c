@@ -82,8 +82,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			"Realm",
 			"PeerInfo",
 			// "PKs",
-			"Xs",
-			"Ys",
+			"x_s",
+			"y_s",
 			"Ns",
 			// "PKp",
 			"x_p",
@@ -105,8 +105,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 				!strcmp(keys_db[i], "Ns")     ||
 				!strcmp(keys_db[i], "Np")     ||
 				!strcmp(keys_db[i], "Noob")   ||
-				!strcmp(keys_db[i], "Xs")     ||
-				!strcmp(keys_db[i], "Ys")     ||
+				!strcmp(keys_db[i], "x_s")     ||
+				!strcmp(keys_db[i], "y_s")     ||
 				!strcmp(keys_db[i], "x_p")     ||
 				!strcmp(keys_db[i], "y_p")
 			)

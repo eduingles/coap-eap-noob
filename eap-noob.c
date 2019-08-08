@@ -578,14 +578,14 @@ void eap_noob_req_type_two(char *eapReqData, const size_t size, uint8_t *eapResp
                         jsonparse_next(&pks);
                         jsonparse_copy_next(&pks, tmp_val, size);
                         if (!strcmp(tmp_key, "x")) {
-                            write_db(PEER_DB, "Xs", strlen(tmp_val), tmp_val);
+                            write_db(PEER_DB, "x_s", strlen(tmp_val), tmp_val);
                             size_t len_x = 0;
                             unsigned char x[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
                             base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_x, x);
                             memcpy(server_pk.x,x, 32);
                         } else if (!strcmp(tmp_key, "y")) {
-                            write_db(PEER_DB, "Ys", strlen(tmp_val), tmp_val);
+                            write_db(PEER_DB, "y_s", strlen(tmp_val), tmp_val);
                             size_t len_y = 0;
                             unsigned char y[33];
                             sprintf(tmp_val, "%s""=", tmp_val);
@@ -781,8 +781,36 @@ void eap_noob_req_type_six(char *eapReqData, const size_t size, uint8_t *eapResp
                     eap_noob_err_msg(eapRespData, E2004, eapRespLen);
                     return;
                 }
+            } else if (!strcmp(tmp_key, "KeyingMode")) {
+                write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
+            } else if (!strcmp(tmp_key, "PKs2")) {
+                struct jsonparse_state pks;
+                jsonparse_setup(&pks, tmp_val, strlen(tmp_val));
+                while((type = jsonparse_next(&pks)) != 0) {
+                    if(type == JSON_TYPE_PAIR_NAME) {
+                        jsonparse_copy_next(&pks, tmp_key, size);
+                        jsonparse_next(&pks);
+                        jsonparse_copy_next(&pks, tmp_val, size);
+                        if (!strcmp(tmp_key, "x")) {
+                            write_db(PEER_DB, "x_s2", strlen(tmp_val), tmp_val);
+                            size_t len_x = 0;
+                            unsigned char x[33];
+                            sprintf(tmp_val, "%s""=", tmp_val);
+                            base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_x, x);
+                            memcpy(server_pk.x,x, 32);
+                        } else if (!strcmp(tmp_key, "y")) {
+                            write_db(PEER_DB, "y_s2", strlen(tmp_val), tmp_val);
+                            size_t len_y = 0;
+                            unsigned char y[33];
+                            sprintf(tmp_val, "%s""=", tmp_val);
+                            base64_decode((unsigned char *)tmp_val, strlen(tmp_val), &len_y, y);
+                            memcpy(server_pk.y,y, 32);
+                        }
+                    }
+                }
+            } else if (!strcmp(tmp_key, "Ns2")) {
+                write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
             }
-            write_db(PEER_DB, tmp_key, strlen(tmp_val), tmp_val);
         }
     }
     // Build response
