@@ -226,10 +226,17 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			base64_decode((unsigned char *)nonce, strlen(nonce), &len_tmp, z);
 		} else if (!strcmp(data, "kdf_mac1")) {
 			for(int j = 0; j < 8; j++) {
-				z[j*4+0] = shared_secret[7-j] >> 24;
-				z[j*4+1] = shared_secret[7-j] >> 16;
-				z[j*4+2] = shared_secret[7-j] >> 8;
-				z[j*4+3] = shared_secret[7-j];
+				if (pk_state == 1) {
+					z[j*4+0] = shared_secret[7-j] >> 24;
+					z[j*4+1] = shared_secret[7-j] >> 16;
+					z[j*4+2] = shared_secret[7-j] >> 8;
+					z[j*4+3] = shared_secret[7-j];
+				} else {
+					z[j*4+0] = shared_secret2[7-j] >> 24;
+					z[j*4+1] = shared_secret2[7-j] >> 16;
+					z[j*4+2] = shared_secret2[7-j] >> 8;
+					z[j*4+3] = shared_secret2[7-j];
+				}
 			}
 		}
 		unsigned char np_decoded[33];

@@ -424,10 +424,6 @@ void eap_noob_rsp_type_six(uint8_t *eapRespData, size_t *eapRespLen)
     generate_nonce(32, Np2_b64);
     write_db(PEER_DB, "Np2", strlen((char *)Np2_b64), (char *)Np2_b64);
 
-    // EDU: The SM should stop here until we get the MACs and MACp.
-    is_mac2_in_progress = TRUE;
-    process_start(&sha256_calc, "kdf_mac2");
-
     // Build response
     char tmpResponseType6[250];
     sprintf(tmpResponseType6, "%s%s%s%s%s%s%s%s%s",
@@ -813,6 +809,11 @@ void eap_noob_req_type_six(char *eapReqData, const size_t size, uint8_t *eapResp
             }
         }
     }
+
+    is_mac2_in_progress = TRUE;
+    // Derive shared secret key and build OOB message
+    process_start(&ecc_derive_secret, NULL);
+
     // Build response
     eap_noob_rsp_type_six(eapRespData, eapRespLen);
 }

@@ -112,6 +112,13 @@
 PROCESS_NAME(boostrapping_service_process);
 uint32_t private_secret[8];
 uint32_t shared_secret[8]; // Shared Secret derived during ECDH
+uint32_t private_secret2[8];
+uint32_t shared_secret2[8]; // Shared Secret derived during ECDH
+
+/* 1: Initial Exchange
+   2: Reconnect Exhange */
+uint8_t pk_state;
+uint8_t shared_state;
 
 //SHA256 Implementation
 uint8_t is_mac2_in_progress;

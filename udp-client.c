@@ -451,6 +451,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
 	// ECDH - Generate Client Public Key
+	pk_state = 1;
 	process_start(&ecdh_generate_pubkey, NULL);
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
 	printf("UDP CLIENT: Client Public Key Generated\n");
@@ -475,10 +476,13 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 			} else if(ev == tcpip_event) {
 				if (tcpip_handler()) {
 					if (is_mac2_in_progress){
+						PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "sharedkey_generated") == 0);
+					    process_start(&sha256_calc, "kdf_mac2");
 						PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "KDF2_generated") == 0);
 						process_start(&sha256_mac, "kdf_mac2");
 						PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "MACs2_MACp2_generated") == 0);
 						is_mac2_in_progress = FALSE;
+						pk_state = 0;
 					}
 					tcpip_sender();
 				}
@@ -493,6 +497,12 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				process_start(&sha256_mac, "kdf_mac1");
 			} else if(ev == button_hal_press_event) {
 				printf("UDP CLIENT: Starting Reconnect Exchange\n");
+				// ECDH - Generate Client Public Key
+				pk_state = 2;
+				process_start(&ecdh_generate_pubkey, NULL);
+				PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_CONTINUE && data != NULL && strcmp(data, "pubkey_generated") == 0);
+				printf("UDP CLIENT: Client Public Key 2 Generated\n");
+				// ECDH - end
 				timeout_handler();
 			} else {
 				printf("UDP CLIENT: Received another kind of event\n");

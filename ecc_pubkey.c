@@ -52,8 +52,13 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
     };
 	memcpy(state1.b, nist_p_256.n, sizeof(uint32_t) * 8);
 	do {
-		ecc_set_random(private_secret);
-		memcpy(state1.a, private_secret, sizeof(uint32_t) * 8);
+		if (pk_state == 1){
+			ecc_set_random(private_secret);
+			memcpy(state1.a, private_secret, sizeof(uint32_t) * 8);
+		} else {
+			ecc_set_random(private_secret2);
+			memcpy(state1.a, private_secret2, sizeof(uint32_t) * 8);
+		}
 		PT_SPAWN(&(ecdh_generate_pubkey.pt), &(state1.pt), ecc_compare(&state1));
 	} while(state1.result != PKA_STATUS_A_LT_B);
 
@@ -63,15 +68,56 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
 	};
 	memcpy(ecc_client.point_in.x, nist_p_256.x, sizeof(uint32_t) * 8);
 	memcpy(ecc_client.point_in.y, nist_p_256.y, sizeof(uint32_t) * 8);
-	memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
+	if (pk_state == 1){
+		memcpy(ecc_client.secret, private_secret, sizeof(private_secret));
+	} else {
+		memcpy(ecc_client.secret, private_secret2, sizeof(private_secret2));
+	}
 
 	PT_SPAWN(&(ecdh_generate_pubkey.pt), &(ecc_client.pt), ecc_multiply(&ecc_client));
-	memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
-	memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
+	if (pk_state == 1){
+		memcpy(client_pk.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
+		memcpy(client_pk.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
+	} else {
+		memcpy(client_pk2.x, ecc_client.point_out.x, sizeof(uint32_t) * 8);
+		memcpy(client_pk2.y, ecc_client.point_out.y, sizeof(uint32_t) * 8);
+	}
 
   	pka_disable();
    	process_post(&boostrapping_service_process,
                 PROCESS_EVENT_CONTINUE, "pubkey_generated");
+
+	ec_point_t client_pk_tmp; // Generator Point
+    #if NOOB_DEBUG
+	    printf("EAP-NOOB: Client PK.X: ");
+    #endif
+    for(int i = 7; i >= 0; i--) {
+		if (pk_state == 1){
+			client_pk_tmp.x[i] = NTOHL(client_pk.x[7-i]);
+		} else {
+			client_pk_tmp.x[i] = NTOHL(client_pk2.x[7-i]);
+		}
+        #if NOOB_DEBUG
+            printf("%08lX ", client_pk_tmp.x[i]);
+		#endif
+	}
+    #if NOOB_DEBUG
+        printf("\n");
+        printf("EAP-NOOB: Client PK.Y: ");
+    #endif
+    for(int i = 7; i >=0 ; i--) {
+		if (pk_state == 1){
+			client_pk_tmp.y[i] = NTOHL(client_pk.y[7-i]);
+		} else {
+			client_pk_tmp.y[i] = NTOHL(client_pk2.y[7-i]);
+		}
+        #if NOOB_DEBUG
+            printf("%08lX ", client_pk_tmp.y[i]);
+        #endif
+	}
+    #if NOOB_DEBUG
+            printf("\n");
+    #endif
 
     PROCESS_END();
 }

@@ -46,7 +46,11 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
         printf("EAP-NOOB: Server PK.X: ");
     #endif
     for(int i = 7; i >= 0; i--) {
-		server_pk_tmp.x[i] = NTOHL(server_pk.x[7-i]);
+		if (pk_state == 1){
+			server_pk_tmp.x[i] = NTOHL(server_pk.x[7-i]);
+		} else {
+			server_pk_tmp.x[i] = NTOHL(server_pk2.x[7-i]);
+		}
         #if NOOB_DEBUG
             printf("%08lX ", server_pk_tmp.x[i]);
         #endif
@@ -56,7 +60,11 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
         printf("EAP-NOOB: Server PK.Y: ");
     #endif
     for(int i = 7; i >=0 ; i--) {
-		server_pk_tmp.y[i] = NTOHL(server_pk.y[7-i]);
+		if (pk_state == 1){
+			server_pk_tmp.y[i] = NTOHL(server_pk.y[7-i]);
+		} else {
+			server_pk_tmp.y[i] = NTOHL(server_pk2.y[7-i]);
+		}
         #if NOOB_DEBUG
             printf("%08lX ", server_pk_tmp.y[i]);
         #endif
@@ -72,7 +80,11 @@ PROCESS_THREAD(ecc_derive_secret, ev, data) {
 	};
 	memcpy(ec_server.point_in.x, server_pk_tmp.x, sizeof(uint32_t) * 8);
 	memcpy(ec_server.point_in.y, server_pk_tmp.y, sizeof(uint32_t) * 8);
-	memcpy(ec_server.secret, private_secret, sizeof(private_secret));
+	if (pk_state == 1){
+		memcpy(ec_server.secret, private_secret, sizeof(private_secret));
+	} else {
+		memcpy(ec_server.secret, private_secret2, sizeof(private_secret2));
+	}
 	/* ECDH: Derive secret */
 	PT_SPAWN(&(ecc_derive_secret.pt), &(ec_server.pt), ecc_multiply(&ec_server));
 	/* ECDH: Save shared secret in 'shared_secret' */
