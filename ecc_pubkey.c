@@ -35,9 +35,9 @@
 static void
 ecc_set_random(uint32_t *secret)
 {
-  for(int i = 0; i < 8; ++i) {
-    secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
-  }
+    for(int i = 0; i < 8; ++i) {
+        secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
+    }
 }
 
 PROCESS(ecdh_generate_pubkey, "ECDH Generate Client Public Key");
@@ -73,31 +73,6 @@ PROCESS_THREAD(ecdh_generate_pubkey, ev, data) {
    	process_post(&boostrapping_service_process,
                 PROCESS_EVENT_CONTINUE, "pubkey_generated");
 
-    #if NOOB_DEBUG
-        printf("EAP-NOOB: PK.X: ");
-        for(int i = 0; i < 8; ++i)
-            printf("%u", (unsigned int)client_pk.x[i]);
-        printf("\n");
-        printf("EAP-NOOB: PK.Y: ");
-        for(int i = 0; i < 8; ++i)
-            printf("%u", (unsigned int)client_pk.y[i]);
-        printf("\n");
-    #endif
-
-  	// puts("-----------------------------------------");
-  	// puts("        CLIENT PUBLIC KEY PAIR");
-  	// puts("-----------------------------------------");
-	// printf("     A PK.X: ");
-	// for(int i = 0; i < 8; ++i) {
-	// 	printf("%u", (unsigned int)client_pk.x[i]);
-	// }
-	// printf("\n");
-	// printf("     A PK.Y: ");
-	// for(int i = 0; i < 8; ++i) {
-	// 	printf("%u", (unsigned int)client_pk.y[i]);
-	// }
-	// printf("\n");
-  	// puts("-----------------------------------------");
-  PROCESS_END();
+    PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

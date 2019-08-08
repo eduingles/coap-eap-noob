@@ -120,13 +120,13 @@ PROCESS_THREAD(sha256_mac, ev, data)
                 counter += strlen(PKP1);
                 // Re-build PKp because it doesn't fit in the database
                 char pk_b64[45];
-                read_db(PEER_DB, "Xp", pk_b64);
+                read_db(PEER_DB, "x_p", pk_b64);
                 pk_b64[43] = '\0';
                 memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
                 counter += strlen(pk_b64);
                 memcpy(MAC_input+counter, PKP2, strlen(PKP2));
                 counter += strlen(PKP2);
-                read_db(PEER_DB, "Yp", pk_b64);
+                read_db(PEER_DB, "y_p", pk_b64);
                 pk_b64[43] = '\0';
                 memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
                 counter += strlen(pk_b64);
@@ -272,13 +272,13 @@ PROCESS_THREAD(sha256_mac, ev, data)
                 memcpy(MAC_input+counter, PKP1, strlen(PKP1));
                 counter += strlen(PKP1);
                 char pk_b64[45];
-                read_db(PEER_DB, "Xp", pk_b64);
+                read_db(PEER_DB, "x_p", pk_b64);
                 pk_b64[43] = '\0';
                 memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
                 counter += strlen(pk_b64);
                 memcpy(MAC_input+counter, PKP2, strlen(PKP2));
                 counter += strlen(PKP2);
-                read_db(PEER_DB, "Yp", pk_b64);
+                read_db(PEER_DB, "y_p", pk_b64);
                 pk_b64[43] = '\0';
                 memcpy(MAC_input+counter, pk_b64, strlen(pk_b64));
                 counter += strlen(pk_b64);

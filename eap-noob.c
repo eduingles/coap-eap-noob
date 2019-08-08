@@ -192,6 +192,45 @@ void generate_noob(void)
 }
 
 /**
+ * encode_client_pk : Encode PKp/PKp2 as Base64Url and write it to the database
+ * pk : 1 or 2
+ **/
+static void encode_client_pk(uint8_t pk)
+{
+    // Client public key
+    public_key cpk = (pk == 1) ? client_pk : client_pk2;
+    // Database keys
+    char *x_p = (pk == 1) ? "x_p" : "x_p2";
+    char *y_p = (pk == 1) ? "y_p" : "y_p2";
+
+    int i;
+    unsigned char pk_str1[32];
+    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
+        pk_str1[i*4+3] = cpk.x[i] >> 24;
+        pk_str1[i*4+2] = cpk.x[i] >> 16;
+        pk_str1[i*4+1] = cpk.x[i] >> 8;
+        pk_str1[i*4+0] = cpk.x[i];
+    }
+    size_t len_b64_x = 0;
+    unsigned char pk_x_b64[45];
+    base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
+
+    write_db(PEER_DB, x_p, strlen((char *)pk_x_b64), (char *)pk_x_b64);
+
+    unsigned char pk_str2[32];
+    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
+        pk_str2[i*4+3] = cpk.y[i] >> 24;
+        pk_str2[i*4+2] = cpk.y[i] >> 16;
+        pk_str2[i*4+1] = cpk.y[i] >> 8;
+        pk_str2[i*4+0] = cpk.y[i];
+    }
+    size_t len_b64_y = 0;
+    unsigned char pk_y_b64[44];
+    base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
+    write_db(PEER_DB, y_p, strlen((char *)pk_y_b64), (char *)pk_y_b64);
+}
+
+/**
  * eap_noob_err_msg : Prepare error message
  * @id : method identifier
  * @eapRespData : EAP response data
@@ -255,31 +294,13 @@ void eap_noob_rsp_type_one(uint8_t *eapRespData, int dirp, size_t *eapRespLen)
 **/
 void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
 {
-    int i;
-
-    unsigned char pk_str1[32];
-    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
-        pk_str1[i*4+3] = client_pk.x[i] >> 24;
-        pk_str1[i*4+2] = client_pk.x[i] >> 16;
-        pk_str1[i*4+1] = client_pk.x[i] >> 8;
-        pk_str1[i*4+0] = client_pk.x[i];
-    }
-    size_t len_b64_x = 0;
-    unsigned char pk_x_b64[45];
-    base64_encode(pk_str1, 32, &len_b64_x, pk_x_b64);
-    write_db(PEER_DB, "Xp", strlen((char *)pk_x_b64), (char *)pk_x_b64);
-
-    unsigned char pk_str2[32];
-    for(i = 7; i >= 0; i--) { //Little endian (order: 3,2,1,0)
-        pk_str2[i*4+3] = client_pk.y[i] >> 24;
-        pk_str2[i*4+2] = client_pk.y[i] >> 16;
-        pk_str2[i*4+1] = client_pk.y[i] >> 8;
-        pk_str2[i*4+0] = client_pk.y[i];
-    }
-    size_t len_b64_y = 0;
-    unsigned char pk_y_b64[44];
-    base64_encode(pk_str2, 32, &len_b64_y, pk_y_b64);
-    write_db(PEER_DB, "Yp", strlen((char *)pk_y_b64), (char *)pk_y_b64);
+    // Encode PKp
+    encode_client_pk(1);
+    // Read PKp
+    char pk_x_b64[45];
+    read_db(PEER_DB, "x_p", pk_x_b64);
+    char pk_y_b64[45];
+    read_db(PEER_DB, "y_p", pk_y_b64);
 
     // Generate nonce
     char Np_b64[44];
@@ -291,7 +312,7 @@ void eap_noob_rsp_type_two(uint8_t *eapRespData, size_t *eapRespLen)
     sprintf(tmpResponseType2, "%s%s%s%s%s%s%s%s%s",
         "{\"Type\":2,\"PeerId\":\"",PeerId,
         "\",\"PKp\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"",pk_x_b64,
-        "\",\"y\":\"",pk_y_b64,"\"},\"Np\":\"",Np_b64, "\"}"
+        "\",\"y\":\"",pk_y_b64,"\"},\"Np\":\"",Np_b64,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType2);
@@ -390,6 +411,14 @@ void eap_noob_rsp_type_five(uint8_t *eapRespData, size_t *eapRespLen)
 **/
 void eap_noob_rsp_type_six(uint8_t *eapRespData, size_t *eapRespLen)
 {
+    // Encode PKp
+    encode_client_pk(2);
+    // Read PKp
+    char pk_x_b64[45];
+    read_db(PEER_DB, "x_p2", pk_x_b64);
+    char pk_y_b64[45];
+    read_db(PEER_DB, "y_p2", pk_y_b64);
+
     // Generate nonce
     char Np2_b64[44];
     generate_nonce(32, Np2_b64);
@@ -399,17 +428,16 @@ void eap_noob_rsp_type_six(uint8_t *eapRespData, size_t *eapRespLen)
     is_mac2_in_progress = TRUE;
     process_start(&sha256_calc, "kdf_mac2");
 
-    // TODO: generate PKp2
-
     // Build response
-    char tmpResponseType6[200];
-    sprintf(tmpResponseType6, "%s%s%s%s%s",
-        "{\"Type\":6,\"PeerId\":\"",PeerId,"\",\"Np2\":\"",Np2_b64,"\"}"
+    char tmpResponseType6[250];
+    sprintf(tmpResponseType6, "%s%s%s%s%s%s%s%s%s",
+        "{\"Type\":6,\"PeerId\":\"",PeerId,
+        "\",\"PKp2\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"",pk_x_b64,
+        "\",\"y\":\"",pk_y_b64,"\"},\"Np2\":\"",Np2_b64,"\"}"
     );
 
     *eapRespLen = strlen(tmpResponseType6);
     memcpy(eapRespData, tmpResponseType6, *eapRespLen + 1);
-    eapKeyAvailable = FALSE;
 
 #if NOOB_DEBUG
     printf("EAP-NOOB: Sending response %s\n", tmpResponseType6);

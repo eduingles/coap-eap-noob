@@ -86,8 +86,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 			"Ys",
 			"Ns",
 			// "PKp",
-			"Xp",
-			"Yp",
+			"x_p",
+			"y_p",
 			"Np",
 			"Noob"
 		};
@@ -107,8 +107,8 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 				!strcmp(keys_db[i], "Noob")   ||
 				!strcmp(keys_db[i], "Xs")     ||
 				!strcmp(keys_db[i], "Ys")     ||
-				!strcmp(keys_db[i], "Xp")     ||
-				!strcmp(keys_db[i], "Yp")
+				!strcmp(keys_db[i], "x_p")     ||
+				!strcmp(keys_db[i], "y_p")
 			)
 				sprintf(hash_str, "%s,\"%s\"", hash_str,tmp);
 			else

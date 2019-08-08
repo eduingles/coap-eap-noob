@@ -41,7 +41,7 @@
     // #include "sys/stack-check.h"
 #endif
 
-/** 
+/**
  * General buffer to store persistent data
  * Please. Por favor. Olkaa hyvä.
  * FIXME: Fix it.
@@ -110,7 +110,7 @@
 
 //ECDH Implementation
 PROCESS_NAME(boostrapping_service_process);
-uint32_t private_secret[8]; //
+uint32_t private_secret[8];
 uint32_t shared_secret[8]; // Shared Secret derived during ECDH
 
 //SHA256 Implementation
@@ -120,7 +120,10 @@ typedef struct {
   uint32_t       x[12];     /**< Pointer to value of the x co-ordinate. */
   uint32_t       y[12];     /**< Pointer to value of the y co-ordinate. */
 } public_key;
-public_key client_pk; // Client Public Key (Local) - Generator Point
-public_key server_pk; // Server Public Key (HostAPD) - Generator Point
+public_key client_pk;  // Client Public Key (Local) - Generator Point
+public_key server_pk;  // Server Public Key (HostAPD) - Generator Point
+public_key client_pk2; // Client Public Key (Local) - Generator Point
+public_key server_pk2; // Server Public Key (HostAPD) - Generator Point
+
 
 #endif
