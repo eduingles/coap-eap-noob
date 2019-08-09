@@ -92,8 +92,8 @@ PROCESS_THREAD(led_oob_process, ev, data) {
         char *msg = "+33https://example.com/123456789/123456789/123456789/123456789/123456789/123456789/123456789/123456789";
         char *msg_bin = string_to_binary(msg);
 
-        static char str[960]; // (120 * 8) or OOB message * 8
-        memcpy(str, msg_bin, 960);
+        static char str[960]; // currently for (120 * 8) or OOB message * 8
+        memcpy(str, msg_bin, 960); 
         if (strlen(msg) % 3 != 0) {
             printf("EAP-NOOB: OOB string is of incorrect size\n");
         }
@@ -173,13 +173,13 @@ PROCESS_THREAD(led_oob_process, ev, data) {
                 * Increase the repeat value if messages are not read in order.
                 */
                 j = 0; // sets frame delimiter
-
-                if (l > repeat*34)
+                int m_len = 34; // OOB message length including prefix
+                if (l > repeat * m_len)
                     l = -1;
                 if (l < repeat) {
                     i = 0;
                 } else {
-                    for (int c = 2; c < 40; c++) { // c < 34 fails on longer OOB messages, ideally same as msg prefix + 1
+                    for (int c = 2; c <= m_len; c++) { // c < 34 fails on longer OOB messages, ideally same as msg prefix + 1
                         if (l <= repeat*c) {
                             i = payload_len * (c-1);
                             break;
