@@ -72,24 +72,24 @@ PROCESS_THREAD(led_oob_process, ev, data) {
      */
     while(1) {
         /* Generating URL */
-        // char peer_id[23];
-        // char hoob[23];
-        // char noob[23];
-        // read_db(PEER_DB, "PeerId", peer_id);
-        // read_db(PEER_DB, "Noob", noob);
-        // read_db(PEER_DB, "Hoob", hoob);
-        // char url_params[75]; //22+22+22+9
-        // sprintf(url_params, "P=%s&N=%s&H=%s", peer_id, noob, hoob);
-        // char msg [130];
-        // #if EDU_DEBUG
-        //     sprintf(msg, "+35https://localhost:8080/sendOOB?%s", url_params);
-        //     printf("OOB URL: %s\n",msg);
-        // #else
-        //     sprintf(msg, "+37https://193.234.219.186:8080/sendOOB?%s", url_params);
-        //     printf("OOB URL: %s\n",msg);
-        // #endif
+        char peer_id[23];
+        char hoob[23];
+        char noob[23];
+        read_db(PEER_DB, "PeerId", peer_id);
+        read_db(PEER_DB, "Noob", noob);
+        read_db(PEER_DB, "Hoob", hoob);
+        char url_params[75]; //22+22+22+9
+        sprintf(url_params, "P=%s&N=%s&H=%s", peer_id, noob, hoob);
+        char msg [130];
+        #if EDU_DEBUG
+             sprintf(msg, "+35https://localhost:8080/sendOOB?%s", url_params);
+             printf("OOB URL: %s\n",msg);
+        #else
+             sprintf(msg, "+37https://193.234.219.186:8080/sendOOB?%s", url_params);
+             printf("OOB URL: %s\n",msg);
+         #endif
 
-        char *msg = "+33https://example.com/123456789/123456789/123456789/123456789/123456789/123456789/123456789/123456789";
+        //char *msg = "+33https://example.com/123456789/123456789/123456789/123456789/123456789/123456789/123456789/123456789";
         char *msg_bin = string_to_binary(msg);
 
         static char str[960]; // currently for (120 * 8) or OOB message * 8
@@ -108,8 +108,7 @@ PROCESS_THREAD(led_oob_process, ev, data) {
         etimer_set(&et_oob, (1 / CLOCK_SECOND));
         while(1) {
             /* Any printf or other similar tasks during blinking process may disrupt
-            * blinking resulting in some frames not being sent properly.
-            */
+            * blinking resulting in some frames not being sent properly. */
             if (str[i] == '\0') {
                 printf("String index: %d\n", i);
                 i = 0; l = 0; j = 0;
@@ -170,10 +169,9 @@ PROCESS_THREAD(led_oob_process, ev, data) {
             if (i % (payload_len) == 0) {
                 /* Repeats each three character sets / 24 bits for 'repeat'
                 * times. Needed for reading the messages in the correct order.
-                * Increase the repeat value if messages are not read in order.
-                */
+                * Increase the repeat value if messages are not read in order. */
                 j = 0; // sets frame delimiter
-                int m_len = 34; // OOB message length including prefix
+                int m_len = 38; // OOB message length including prefix #TODO fetch the value from msg prefix
                 if (l > repeat * m_len)
                     l = -1;
                 if (l < repeat) {
