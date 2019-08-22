@@ -118,7 +118,7 @@ PROCESS_THREAD(led_oob_process, ev, data) {
         #else
         	sprintf(msg, "193.234.219.186:8080/sendOOB?%s", url_params);
         	printf("OOB URL: %s\n",msg);
-         #endif*/
+         #endif
 
         char *msg_bin = stringToBinary(msg);
 
