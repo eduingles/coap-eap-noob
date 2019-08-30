@@ -112,7 +112,7 @@ __PANID 0xABCD (default):__
 __PANID 0xDCBA:__
 - Client mote:
     ```bash
-    make udp-client.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB1 MAKE_ALTERNATIVE_PANID=1 MAKE_CONF_EDU=1 WERROR=0 login
+    make udp-client.upload TARGET=zoul BOARD=firefly MOTES=/dev/ttyUSB1 MAKE_ALTERNATIVE_PANID=1 WERROR=0 login
     ```
     NOTE: Remember to set the same PANID in examples/rpl-border-router
 
@@ -130,7 +130,6 @@ __PANID 0xDCBA:__
 | Module        | Flag          |
 | ------------- | ------------- |
 | EAP-NOOB      | DEBUG_NOOB    |
-| EDU           | MAKE_CONF_EDU |
 
 Usage: DEBUG_FLAG=1
 

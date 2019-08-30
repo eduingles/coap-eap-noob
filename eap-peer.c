@@ -71,31 +71,19 @@ void eap_peer_sm_step(const uint8_t* msg){
 	//RECEIVED STATE
 	if (eapReq){
 		//parseEapReq(msg);
-#if EDU_DEBUG
-		printf("EDU: %s EAP-Code: %02x\n", __func__, ((struct eap_msg *)msg)->code);
-#endif
 		//if ((type_received == RxSUCCESS) && (reqIdPeer == lastId) && (decision!=FAIL)){
 		if ( ( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && (reqIdPeer == lastId) && (decision!=FAIL)){
-#if EDU_DEBUG
-		printf("EDU: %s state 1\n", __func__);
-#endif
 			goto _SUCCESS;
 		}
 
 		//else if (methodState!=CONT && ( ((type_received == RxFAILURE) && decision != UNCOND_SUCC) || (type_received == RxSUCCESS && decision==FAIL) ) && (reqIdPeer == lastId) ){
 		else if (methodState!=CONT && ( (( ((struct eap_msg *)msg)->code == FAILURE_CODE) && decision != UNCOND_SUCC) || (( ((struct eap_msg *)msg)->code == SUCCESS_CODE) && decision==FAIL) ) && (reqIdPeer == lastId) ){
-#if EDU_DEBUG
-		printf("EDU: %s state 2\n", __func__);
-#endif
 			goto _FAILURE;
 		}
 
 		//else if (type_received == RxREQ && reqIdPeer == lastId){
 		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && reqIdPeer == lastId){
 			//RETRANSMIT STATE
-#if EDU_DEBUG
-		printf("EDU: %s state 3\n", __func__);
-#endif
 			goto _SEND_RESPONSE;
 		}
 
@@ -103,17 +91,11 @@ void eap_peer_sm_step(const uint8_t* msg){
 		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer==IDENTITY)){
 			//processIdentity(msg); //TODO: Deploy this. It can be avoided?
 			buildIdentity( reqIdPeer );
-#if EDU_DEBUG
-		printf("EDU: %s state 4\n", __func__);
-#endif
 			goto _SEND_RESPONSE;
 		}
 
 		//else if ((type_received == RxREQ) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer != IDENTITY) ){
 		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (selectedMethod == NONE) && (reqMethodPeer != IDENTITY) ){
-#if EDU_DEBUG
-		printf("EDU: %s state 5\n", __func__);
-#endif
 			//GET_METHOD STATE
 			//if (allowMethod(reqMethodPeer)){
 			if (reqMethodPeer == EAP_PSK){ //We can do this because only EAP-PSK is supported
@@ -132,9 +114,6 @@ void eap_peer_sm_step(const uint8_t* msg){
 
 		//else if ((type_received == RxREQ) && (reqIdPeer!=lastId) && (reqMethodPeer==selectedMethod) && (methodState != DONE)){
 		else if (( ((struct eap_msg *)msg)->code == REQUEST_CODE) && (reqIdPeer!=lastId) && (reqMethodPeer==selectedMethod) && (methodState != DONE)){
-#if EDU_DEBUG
-		printf("EDU: %s state 6\n", __func__);
-#endif
 			goto _METHOD;
 		}
 

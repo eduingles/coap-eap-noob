@@ -119,10 +119,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 		}
 		sprintf(hash_str, "%s]",hash_str);
 
-		#if EDU_DEBUG
-			printf("EDU: hash_str: %s\n", hash_str);
-		#endif
-
 		crypto_init();
 
 		sha256_init(&state);
@@ -131,14 +127,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 		/* SHA256: Get result in param 'sha256' */
 		sha256_done(&state, sha256);
-
-		#if EDU_DEBUG
-			printf("Hoob calculation process.\n");
-			printf("Hash value (hex): ");
-			for (int i = 0;i <32;i++)
-				printf("%02x", sha256[i]);
-			printf("\n");
-		#endif
 
 		size_t len_b64_hoob = 0;
 		unsigned char hoob[23];
@@ -301,17 +289,6 @@ PROCESS_THREAD(sha256_calc, ev, data) {
 
 	// kdf_hash[320] = '\0'; // End string properly
 	// write_db(kdf_hash);
-
-#if EDU_DEBUG
-	printf("EDU: SHA256: KDF Hash (hex): ");
-	for (int i = 0;i <320;i++){
-		printf("%02x", kdf_hash[i]);
-		if ((i%32) == 31){
-				printf("\n");
-		}
-	}
-	printf("\n");
-#endif
 
 #if NOOB_DEBUG
 	   printf("EAP-NOOB: KDF generated\n");

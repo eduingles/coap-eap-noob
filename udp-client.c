@@ -134,10 +134,6 @@ static int
 tcpip_handler(void)
 {
 
-#if EDU_DEBUG
-	printf("EDU: %s  \n", __func__ );
-#endif
-
 	if(uip_newdata()) {
 		// Check for retransmission - TODO: Check if it is working
 		if(memcmp(uip_appdata, received ,uip_datalen()) == 0) {
@@ -207,16 +203,6 @@ tcpip_handler(void)
 					// 	coap_set_header_lo_coap_auth(request, mac_zeroing, 16);
 					// 	// Setting the MAC
 					// 	do_omac(auth_key, request->payload,request->payload_len, mac);
-					// 	#if EDU_DEBUG
-					// 		printf("EDU: %s - mac2check\n", __func__);
-					// 		for (int i = 0; i < 16; i++)
-					// 			printf("%02x ", mac2check[i]);
-					// 		printf("\n");
-					// 		printf("EDU: %s - mac\n", __func__);
-					// 		for (int i = 0; i < 16; i++)
-					// 			printf("%02x ", mac[i]);
-					// 		printf("\n");
-					// 	#endif
 
 					// 	if(memcmp(&mac2check, &mac, 16) != 0) {
 					// 		printf("UDP-CLIENT: MAC comparison error\n");
@@ -226,39 +212,14 @@ tcpip_handler(void)
 
 				eapReq = TRUE;
 				payload = request->payload;
-				#if EDU_DEBUG
-					printf("EDU: %s print PayLoad\n",__func__); //EDU: DEBUG
-					printf("      Request Hdr: '");
-					for (int i = 0; i < 2; i++)
-						printf("%02x ", request->payload[i]);
-					printf("'\n");
-					printf("      Value: '");
-					for (int i = 0; i < 5; i++)
-						printf("%02x", payload[i]);
-					for (int i = 5; i < request->payload_len; i++) //EDU: CoAP
-						printf("%c", payload[i]);
-					printf("'\n");
-				#endif
 				eap_peer_sm_step(payload);
 				if (eapFail == TRUE) { //EAP-Peer SM
-				// if (((struct eap_msg *)payload)->code == FAILURE_CODE){
 					etimer_stop(&et);
-					// printf("UDP CLIENT: EAP-Failure received\n");
-					#if EDU_DEBUG
-						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Failure\n", __func__); //EDU: DEBUG
-					#endif
-					// etimer_restart(&et);
+					etimer_restart(&et);
 					etimer_set(&et, 20 * CLOCK_SECOND);
 					return 0;
 				} else if (eapSuccess == TRUE) {
-					#if EDU_DEBUG
-						printf("EDU: %s - EAP Success? YES \n", __func__ );
-					#endif
-
-					#if EDU_DEBUG
-						printf("EDU: %s Set TIMEOUT_INTERVAL after EAP-Success\n", __func__); //EDU: DEBUG
-					#endif
-					// etimer_restart(&et);
+					etimer_restart(&et);
 					etimer_set(&et, 20 * CLOCK_SECOND);
 					return 0;
 				}
@@ -276,17 +237,10 @@ tcpip_handler(void)
 
 		if(request->code == COAP_POST){
 			if (!state){
-				#if EDU_DEBUG
-					printf("EDU:  no state\n");
-				#endif
 				state++;
 				coap_set_header_uri_path(response, URI);
 				coap_set_payload(response, (uint8_t *)&nonce_s, request->payload_len);
 			} else{
-				#if EDU_DEBUG
-					printf("EDU:  YES state\n");
-				#endif
-				// if(!authKeyAvailable){
 					if (eapResp){
 						uint16_t len = NTOHS( ((struct eap_msg*) eapRespData)->length);
 						coap_set_payload(response, eapRespData, len);
@@ -311,9 +265,6 @@ tcpip_handler(void)
 			}
 
 			/* A 'response' message has been created. */
-			#if EDU_DEBUG
-				// printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
-			#endif
 			etimer_set(&et, 20 * CLOCK_SECOND);
 
 			return 1;
@@ -327,9 +278,6 @@ tcpip_handler(void)
 	// 	return 0;
 	// }
 
-	#if EDU_DEBUG
-		// printf("EDU: %s set TIMEOUT_INTERVAL\n", __func__); //EDU: DEBUG
-	#endif
 	etimer_set(&et, 20 * CLOCK_SECOND);
 	return 0;
 }
@@ -338,9 +286,6 @@ tcpip_handler(void)
 	static void
 timeout_handler(void)
 {
-#if EDU_DEBUG
-	printf("EDU: %s init\n", __func__); //EDU: DEBUG
-#endif
 	etimer_stop(&et);
 
 	last_seq_id = 0;
@@ -462,14 +407,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 	etimer_set(&et, 1*CLOCK_SECOND);
 
 	while(1) {
-#if EDU_DEBUG
-		printf("EDU: while(1)\n");
-#endif
 		PROCESS_YIELD();
-#if EDU_DEBUG
-		printf("EDU: while(1) 2\n");
-		// printf("STACK: %" PRId32 " permitted: %" PRId32 "\n", stack_check_get_usage(), stack_check_get_reserved_size());
-#endif
 		if(NETSTACK_ROUTING.node_is_reachable()) {
 			if(etimer_expired(&et) ) {
 				timeout_handler();
@@ -508,7 +446,7 @@ PROCESS_THREAD(boostrapping_service_process, ev, data)
 				printf("UDP CLIENT: Received another kind of event\n");
 			}
 		} else {
-			printf("UDP CLIENT: BR not reachable\n");
+			printf("UDP CLIENT: Joining RPL network...\n");
 			etimer_set(&et, 2 * CLOCK_SECOND);
 		}
 	}

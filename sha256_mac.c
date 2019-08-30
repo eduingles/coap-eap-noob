@@ -95,11 +95,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sprintf(tmp_val,"%s""=", tmp_val);
     base64_decode((unsigned char *)tmp_val, 44, &len_kms, (unsigned char *)MAC_input);
     MAC_input[32] = 0x00;
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: KMS (hex) ");
-    for(uint8_t i = 0; i < 32 ; i++) printf("%02x", MAC_input[i]);
-    printf("\n");
-#endif
     /* ipad */
     for (uint8_t i=0; i < 64; ++i) MAC_input[i] ^= 0x36;
 
@@ -181,9 +176,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     memcpy(MAC_input+counter, "]\0", 2);
     // memset(MAC_input+counter,,);
     counter += 1;
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: MAC_input ---- (%d) %s\n", counter, MAC_input+64);
-#endif
     /* SHA256 Variables */
     static sha256_state_t state;
     static uint8_t sha256[32]; /* SHA256: Hash result */
@@ -209,12 +201,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_process(&state, MAC_input, 96);
     sha256_done(&state, sha256);
 
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: sha256 MACs ");
-    for(uint8_t i = 0; i < 32 ; i++)
-        printf("%02x", sha256[i]);
-    printf("\n");
-#endif
 
     base64_encode(sha256, 32, &len_kms, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
@@ -247,12 +233,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sprintf(tmp_val,"%s""=", tmp_val);
     base64_decode((unsigned char *)tmp_val, 44, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[32] = 0x00;
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: KMP (hex) ");
-    for(uint8_t i = 0; i < 32; i++)
-        printf("%02x", MAC_input[i]);
-    printf("\n");
-#endif
     /* ipad */
     for (uint8_t i = 0; i < 64; ++i) MAC_input[i] ^= 0x36;
 
@@ -333,9 +313,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     }
     memcpy(MAC_input+counter, "]\0", 2);
     counter += 1;
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: MACp MAC_input ---- (%d) %s\n", counter, MAC_input+64);
-#endif
 
     sha256_init(&state);
     sha256_process(&state, MAC_input, counter);
@@ -356,13 +333,6 @@ PROCESS_THREAD(sha256_mac, ev, data)
     sha256_init(&state);
     sha256_process(&state, MAC_input, 96);
     sha256_done(&state, sha256);
-
-#if EDU_DEBUG
-    printf("EDU: sha256_mac: sha256 MACp ");
-    for(uint8_t i = 0; i < 32 ; i++)
-        printf("%02x", sha256[i]);
-    printf("\n");
-#endif
 
     base64_encode(sha256, 32, &len_kmp, (unsigned char *)MAC_input);
     MAC_input[43] = '\0'; // Get rid of padding character ('=') at the end
