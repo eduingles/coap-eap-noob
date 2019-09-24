@@ -1,10 +1,10 @@
-# Lo-CoAP-EAP with EAP-NOOB in Contiki
+# CoAP-EAP with EAP-NOOB in Contiki
 =====================================================
 
 About
 -----
 
-This repository is an implementation of Lo-CoAP-EAP and EAP-NOOB in Contiki. It is an EAP method for secure bootstrapping of IoT appliances. The specification for EAP-NOOB can be found at: https://datatracker.ietf.org/doc/draft-aura-eap-noob/?include_text=1.
+This repository is an implementation of CoAP-EAP and EAP-NOOB in Contiki. It is an EAP method for secure bootstrapping of IoT appliances. The specification for EAP-NOOB can be found at: https://datatracker.ietf.org/doc/draft-aura-eap-noob/?include_text=1.
 
 This implementation consists of three separate applications:
 
@@ -69,12 +69,12 @@ $ git clone https://github.com/eduingles/coap-eap-controller.git
 (For additional instructions, see [README](https://github.com/eduingles/coap-eap-controller))
 
 ## Increase stack size in Zolertia Firefly
-This implementation requires _at least_ 512 bytes of stack space. Since the
-default value for Zolertia Firefly is currently 256, it needs to be increased
+This implementation requires more than 2 Kilobytes of stack space. Since the
+default value for Zolertia Firefly is currently 2 Kilobytes, it needs to be increased
 before compiling.
 
 1. Move to directory _contiki-ng/arch/cpu/cc2538/_
-2. In the file _startup-gcc.c_, increase stack size from 256 to 512
+2. In the file _startup-gcc.c_, increase stack size from 256 to 512. It will allow 4 Kilobytes of stack: 256 * 8 Bytes (uint64_t).
 
 __Default:__
 ```C++
